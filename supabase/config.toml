@@ -1,0 +1,46 @@
+# Local development config. Match [db].major_version to the hosted project
+# (Dashboard > Settings > Infrastructure) before the first `supabase link`.
+project_id = "wpr-buck-board"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seasons/2026.sql"]
+
+[storage]
+enabled = true
+file_size_limit = "3MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://rowanflynnpilot.github.io/wpr-buck-board/"]
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+otp_length = 6
+otp_expiry = 900
+
+# Staff (and, in December, voters) sign in with a 6-digit code rather than a link,
+# because links don't survive the WordPress iframe. The hosted project needs the same
+# template pasted into Dashboard > Authentication > Email Templates.
+[auth.email.template.magic_link]
+subject = "Your Hunting Brag Board sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
+# Public endpoint: the anonymous entry form calls it. It uses the service role internally.
+[functions.submit-entry]
+verify_jwt = false

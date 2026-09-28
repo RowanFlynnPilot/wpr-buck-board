@@ -1,0 +1,57 @@
+# Hunting Brag Board
+
+Wausau Pilot & Review's sponsored reader deer-photo contest. Readers enter a photo and a few details; staff moderate; the gallery sorts every deer into the awards it qualifies for; readers vote for Readers' Choice in December.
+
+- `supabase/`: Postgres schema, RLS, RPCs, the `submit-entry` edge function, and pgTAP tests
+- `web/`: React/Vite app on GitHub Pages, embedded in WordPress by iframe
+
+Project rules, invariants, and operations SQL are in [CLAUDE.md](CLAUDE.md).
+
+## Local development
+
+```sh
+supabase start                       # migrations + the 2026 season seed
+supabase test db                     # pgTAP suite
+deno test supabase/functions/_shared # photo metadata tests
+
+cp supabase/functions/.env.example supabase/functions/.env   # Cloudflare's always-pass Turnstile test secret
+supabase functions serve --env-file supabase/functions/.env
+
+cd web
+cp .env.example .env.local           # paste the publishable key from `supabase status`
+npm install
+npm run dev                          # http://localhost:5173/wpr-buck-board/#/enter
+```
+
+Views: `#/embed` (front page), `#/gallery`, `#/enter`, `#/admin` (staff, opened directly).
+
+## First deploy
+
+1. Create the Supabase project. Set `[db].major_version` in `supabase/config.toml` to match it. Under Settings > API Keys, use the publishable and secret keys (create them if the tab offers to); the legacy anon and service_role keys are deprecated by the end of 2026, inside this contest's season.
+2. Authentication > SMTP: set up custom SMTP (Resend, Postmark or SES, sending from a wausaupilotandreview.com address; the DNS records go in Cloudflare). This is required: Supabase's built-in sender only reaches members of the Supabase organization, caps at 2 emails an hour, and doesn't allow template edits.
+3. GitHub secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`.
+4. Cloudflare dashboard > Turnstile > Add widget: mode Managed, hostname `rowanflynnpilot.github.io` (the form runs inside that iframe, not on wausaupilotandreview.com).
+5. GitHub repository variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GALLERY_PAGE_URL`, `VITE_ENTER_PAGE_URL`, `VITE_RULES_URL`, `VITE_TURNSTILE_SITE_KEY`. Enable Pages with "GitHub Actions" as the source.
+6. `supabase secrets set ALLOWED_ORIGIN=https://rowanflynnpilot.github.io TURNSTILE_SECRET_KEY=<widget secret>`
+7. Push to `main`. CI tests, pushes migrations, deploys the function, and publishes the web app.
+8. In the SQL editor, run `supabase/seasons/2026.sql` once. Add each staff member under Authentication > Users (Add user, auto-confirm), then insert them into `staff` (see CLAUDE.md).
+9. Authentication > Email Templates > Magic Link: paste `supabase/templates/magic_link.html`. Staff sign in at `#/admin` with the 6-digit code it sends.
+
+## WordPress embed
+
+Use a Custom HTML block. Front page: `#/embed`. Brag Board page (`/brag-board/`): `#/gallery`. Entry page (`/brag-board/enter/`): `#/enter`.
+
+```html
+<iframe id="wpr-buck-board" src="https://rowanflynnpilot.github.io/wpr-buck-board/#/gallery"
+  title="Hunting Brag Board" style="width:100%;border:0;display:block" height="600"></iframe>
+<script>
+  (function () {
+    var frame = document.getElementById("wpr-buck-board");
+    window.addEventListener("message", function (event) {
+      if (event.origin !== "https://rowanflynnpilot.github.io" || event.source !== frame.contentWindow) return;
+      if (event.data.height) frame.style.height = event.data.height + "px";
+      if (event.data.scrollToTop) frame.scrollIntoView({ block: "start" });
+    });
+  })();
+</script>
+```

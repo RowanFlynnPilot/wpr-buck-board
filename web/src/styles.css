@@ -1,0 +1,615 @@
+/* Hunting Brag Board. WPR's cream, ink and teal, with blaze orange spent in two places:
+   the band across the top of every view and the button that enters a deer. */
+
+:root {
+  --paper: #f6f2e9;
+  --ink: #1e2622;
+  --teal: #3a867c;
+  --teal-deep: #2c6a62;
+  --blaze: #f26a1b; /* ink text on blaze is 5:1 */
+  --bark: #6e6353;
+  --line: #dcd3c1;
+  --display: "Fraunces", Georgia, serif;
+  --body: "Public Sans", system-ui, sans-serif;
+  --gap: 1rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 1rem/1.55 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--teal-deep);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.blaze-band {
+  height: 6px;
+  background: var(--blaze);
+}
+
+.status,
+.empty {
+  padding: 1.5rem var(--gap);
+  color: var(--bark);
+}
+
+/* Buttons ---------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.7rem 1.2rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: 600 1rem var(--body);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.button-blaze {
+  border-color: var(--blaze);
+  background: var(--blaze);
+  font-weight: 700;
+}
+
+.button-blaze:hover {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--teal-deep);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Sponsors ----------------------------------------------------------------- */
+
+.sponsor-credit {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--bark);
+  font-size: 0.875rem;
+}
+
+.sponsor-logo {
+  max-height: 44px;
+  max-width: 160px;
+  object-fit: contain;
+}
+
+/* Front-page strip ------------------------------------------------------- */
+
+.strip {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem var(--gap) 1.25rem;
+}
+
+.strip-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.strip-title {
+  font-size: 1.75rem;
+}
+
+.strip-title a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.strip-count strong {
+  font-family: var(--display);
+  font-size: 1.5rem;
+}
+
+.strip-line {
+  color: var(--bark);
+  max-width: 60ch;
+}
+
+.strip-photos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(120px, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.strip-photos li {
+  scroll-snap-align: start;
+}
+
+.strip-photos a {
+  color: var(--ink);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.strip-photos img {
+  aspect-ratio: 1;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+}
+
+.strip-winners {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--gap);
+}
+
+/* Gallery ------------------------------------------------------------------ */
+
+.gallery {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem var(--gap) 3rem;
+}
+
+.masthead {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.masthead-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+}
+
+.masthead-season {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  color: var(--bark);
+}
+
+.masthead-line {
+  max-width: 62ch;
+}
+
+.winners {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filters button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: 600 0.875rem var(--body);
+  cursor: pointer;
+}
+
+.filters button[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.award-panel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 3px solid var(--teal);
+}
+
+.award-panel p {
+  color: var(--bark);
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2rem var(--gap);
+}
+
+.more {
+  justify-self: center;
+}
+
+/* Awards and prizes ---------------------------------------------------------- */
+
+.prizes {
+  display: grid;
+  gap: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+/* Before launch the section follows the masthead, which already draws the rule. */
+.masthead + .prizes {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.prizes > div {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.prizes-intro {
+  max-width: 62ch;
+  color: var(--bark);
+}
+
+.award-list,
+.drawing-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.75rem var(--gap);
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.award-list li,
+.drawing-list li {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  padding-top: 0.9rem;
+  border-top: 3px solid var(--teal);
+}
+
+.award-list h3 {
+  font-size: 1.375rem;
+}
+
+.award-list p {
+  color: var(--bark);
+}
+
+.award-list .award-prize,
+.award-prize {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.turnstile {
+  min-height: 65px;
+}
+
+/* Entry card: the photo is the card. ----------------------------------------- */
+
+.entry {
+  display: grid;
+  align-content: start;
+  gap: 0.2rem;
+}
+
+.entry-photo {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.entry-photo img {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.entry-tag {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 3px;
+  background: var(--blaze);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.entry-award {
+  color: var(--teal-deep);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.entry-name {
+  font-weight: 500;
+  font-size: 1.375rem;
+}
+
+.entry-home,
+.entry-record {
+  color: var(--bark);
+  font-size: 0.9375rem;
+}
+
+.entry-story {
+  margin-top: 0.4rem;
+  font-size: 0.9375rem;
+  white-space: pre-line;
+}
+
+.entry-story-closed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.entry .link-button {
+  justify-self: start;
+  font-size: 0.875rem;
+}
+
+/* Entry form ----------------------------------------------------------------- */
+
+.enter,
+.admin {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.5rem var(--gap) 3rem;
+}
+
+.enter header,
+.enter form,
+.admin form {
+  display: grid;
+  gap: 1rem;
+}
+
+.enter header > p {
+  max-width: 60ch;
+}
+
+fieldset {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.25rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+legend {
+  padding: 0 0 0.25rem;
+  font-family: var(--display);
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+label,
+.group-label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--bark);
+  border-radius: 6px;
+  background: #fffdf8;
+  color: var(--ink);
+  font: 400 1rem var(--body);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.optional,
+.hint {
+  color: var(--bark);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.photo-picker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border: 2px dashed var(--bark);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  font-family: var(--display);
+  font-size: 1.25rem;
+}
+
+.photo-picker img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
+
+.photo-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.photo-picker:focus-within {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.group-label {
+  margin-bottom: -0.65rem;
+}
+
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--bark);
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-weight: 400;
+}
+
+.choice input,
+.check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.1rem 0 0;
+  flex: none;
+  accent-color: var(--teal);
+}
+
+.error {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #b3261e;
+  background: #fbe9e7;
+}
+
+/* Moderation ------------------------------------------------------------------- */
+
+.admin {
+  max-width: 1200px;
+}
+
+.admin-head {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.moderation-item {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.moderation-item label {
+  flex: 1 1 180px;
+}
+
+@media (min-width: 720px) {
+  :root {
+    --gap: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
