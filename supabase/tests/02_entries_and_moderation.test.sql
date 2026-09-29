@@ -20,7 +20,9 @@ create function pg_temp.submit(p_name text, p_email text, p_age public.age_group
   p_consent boolean default false, p_story text default null, p_harvest date default current_date - 2)
 returns uuid language sql as $$
   select public.submit_entry(p_name, ' Wausau ', 'Marathon', p_harvest, 'rifle', 'buck', 8::smallint, false,
-    p_age, p_consent, p_story, gen_random_uuid(), 'Submitter', p_email, true)
+    p_age, p_consent, p_story, gen_random_uuid(), 'Submitter', p_email, true,
+    p_phone => case when p_age = 'youth' then '715-555-0100' end,
+    p_guardian_relationship => case when p_age = 'youth' then 'parent' end)
 $$;
 
 create temp table ids (label text primary key, id uuid not null);

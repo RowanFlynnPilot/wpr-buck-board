@@ -574,6 +574,13 @@ img {
   background: var(--line);
 }
 
+/* Who took the photo, set small under it like a newspaper credit. */
+.entry-credit {
+  margin: -0.4rem 0 0.3rem;
+  color: var(--bark);
+  font-size: 0.75rem;
+}
+
 .entry-tag {
   position: absolute;
   left: 0.5rem;
@@ -835,6 +842,39 @@ textarea {
   font-weight: 400;
 }
 
+/* A checkbox with a line of help under its label. */
+.check .hint {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+/* A one-choice question: its label, the buttons, then any help. */
+.choices {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.choices .group-label {
+  margin-bottom: 0;
+}
+
+/* Shereen's photo guidelines, just above the upload. */
+.guidelines {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.9375rem;
+}
+
+.guidelines ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
 .choice input,
 .check input {
   width: 1.25rem;
@@ -876,13 +916,6 @@ textarea {
 .edit-entry {
   display: grid;
   gap: 0.75rem;
-}
-
-.nudge {
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  background: #fbeccb;
-  font-size: 0.875rem;
 }
 
 /* A posted deer's share card, at about the size a phone's feed shows it. */

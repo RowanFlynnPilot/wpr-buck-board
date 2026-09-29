@@ -37,6 +37,7 @@ export function EntryCard({ entry, award, awardSponsor, share = false, featured 
         />
         {entry.first_deer && <span className="entry-tag">First deer</span>}
       </a>
+      {entry.photo_credit && <p className="entry-credit">Photo: {entry.photo_credit}</p>}
       {award && <p className="entry-award">{award}</p>}
       {awardSponsor && <SponsorCredit sponsor={awardSponsor} placement="winner-card" />}
       <h3 className="entry-name">{entry.hunter_name}</h3>

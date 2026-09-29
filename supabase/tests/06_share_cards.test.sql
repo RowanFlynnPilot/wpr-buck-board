@@ -20,7 +20,8 @@ create temp table ids (label text primary key, id text not null);
 grant select on ids to anon, authenticated;
 
 insert into ids values ('posted', public.submit_entry('Carter', 'Antigo', 'Langlade', current_date - 2, 'rifle',
-  'buck', 8::smallint, true, 'youth', true, null, gen_random_uuid(), 'Mike Johnson', 'mike@example.com', false));
+  'buck', 8::smallint, true, 'youth', true, null, gen_random_uuid(), 'Mike Johnson', 'mike@example.com', false,
+  '715-555-0100', 'parent'));
 insert into ids values ('waiting', public.submit_entry('Pete', 'Mosinee', 'Marathon', current_date - 1, 'bow',
   'antlerless', null, false, 'adult', false, null, gen_random_uuid(), 'Pete Smith', 'pete@example.com', false));
 update public.entries set status = 'approved' where id = (select id::uuid from ids where label = 'posted');

@@ -151,8 +151,9 @@ function Queue() {
   return (
     <>
       <p className="hint">
-        Post photos of field-dressed deer with minimal blood. Hunters 17 and under appear by first name only. Rejecting
-        needs a reason; the entrant doesn't see it, but the next editor does.
+        Post photos that follow the photo guidelines: the hunter in the picture, blood wiped away, no open wounds or
+        field dressing, weapons pointed safely, no alcohol. Rejecting needs a reason; the entrant doesn't see it, but
+        the next editor does.
       </p>
       <nav className="filters" aria-label="Moderation status">
         {TABS.map(({ status, label }) => (
@@ -230,8 +231,10 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
   const [error, setError] = useState<string | null>(null);
   const contact = entry.entry_private;
   const lastEdit = entry.entry_edits.map((edit) => edit.edited_at).sort().at(-1);
-  // The form asks for a first name only; a space usually means a last name came along.
-  const youthFullName = entry.age_group === "youth" && /\s/.test(entry.hunter_name.trim());
+  const youth = entry.age_group === "youth";
+  // A parent can publish a youth hunter by first name only; the name as entered is kept for staff.
+  const enteredAs =
+    contact.hunter_full_name && contact.hunter_full_name !== entry.hunter_name ? contact.hunter_full_name : null;
 
   const decide = async (decision: "approved" | "rejected") => {
     setBusy(true);
@@ -251,14 +254,14 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
     <div className="moderation-item">
       <EntryCard entry={entry} />
       <p className="hint">
-        {AGE_LABELS[entry.age_group]}. Entered by {contact.submitter_name} ({contact.email}) on {apDate(entry.created_at)}.
+        {AGE_LABELS[entry.age_group]}. Entered by {contact.submitter_name}
+        {youth && contact.guardian_relationship && `, the hunter's ${contact.guardian_relationship},`} on{" "}
+        {apDate(entry.created_at)}: {[contact.email, contact.phone].filter(Boolean).join(", ")}.
+        {enteredAs && ` Full name: ${enteredAs}.`}
         {contact.rejection_reason && ` Not posted: ${contact.rejection_reason}`}
         {lastEdit && ` Edited ${apDate(lastEdit)}.`}
       </p>
       {entry.status === "approved" && <ShareImage entry={entry} onMade={onDone} />}
-      {youthFullName && (
-        <p className="nudge">Hunters 17 and under appear by first name only. Edit the name before posting.</p>
-      )}
       {editing ? (
         <EditForm
           entry={entry}
@@ -374,7 +377,6 @@ function EditForm({ entry, onSaved, onCancel }: { entry: ModerationEntry; onSave
       <label>
         Name on the board
         <input required maxLength={60} value={fields.hunter_name} onChange={(e) => set("hunter_name", e.target.value)} />
-        {entry.age_group === "youth" && <span className="hint">First name only for hunters 17 and under.</span>}
       </label>
       <label>
         Hometown
