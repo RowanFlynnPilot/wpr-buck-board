@@ -5,9 +5,15 @@
 // submit_entry(), which owns every business rule (season phase, harvest window, youth consent).
 //
 // Storage layout: entry-photos/<photo_id>/full.jpg and entry-photos/<photo_id>/thumb.jpg.
+//
+// Once the entry is saved, it emails a confirmation to the entrant and a notice to staff, after
+// the response goes back (see sendEntryEmails). Email is the one optional setting: without
+// RESEND_API_KEY entries save as usual and nothing is sent.
 
 import { createClient } from "npm:@supabase/supabase-js@2.117.2";
-import { requireEnv, requireNamedKey } from "../_shared/env.ts";
+import { createMailer } from "../_shared/email.ts";
+import { confirmationEmail, staffNotice, type StoredEntry } from "../_shared/entry_emails.ts";
+import { optionalEnv, requireEnv, requireNamedKey } from "../_shared/env.ts";
 import { BadRequest } from "../_shared/errors.ts";
 import { corsHeaders, json } from "../_shared/http.ts";
 import { stripLocationMetadata } from "../_shared/jpeg.ts";
@@ -19,10 +25,26 @@ const MAX_BYTES = { full: 3 * 1024 * 1024, thumb: 512 * 1024 };
 const CACHE_SECONDS = "31536000";
 
 const TURNSTILE_SECRET = requireEnv("TURNSTILE_SECRET_KEY");
+const SUPABASE_URL = requireEnv("SUPABASE_URL");
 
-const supabase = createClient(requireEnv("SUPABASE_URL"), requireNamedKey("SUPABASE_SECRET_KEYS", "default"), {
+const supabase = createClient(SUPABASE_URL, requireNamedKey("SUPABASE_SECRET_KEYS", "default"), {
   auth: { persistSession: false },
 });
+
+// Replies to a confirmation reach the editor; the staff notice goes to Shereen and Chris.
+const mailer = createMailer({
+  key: optionalEnv("RESEND_API_KEY"),
+  from: optionalEnv("EMAIL_FROM") ?? "Wausau Pilot & Review <bragboard@wausaupilotandreview.com>",
+  replyTo: optionalEnv("EMAIL_REPLY_TO") ?? "editor@wausaupilotandreview.com",
+  url: optionalEnv("RESEND_API_URL") ?? undefined,
+});
+const STAFF_EMAILS = (optionalEnv("STAFF_EMAILS") ?? "editor@wausaupilotandreview.com,weber.chris@wausaupilotandreview.com")
+  .split(",").map((address) => address.trim()).filter(Boolean);
+const STAFF_QUEUE_URL = optionalEnv("STAFF_QUEUE_URL") ?? "https://rowanflynnpilot.github.io/wpr-buck-board/#/admin";
+if (!mailer) console.warn("Email is off: set RESEND_API_KEY to send entry confirmations and staff notices.");
+
+// Hosted edge functions keep running work handed to EdgeRuntime.waitUntil after responding.
+const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(task: Promise<unknown>): void } }).EdgeRuntime;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -45,6 +67,10 @@ Deno.serve(async (req) => {
       await store(paths[1], photos.thumb);
       const { data: entryId, error } = await supabase.rpc("submit_entry", { ...fields, p_photo_id: photoId });
       if (error) throw error.code === "P0001" ? new BadRequest(error.message) : error;
+      // The entrant doesn't wait on email, and an email that fails never fails the entry.
+      const emails = sendEntryEmails(entryId, fields.p_newsletter_opt_in);
+      if (edgeRuntime) edgeRuntime.waitUntil(emails);
+      else await emails;
       return json({ id: entryId }, 201);
     } catch (err) {
       const removal = await supabase.storage.from(BUCKET).remove(paths);
@@ -57,6 +83,40 @@ Deno.serve(async (req) => {
     return json({ error: "Your entry couldn't be saved. Check it and try again in a few minutes." }, 500);
   }
 });
+
+// Never throws: every failure is logged, and the entry is already safe in the queue.
+async function sendEntryEmails(entryId: string, newsletter: boolean): Promise<void> {
+  if (!mailer) return;
+  try {
+    const { data, error } = await supabase
+      .from("entries")
+      .select(
+        "hunter_name, hometown, county, harvest_date, weapon, deer_type, points, first_deer, age_group, story, " +
+          "photo_credit, photo_id, seasons(entries_close_at, winners_at), " +
+          "entry_private(submitter_name, email, phone, guardian_relationship, hunter_full_name)",
+      )
+      .eq("id", entryId)
+      .single();
+    if (error) throw error;
+    const entry = data as unknown as StoredEntry & { photo_id: string };
+
+    const emails = [
+      confirmationEmail(entry, entryId),
+      staffNotice(entry, entryId, {
+        to: STAFF_EMAILS,
+        thumbnail: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${entry.photo_id}/thumb.jpg`,
+        queue: STAFF_QUEUE_URL,
+        newsletter,
+      }),
+    ];
+    const results = await Promise.all(emails.map((email) => mailer(email)));
+    results.forEach((result, i) => {
+      if (!result.ok) console.error(`Email "${emails[i].subject}" for entry ${entryId} didn't send:`, result.error);
+    });
+  } catch (err) {
+    console.error(`Emails for entry ${entryId} didn't send:`, err);
+  }
+}
 
 async function store(path: string, bytes: Uint8Array): Promise<void> {
   const { error } = await supabase.storage

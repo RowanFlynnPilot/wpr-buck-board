@@ -13,3 +13,8 @@ export function requireNamedKey(envName: string, keyName: string): string {
   if (!key) throw new Error(`${envName} has no key named "${keyName}"`);
   return key;
 }
+
+// For the few settings that switch a feature on, like email: absent means off, not broken.
+export function optionalEnv(name: string): string | null {
+  return Deno.env.get(name) || null;
+}
