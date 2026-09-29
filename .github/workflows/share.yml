@@ -7,8 +7,8 @@ name: Share pages
 # deploy job warns and skips rather than failing every push (README "Share pages").
 
 on:
+  # Every PR, whatever it touches: main requires this job (CLAUDE.md, CI).
   pull_request:
-    paths: ["share/**", ".github/workflows/share.yml"]
   push:
     branches: [main]
     paths: ["share/**", ".github/workflows/share.yml"]
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  share:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -29,7 +29,7 @@ jobs:
       - run: deno check share/src/index.ts
 
   deploy:
-    needs: test
+    needs: share
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     concurrency:

@@ -56,7 +56,7 @@ deno check supabase/functions/submit-entry/index.ts
 cd web && npm run build                     # tsc + vite; needs the five VITE_ vars
 ```
 
-CI (`.github/workflows/supabase.yml`): Deno tests + pgTAP on every PR (full `supabase start`, because migration 0004 writes storage columns the storage service creates); on `main`, `db push` and function deploy in a non-cancelling concurrency group. `pages.yml` builds on PRs, deploys on `main`. `share.yml` tests the Worker on PRs and, on `main`, deploys it with `wrangler` using the `VITE_` repository variables, once the Cloudflare secrets exist (README "First deploy" step 10; until then it warns and skips).
+CI runs three jobs on every PR, whatever it touches, and `main` requires all three (branch protection; admins can still push directly), so GitHub auto-merge waits for them: `database` (`supabase.yml`: Deno tests + pgTAP, about two minutes; full `supabase start`, because migration 0004 writes storage columns the storage service creates), `web` (`pages.yml`: the production build) and `share` (`share.yml`: the Worker's tests). A renamed job must be renamed in the protection rule too, or every PR waits forever. Deploys run only on `main`, only when their own files change: `db push` and function deploy in a non-cancelling concurrency group; Pages; and `share.yml` deploys the Worker with `wrangler` using the `VITE_` repository variables, once the Cloudflare secrets exist (README "First deploy" step 10; until then it warns and skips).
 
 ## Operations (SQL editor)
 
