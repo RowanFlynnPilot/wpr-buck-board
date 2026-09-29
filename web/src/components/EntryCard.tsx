@@ -17,9 +17,11 @@ interface Props {
   share?: boolean;
   // The deer a link opened: the full photo, uncropped, with the whole story.
   featured?: boolean;
+  // A photo that isn't in storage yet: the entry form preview's own copy.
+  photo?: string;
 }
 
-export function EntryCard({ entry, award, awardSponsor, share = false, featured = false }: Props) {
+export function EntryCard({ entry, award, awardSponsor, share = false, featured = false, photo }: Props) {
   const [storyOpen, setStoryOpen] = useState(false);
   const storyId = useId();
   const deer = describeDeer(entry.deer_type, entry.points);
@@ -27,9 +29,9 @@ export function EntryCard({ entry, award, awardSponsor, share = false, featured 
 
   return (
     <article className={featured ? "entry entry-featured" : "entry"}>
-      <a className="entry-photo" href={photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
+      <a className="entry-photo" href={photo ?? photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
         <img
-          src={photoUrl(entry.photo_id, featured ? "full" : "thumb")}
+          src={photo ?? photoUrl(entry.photo_id, featured ? "full" : "thumb")}
           alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
           loading={featured ? "eager" : "lazy"}
         />
