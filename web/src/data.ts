@@ -75,7 +75,9 @@ export async function loadModerationQueue(seasonId: string, status: EntryStatus)
   return rows<ModerationEntry[]>(
     supabase
       .from("entries")
-      .select(`${ENTRY_COLUMNS}, status, entry_private(submitter_name, email, moderated_at, rejection_reason)`)
+      .select(
+        `${ENTRY_COLUMNS}, status, entry_private(submitter_name, email, moderated_at, rejection_reason), entry_edits(edited_at)`,
+      )
       .eq("season_id", seasonId)
       .eq("status", status)
       .order("created_at", { ascending: status === "pending" }),
@@ -98,6 +100,18 @@ export async function loadPostedSince(seasonId: string, since: string): Promise<
 
 export async function moderate(entryId: string, decision: "approved" | "rejected", reason: string | null) {
   await rows<null>(supabase.rpc("moderate_entry", { p_entry_id: entryId, p_decision: decision, p_reason: reason }));
+}
+
+// Staff fix the words on an entry; the database refuses anything else and logs the change.
+export async function editEntry(entryId: string, fields: { hunter_name: string; hometown: string; story: string }) {
+  await rows<null>(
+    supabase.rpc("edit_entry", {
+      p_entry_id: entryId,
+      p_hunter_name: fields.hunter_name,
+      p_hometown: fields.hometown,
+      p_story: fields.story,
+    }),
+  );
 }
 
 export async function isStaff(): Promise<boolean> {

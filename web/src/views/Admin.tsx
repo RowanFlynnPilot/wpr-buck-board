@@ -4,7 +4,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState, type FormEvent } from "react";
 import { EntryCard } from "../components/EntryCard";
-import { isStaff, loadModerationQueue, loadSeason, moderate } from "../data";
+import { editEntry, isStaff, loadModerationQueue, loadSeason, moderate } from "../data";
 import { AGE_LABELS, apDate } from "../format";
 import { supabase } from "../supabase";
 import type { EntryStatus, ModerationEntry } from "../types";
@@ -184,9 +184,13 @@ function QueueList({ seasonId, status }: { seasonId: string; status: EntryStatus
 function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () => void }) {
   const [reason, setReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const contact = entry.entry_private;
+  const lastEdit = entry.entry_edits.map((edit) => edit.edited_at).sort().at(-1);
+  // The form asks for a first name only; a space usually means a last name came along.
+  const youthFullName = entry.age_group === "youth" && /\s/.test(entry.hunter_name.trim());
 
   const decide = async (decision: "approved" | "rejected") => {
     setBusy(true);
@@ -206,8 +210,21 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
       <p className="hint">
         {AGE_LABELS[entry.age_group]}. Entered by {contact.submitter_name} ({contact.email}) on {apDate(entry.created_at)}.
         {contact.rejection_reason && ` Not posted: ${contact.rejection_reason}`}
+        {lastEdit && ` Edited ${apDate(lastEdit)}.`}
       </p>
-      {rejecting ? (
+      {youthFullName && (
+        <p className="nudge">Hunters 17 and under appear by first name only. Edit the name before posting.</p>
+      )}
+      {editing ? (
+        <EditForm
+          entry={entry}
+          onSaved={() => {
+            setEditing(false);
+            onDone();
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      ) : rejecting ? (
         <div className="actions">
           <label>
             Reason
@@ -232,6 +249,9 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
               {entry.status === "approved" ? "Take down…" : "Don't post…"}
             </button>
           )}
+          <button type="button" className="link-button" disabled={busy} onClick={() => setEditing(true)}>
+            Edit…
+          </button>
         </div>
       )}
       {error && (
@@ -240,5 +260,59 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
         </p>
       )}
     </div>
+  );
+}
+
+// Fix the words on an entry: a typo, or a youth hunter entered by full name. Anything that
+// decides awards stays as the entrant gave it; the original words go in the edit log.
+function EditForm({ entry, onSaved, onCancel }: { entry: ModerationEntry; onSaved: () => void; onCancel: () => void }) {
+  const [fields, setFields] = useState({ hunter_name: entry.hunter_name, hometown: entry.hometown, story: entry.story ?? "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const set = (field: keyof typeof fields, value: string) => setFields((current) => ({ ...current, [field]: value }));
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await editEntry(entry.id, fields);
+      onSaved();
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="edit-entry" onSubmit={save}>
+      <label>
+        Name on the board
+        <input required maxLength={60} value={fields.hunter_name} onChange={(e) => set("hunter_name", e.target.value)} />
+        {entry.age_group === "youth" && <span className="hint">First name only for hunters 17 and under.</span>}
+      </label>
+      <label>
+        Hometown
+        <input required maxLength={60} value={fields.hometown} onChange={(e) => set("hometown", e.target.value)} />
+      </label>
+      <label>
+        Story
+        <textarea rows={4} maxLength={1200} value={fields.story} onChange={(e) => set("story", e.target.value)} />
+      </label>
+      <p className="hint">Only these words change. The weapon, deer, age and dates stay as entered, so awards aren't affected.</p>
+      <div className="actions">
+        <button type="submit" className="button" disabled={busy}>
+          Save
+        </button>
+        <button type="button" className="link-button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
