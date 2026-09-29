@@ -13,12 +13,18 @@ The repo is `wpr-buck-board`; reader-facing copy keeps the sponsor sheet's name,
 ## Layout
 
 ```
-supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage
+supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair
 supabase/seasons/      one file per season; local seed, run once in prod
 supabase/tests/        pgTAP (supabase test db)
 supabase/functions/    submit-entry + _shared (Deno)
 web/                   React/Vite, hash routes: #/embed #/gallery #/enter #/admin
+web/public/            WPR typewriter badge and wordmark: committed copies, never hot-linked
+web/src/sales.ts       sales contact, UTM-tagged sponsor links, ?demo previews
 ```
+
+The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the pet contest; the front-page strip already sits inside WPR's front page, and `#/admin` is staff-only. The presenting sponsor's name is part of the board's title ("Hunting Brag Board presented by …"), per the sponsor sheet.
+
+**Sponsor slots.** Until entries close, an unsold slot shows a "Sponsorship available" card that emails Chris and copies the address (the WordPress iframe needs `allow="clipboard-write"`). `?demo` before the hash (`/wpr-buck-board/?demo#/gallery`) fills every unsold slot with "Your business here" for pitches; sold slots are never overridden. Sponsor links carry `rel="noopener noreferrer sponsored"` and `utm_source=wausaupilotandreview&utm_medium=widget&utm_campaign=brag-board&utm_content=<placement>`.
 
 ## Invariants — keep these true
 
@@ -45,6 +51,8 @@ cd web && npm run build                     # tsc + vite; needs the five VITE_ v
 CI (`.github/workflows/supabase.yml`): Deno tests + pgTAP on every PR (full `supabase start`, because migration 0004 writes storage columns the storage service creates); on `main`, `db push` and function deploy in a non-cancelling concurrency group. `pages.yml` builds on PRs, deploys on `main`.
 
 ## Operations (SQL editor)
+
+Run these in the dashboard's SQL editor. The 2026 seed's en dash reached production as "â€“" through a client that read the file as Windows-1252 (migration 0005 repairs it); from a Windows `psql`, set `PGCLIENTENCODING=UTF8` first, or curly apostrophes in sponsor names garble the same way.
 
 ```sql
 -- Staff: the user must exist first (Dashboard > Authentication > Add user).

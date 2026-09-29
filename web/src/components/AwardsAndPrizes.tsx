@@ -1,12 +1,17 @@
 // What entrants can win: each award with its prize and presenting sponsor, and the
 // Prize Partner drawing. The whole page before entries open; the foot of it after.
+// Until entries close, an unsold slot shows who to call about it instead of an empty space.
 import { apDate } from "../format";
-import { awardSponsor } from "../phase";
+import { awardSponsor, presentingSponsor } from "../phase";
+import { DEMO } from "../sales";
 import type { Board } from "../types";
 import { SponsorCredit } from "./SponsorCredit";
+import { UpsellCard } from "./UpsellCard";
 
 export function AwardsAndPrizes({ board }: { board: Board }) {
   const { season } = board;
+  const selling = !DEMO && (season.phase === "upcoming" || season.phase === "entries");
+  const presentingSold = presentingSponsor(board) !== undefined;
   const drawing = board.sponsors
     .filter((s) => s.tier === "prize_partner")
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -21,15 +26,33 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
         <ul className="award-list">
           {board.awards.map((award) => {
             const sponsor = awardSponsor(board, award);
+            const presenting = award.kind === "readers_choice";
             return (
               <li key={award.id}>
                 <h3>{award.label}</h3>
                 <p>{award.description}</p>
-                {sponsor && (
+                {sponsor ? (
                   <>
                     <p className="award-prize">Prize: {sponsor.prize}</p>
-                    <SponsorCredit sponsor={sponsor} />
+                    <SponsorCredit sponsor={sponsor} placement="awards-list" />
                   </>
+                ) : (
+                  selling &&
+                  (presenting ? (
+                    !presentingSold && (
+                      <UpsellCard
+                        pitch="Put your name on the Brag Board itself: in its title, on the front page all season, and on the grand prize."
+                        action="Book the presenting sponsorship"
+                        subject="Hunting Brag Board: presenting sponsor"
+                      />
+                    )
+                  ) : (
+                    <UpsellCard
+                      pitch={`Put your business on the ${award.label} award.`}
+                      action="Book this award"
+                      subject={`Hunting Brag Board: ${award.label} award`}
+                    />
+                  ))
                 )}
               </li>
             );
@@ -37,7 +60,7 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
         </ul>
       </div>
 
-      {drawing.length > 0 && (
+      {(drawing.length > 0 || selling) && (
         <div>
           <h2>The prize drawing</h2>
           <p className="prizes-intro">
@@ -48,9 +71,18 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
             {drawing.map((sponsor) => (
               <li key={sponsor.id}>
                 <p className="award-prize">{sponsor.prize}</p>
-                <SponsorCredit sponsor={sponsor} lead="From" />
+                <SponsorCredit sponsor={sponsor} placement="prize-drawing" lead="From" />
               </li>
             ))}
+            {selling && (
+              <li>
+                <UpsellCard
+                  pitch="Add a prize to the drawing and reach every hunter who enters."
+                  action="Become a Prize Partner"
+                  subject="Hunting Brag Board: Prize Partner"
+                />
+              </li>
+            )}
           </ul>
         </div>
       )}

@@ -47,12 +47,15 @@ export function Gallery() {
     <main className="gallery">
       <header className="masthead">
         <div className="masthead-title">
-          <h1>Hunting Brag Board</h1>
+          <h1>
+            Hunting Brag Board
+            {presenting && <span className="title-sponsor">presented by {presenting.name}</span>}
+          </h1>
           <p className="masthead-season">{season.year} season</p>
         </div>
-        {presenting && <SponsorCredit sponsor={presenting} />}
+        {presenting && <SponsorCredit sponsor={presenting} placement="board-title" lead={null} />}
         <p className="masthead-line">
-          {season.phase !== "upcoming" && <strong>{entries.length} deer on the board. </strong>}
+          {season.phase !== "upcoming" && entries.length > 0 && <strong>{entries.length} deer on the board. </strong>}
           {phaseLine(season)} {gunOpenerLine(season)}
         </p>
         {season.phase === "entries" && (
@@ -97,7 +100,7 @@ export function Gallery() {
                 <p>{selected.description}</p>
                 {selectedSponsor && <p className="award-prize">Prize: {selectedSponsor.prize}</p>}
               </div>
-              {selectedSponsor && <SponsorCredit sponsor={selectedSponsor} />}
+              {selectedSponsor && <SponsorCredit sponsor={selectedSponsor} placement="award-filter" />}
             </div>
           )}
 

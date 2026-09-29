@@ -37,6 +37,8 @@ export interface Sponsor {
   website_url: string | null;
   prize: string;
   qr_slug: string;
+  // Only in `?demo` sales previews: a placeholder standing in for an unsold slot.
+  demo?: true;
 }
 
 export interface Award {

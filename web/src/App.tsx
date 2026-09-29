@@ -1,16 +1,22 @@
 import { useEffect, useState, type ComponentType } from "react";
+import { DemoRibbon } from "./components/DemoRibbon";
+import { Footer } from "./components/Footer";
+import { Masthead } from "./components/Masthead";
 import { useAutoHeight } from "./host";
+import { DEMO } from "./sales";
 import { Admin } from "./views/Admin";
 import { Embed } from "./views/Embed";
 import { Enter } from "./views/Enter";
 import { Gallery } from "./views/Gallery";
 
 // Hash routes, so GitHub Pages needs no rewrites. WordPress embeds each view by URL.
-const ROUTES: Record<string, ComponentType> = {
-  "#/embed": Embed,
-  "#/gallery": Gallery,
-  "#/enter": Enter,
-  "#/admin": Admin,
+// The reader pages carry WPR's flag and footer like the rest of the contest series; the
+// front-page strip already sits inside WPR's front page, and #/admin is staff-only.
+const ROUTES: Record<string, { View: ComponentType; flag: boolean }> = {
+  "#/embed": { View: Embed, flag: false },
+  "#/gallery": { View: Gallery, flag: true },
+  "#/enter": { View: Enter, flag: true },
+  "#/admin": { View: Admin, flag: false },
 };
 
 export function App() {
@@ -23,14 +29,20 @@ export function App() {
     return () => window.removeEventListener("hashchange", update);
   }, []);
 
-  const View = ROUTES[hash];
-  if (!View) {
-    return <p className="status">Unknown page "{hash || "/"}". Views: {Object.keys(ROUTES).join(", ")}.</p>;
+  // Tolerate `#/gallery?demo` as well as `?demo#/gallery`.
+  const path = hash.split("?")[0];
+  const route = ROUTES[path];
+  if (!route) {
+    return <p className="status">Unknown page "{path || "/"}". Views: {Object.keys(ROUTES).join(", ")}.</p>;
   }
+  const { View, flag } = route;
   return (
     <>
+      {DEMO && <DemoRibbon />}
+      {flag && <Masthead />}
       <div className="blaze-band" aria-hidden="true" />
       <View />
+      {flag && <Footer />}
     </>
   );
 }

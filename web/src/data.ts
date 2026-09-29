@@ -1,5 +1,6 @@
-import { FunctionsHttpError, type PostgrestError } from "@supabase/supabase-js";
+import { FunctionsFetchError, FunctionsHttpError, type PostgrestError } from "@supabase/supabase-js";
 import type { PreparedPhoto } from "./photo";
+import { withDemoSponsors } from "./sales";
 import { supabase } from "./supabase";
 import type { Award, AwardWinner, Board, EntryStatus, GalleryEntry, ModerationEntry, Season, Sponsor } from "./types";
 
@@ -29,7 +30,7 @@ export async function loadCatalog(seasonId: string): Promise<Pick<Board, "awards
       supabase.from("sponsors").select("id, name, tier, logo_path, website_url, prize, qr_slug").eq("season_id", seasonId),
     ),
   ]);
-  return { awards, sponsors };
+  return withDemoSponsors({ awards, sponsors });
 }
 
 export async function loadGallery(seasonId: string, limit?: number): Promise<GalleryEntry[]> {
@@ -104,9 +105,21 @@ export async function submitEntry(entry: EntrySubmission, photo: PreparedPhoto, 
   body.append("thumb", photo.thumb, "thumb.jpg");
 
   const { error } = await supabase.functions.invoke("submit-entry", { body });
+  if (!error) return;
+
+  // Only submit-entry's own { error } body is written for readers. A gateway's error page,
+  // a timeout or a dropped connection gets a plain retry message, never the raw text.
   if (error instanceof FunctionsHttpError) {
-    const { error: message } = (await error.context.json()) as { error: string };
-    throw new Error(message);
+    const message = await error.context.json().then(
+      (reply: { error?: unknown }) => reply.error,
+      () => undefined,
+    );
+    if (typeof message === "string" && message) throw new Error(message);
   }
-  if (error) throw new Error(error.message);
+  console.error(error);
+  throw new Error(
+    error instanceof FunctionsFetchError
+      ? "Your entry didn't go through. Check your connection and try again."
+      : "Your entry couldn't be saved. Check it and try again in a few minutes.",
+  );
 }
