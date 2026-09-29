@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { DemoRibbon } from "./components/DemoRibbon";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Footer } from "./components/Footer";
 import { Masthead } from "./components/Masthead";
 import { useAutoHeight } from "./host";
@@ -41,7 +42,9 @@ export function App() {
       {DEMO && <DemoRibbon />}
       {flag && <Masthead />}
       <div className="blaze-band" aria-hidden="true" />
-      <View />
+      <ErrorBoundary key={path}>
+        <View />
+      </ErrorBoundary>
       {flag && <Footer />}
     </>
   );

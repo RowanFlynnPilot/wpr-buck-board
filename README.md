@@ -39,11 +39,17 @@ Views: `#/embed` (front page), `#/gallery`, `#/enter`, `#/admin` (staff, opened 
 
 ## WordPress embed
 
-Use a Custom HTML block. Front page: `#/embed`. Brag Board page (`/brag-board/`): `#/gallery`. Entry page (`/brag-board/enter/`): `#/enter`. Keep `allow="clipboard-write"`: an unsold sponsor slot's "Book" button copies the sales address for readers whose computer has no mail app.
+Use a Custom HTML block. Front page: `#/embed`, `height="400"`. Brag Board page (`/brag-board/`): `#/gallery`, `height="600"`. Entry page (`/brag-board/enter/`): `#/enter`, `height="600"`. The height is only the starting size (the app resizes the frame), so match it to the page and it won't jump as it loads.
+
+Keep both attributes in the snippet:
+
+- `loading="lazy"`: on the front page the strip, its script, fonts and six photos load only as a reader scrolls near it, and a `#/embed` pageview in Plausible then means the strip was actually seen.
+- `allow="clipboard-write"`: an unsold sponsor slot's "Book" button copies the sales address for readers whose computer has no mail app.
 
 ```html
-<iframe id="wpr-buck-board" src="https://rowanflynnpilot.github.io/wpr-buck-board/#/gallery"
-  title="Hunting Brag Board" allow="clipboard-write" style="width:100%;border:0;display:block" height="600"></iframe>
+<iframe id="wpr-buck-board" src="https://rowanflynnpilot.github.io/wpr-buck-board/#/embed"
+  title="Hunting Brag Board" loading="lazy" allow="clipboard-write"
+  style="width:100%;border:0;display:block" height="400"></iframe>
 <script>
   (function () {
     var frame = document.getElementById("wpr-buck-board");

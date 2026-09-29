@@ -1,3 +1,4 @@
+import { track } from "../analytics";
 import { env } from "../env";
 import { salesMailto } from "../sales";
 
@@ -20,8 +21,18 @@ export function Footer() {
             <a href={env.rulesUrl} target="_blank" rel="noopener">
               Contest rules
             </a>
-            <a href={salesMailto("Hunting Brag Board sponsorship")}>Advertise on the Brag Board</a>
-            <a href={SUPPORT_URL} target="_blank" rel="noopener">
+            <a
+              href={salesMailto("Hunting Brag Board sponsorship")}
+              onClick={() => track("Sponsor Inquiry", { slot: "footer" })}
+            >
+              Advertise on the Brag Board
+            </a>
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noopener"
+              onClick={() => track("Donate Click", { from: "footer" })}
+            >
               Support local news (tax-deductible)
             </a>
           </p>

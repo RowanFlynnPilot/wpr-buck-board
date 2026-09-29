@@ -3,7 +3,7 @@ import { EntryCard } from "../components/EntryCard";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { countEntries, loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
-import { gunOpenerLine, phaseLine, presentingSponsor } from "../phase";
+import { awardSponsor, gunOpenerLine, phaseLine, presentingSponsor } from "../phase";
 import { photoUrl } from "../supabase";
 import { useLoad } from "../useLoad";
 
@@ -79,7 +79,7 @@ export function Embed() {
       {picks.length > 0 && (
         <div className="strip-winners">
           {picks.map(({ award, entry }) => (
-            <EntryCard key={award.id} entry={entry} award={award.label} />
+            <EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} />
           ))}
         </div>
       )}

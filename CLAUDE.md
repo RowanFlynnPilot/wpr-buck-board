@@ -13,18 +13,21 @@ The repo is `wpr-buck-board`; reader-facing copy keeps the sponsor sheet's name,
 ## Layout
 
 ```
-supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair
+supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair · 0006 sponsor web-address check
 supabase/seasons/      one file per season; local seed, run once in prod
 supabase/tests/        pgTAP (supabase test db)
 supabase/functions/    submit-entry + _shared (Deno)
 web/                   React/Vite, hash routes: #/embed #/gallery #/enter #/admin
 web/public/            WPR typewriter badge and wordmark: committed copies, never hot-linked
 web/src/sales.ts       sales contact, UTM-tagged sponsor links, ?demo previews
+web/src/analytics.ts   Plausible pageviews and events
 ```
 
 The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the pet contest; the front-page strip already sits inside WPR's front page, and `#/admin` is staff-only. The presenting sponsor's name is part of the board's title ("Hunting Brag Board presented by …"), per the sponsor sheet.
 
-**Sponsor slots.** Until entries close, an unsold slot shows a "Sponsorship available" card that emails Chris and copies the address (the WordPress iframe needs `allow="clipboard-write"`). `?demo` before the hash (`/wpr-buck-board/?demo#/gallery`) fills every unsold slot with "Your business here" for pitches; sold slots are never overridden. Sponsor links carry `rel="noopener noreferrer sponsored"` and `utm_source=wausaupilotandreview&utm_medium=widget&utm_campaign=brag-board&utm_content=<placement>`.
+**Sponsor slots.** Until entries close, an unsold slot shows a "Sponsorship available" card that emails Chris and copies the address (the WordPress iframe needs `allow="clipboard-write"`). `?demo` before the hash (`/wpr-buck-board/?demo#/gallery`) fills every unsold slot with "Your business here" for pitches; sold slots are never overridden. Sponsor links carry `rel="noopener noreferrer sponsored"` and `utm_source=wausaupilotandreview&utm_medium=widget&utm_campaign=brag-board&utm_content=<placement>`. A sponsor address the browser can't parse shows the logo unlinked rather than breaking the page; migration 0006 refuses most typos at insert. Readers' Choice credits the presenting sponsor even if the attach step below was missed, and winner cards credit their award's sponsor.
+
+**Analytics.** Cookieless Plausible on `rowanflynnpilot.github.io`, the site WPR's other tools report to (`web/src/analytics.ts`; off in `?demo`). The hash script makes each view its own page, and with the front-page iframe's `loading="lazy"` a `#/embed` pageview means the strip was seen. Events: `Sponsor Click` {sponsor, placement}, `Sponsor Inquiry` {slot}, `Entry Submitted`, `Donate Click` {from}, `App Error` {message}. Never send anything about an entrant. Each view sits in an error boundary, so a crash shows a status line instead of an empty frame.
 
 ## Invariants — keep these true
 
@@ -42,7 +45,7 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 ## Commands
 
 ```sh
-supabase start && supabase test db          # 111 pgTAP tests
+supabase start && supabase test db          # 114 pgTAP tests
 deno test supabase/functions/_shared        # 5 JPEG tests (real GPS-tagged fixture)
 deno check supabase/functions/submit-entry/index.ts
 cd web && npm run build                     # tsc + vite; needs the five VITE_ vars
@@ -95,7 +98,7 @@ Verified end to end in Chromium and WebKit (Safari's engine), browser in a WordP
 - Share pages. Supabase edge functions rewrite `text/html` to `text/plain` without a paid custom domain, so share pages come from a Cloudflare Worker on wausaupilotandreview.com (e.g. `/brag/<entry-id>`): read the entry from the REST API with the publishable key, return Open Graph tags, redirect people to the gallery page. Facebook shows our domain, not supabase.co.
 - Share card image framed with the presenting sponsor (generate at approval time).
 - Friday newsletter block: a staff view that renders the week's new approved entries as paste-ready HTML.
-- Plausible: events for entry submits and sponsor clicks; counter-card QR links use `sponsors.qr_slug` (e.g. `?src=example-meats`) so each sponsor gets a report.
+- Counter-card QR codes: link to the WordPress Brag Board page with `?ref=<sponsors.qr_slug>` (e.g. `?ref=example-meats`). Plausible reads `ref` as the traffic source and ignores `src`; the visit lands in the WordPress site's own analytics, since the iframe never sees its parent's query string. (Plausible in the app itself is built; see Analytics above.)
 
 **December:**
 - Readers' Choice vote UI (must ship before Dec. 14: the embed's voting-phase button points to it): `signInWithOtp` → 6-digit code → `cast_vote(entry_id, newsletter_opt_in)`. New voters get the "Confirm signup" email, so that template also needs `{{ .Token }}`. Custom SMTP defaults to 30 auth emails an hour; raise it under Authentication > Rate Limits before voting opens. Test the iframe session in Safari (storage partitioning).

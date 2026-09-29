@@ -72,7 +72,9 @@ export function Gallery() {
             {board.awards.flatMap((award) => {
               const winner = winners.find((w) => w.award_id === award.id);
               const entry = winner && entries.find((e) => e.id === winner.entry_id);
-              return entry ? [<EntryCard key={award.id} entry={entry} award={award.label} />] : [];
+              return entry
+                ? [<EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} />]
+                : [];
             })}
           </div>
         </section>
