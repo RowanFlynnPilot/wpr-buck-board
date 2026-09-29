@@ -22,6 +22,7 @@ const ENTRY: Entry = {
   points: 8,
   first_deer: true,
   photo_id: "22222222-2222-2222-2222-222222222222",
+  share_card: null,
 };
 
 // A frame header after the JFIF segment: 1200 wide, 1600 tall.
@@ -86,6 +87,19 @@ Deno.test("a link-preview crawler gets the deer's Open Graph tags", async () => 
   assertStringIncludes(html, `<meta name="twitter:card" content="summary_large_image">`);
   assertStringIncludes(html, `presented by Northwoods Outfitters.`);
   assert(!html.includes("http-equiv"), "no meta refresh: Facebook's crawler would follow it");
+});
+
+Deno.test("a deer with a share card previews with the card, at its fixed size", async () => {
+  const card = `${ID}/33333333-3333-4333-8333-333333333333.jpg`;
+  const { fetcher, calls } = supabase({ entries: [{ ...ENTRY, share_card: card }] });
+  const html = await (await handle(get(`/brag/${ID}`, FACEBOOK), ENV, fetcher)).text();
+  assertStringIncludes(
+    html,
+    `<meta property="og:image" content="https://project.supabase.co/storage/v1/object/public/share-cards/${card}">`,
+  );
+  assertStringIncludes(html, `<meta property="og:image:width" content="1200">`);
+  assertStringIncludes(html, `<meta property="og:image:height" content="630">`);
+  assert(!calls.some((url) => url.includes("/storage/")), "no need to read the photo's size");
 });
 
 Deno.test("iMessage previews count as a crawler", async () => {

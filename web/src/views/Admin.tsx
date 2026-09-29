@@ -6,7 +6,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { EntryCard } from "../components/EntryCard";
 import { editEntry, isStaff, loadModerationQueue, loadSeason, moderate } from "../data";
 import { AGE_LABELS, apDate } from "../format";
-import { supabase } from "../supabase";
+import { makeShareCard } from "../shareCard";
+import { shareCardUrl, supabase } from "../supabase";
 import type { EntryStatus, ModerationEntry } from "../types";
 import { useLoad } from "../useLoad";
 import { NewsletterBlock } from "./NewsletterBlock";
@@ -173,10 +174,50 @@ function QueueList({ seasonId, status }: { seasonId: string; status: EntryStatus
   if (queue.data.length === 0) return <p className="empty">Nothing here.</p>;
 
   return (
-    <div className="entry-grid">
-      {queue.data.map((entry) => (
-        <ModerationItem key={entry.id} entry={entry} onDone={queue.reload} />
-      ))}
+    <>
+      {status === "approved" && <RemakeAll entries={queue.data} onDone={queue.reload} />}
+      <div className="entry-grid">
+        {queue.data.map((entry) => (
+          <ModerationItem key={entry.id} entry={entry} onDone={queue.reload} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+// Every card names the presenting sponsor, so when that changes, every card needs redrawing.
+function RemakeAll({ entries, onDone }: { entries: ModerationEntry[]; onDone: () => void }) {
+  const [progress, setProgress] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const remakeAll = async () => {
+    setBusy(true);
+    let failed = 0;
+    for (const [i, entry] of entries.entries()) {
+      setProgress(`Remaking share images: ${i + 1} of ${entries.length}…`);
+      await makeShareCard(entry.id).catch((err: Error) => {
+        failed += 1;
+        console.error(`Share image for ${entry.id}:`, err);
+      });
+    }
+    setProgress(
+      failed
+        ? `Remade ${entries.length - failed} of ${entries.length}. ${failed} didn't save; remake those below.`
+        : `Remade all ${entries.length} share images.`,
+    );
+    setBusy(false);
+    onDone();
+  };
+
+  return (
+    <div className="remake-all">
+      <p className="hint">
+        Each share image names the presenting sponsor. After the sponsor is added or changes, remake them all.
+      </p>
+      <button type="button" className="button" disabled={busy} onClick={remakeAll}>
+        Remake all share images
+      </button>
+      {progress && <p aria-live="polite">{progress}</p>}
     </div>
   );
 }
@@ -197,6 +238,8 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
     setError(null);
     try {
       await moderate(entry.id, decision, decision === "rejected" ? reason : null);
+      // The deer is posted either way; if its card fails, the "On the board" tab offers to make it.
+      if (decision === "approved") await makeShareCard(entry.id).catch((err) => console.error("Share image:", err));
       onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -212,6 +255,7 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
         {contact.rejection_reason && ` Not posted: ${contact.rejection_reason}`}
         {lastEdit && ` Edited ${apDate(lastEdit)}.`}
       </p>
+      {entry.status === "approved" && <ShareImage entry={entry} onMade={onDone} />}
       {youthFullName && (
         <p className="nudge">Hunters 17 and under appear by first name only. Edit the name before posting.</p>
       )}
@@ -263,6 +307,45 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
   );
 }
 
+// The card a share link previews with. Posting a deer makes it; this remakes it, or makes it
+// if posting couldn't.
+function ShareImage({ entry, onMade }: { entry: ModerationEntry; onMade: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const make = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await makeShareCard(entry.id);
+      onMade();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="share-image">
+      {entry.share_card ? (
+        <a href={shareCardUrl(entry.share_card)} target="_blank" rel="noreferrer">
+          <img src={shareCardUrl(entry.share_card)} alt="This deer's share image" width="240" height="126" loading="lazy" />
+        </a>
+      ) : (
+        <p className="hint">No share image yet, so a shared link shows the photo alone.</p>
+      )}
+      <button type="button" className="link-button" disabled={busy} onClick={make}>
+        {busy ? "Making the share image…" : entry.share_card ? "Remake share image" : "Make share image"}
+      </button>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Fix the words on an entry: a typo, or a youth hunter entered by full name. Anything that
 // decides awards stays as the entrant gave it; the original words go in the edit log.
 function EditForm({ entry, onSaved, onCancel }: { entry: ModerationEntry; onSaved: () => void; onCancel: () => void }) {
@@ -277,6 +360,8 @@ function EditForm({ entry, onSaved, onCancel }: { entry: ModerationEntry; onSave
     setError(null);
     try {
       await editEntry(entry.id, fields);
+      // A posted deer's card shows its name and hometown; redraw it with the new words.
+      if (entry.status === "approved") await makeShareCard(entry.id).catch((err) => console.error("Share image:", err));
       onSaved();
     } catch (err) {
       setError((err as Error).message);

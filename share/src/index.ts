@@ -26,7 +26,11 @@ const ENTRY_PATH = /^\/brag\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0
 const PREVIEW_CRAWLERS =
   /facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|skypeuripreview|pinterestbot|redditbot|embedly|iframely|mastodon\/|cardyb/i;
 
-const ENTRY_COLUMNS = "season_id,hunter_name,hometown,county,harvest_date,weapon,deer_type,points,first_deer,photo_id";
+const ENTRY_COLUMNS =
+  "season_id,hunter_name,hometown,county,harvest_date,weapon,deer_type,points,first_deer,photo_id,share_card";
+
+// Every share card is drawn at this size (web/src/shareCard.ts).
+const CARD_SIZE = { width: 1200, height: 630 };
 
 export default {
   fetch: (request: Request, env: Env) => handle(request, env, (input, init) => fetch(input, init)),
@@ -73,17 +77,21 @@ async function loadCard(env: Env, id: string, fetcher: Fetch): Promise<Card | nu
   const [entry] = await rest<Entry[]>(`gallery_entries?select=${ENTRY_COLUMNS}&id=eq.${id}`);
   if (!entry) return null;
 
-  const photo = `${supabase}/storage/v1/object/public/entry-photos/${entry.photo_id}/full.jpg`;
-  const [sponsors, size] = await Promise.all([
+  const storage = `${supabase}/storage/v1/object/public`;
+  const photo = `${storage}/entry-photos/${entry.photo_id}/full.jpg`;
+  const [sponsors, image] = await Promise.all([
     rest<{ name: string }[]>(`sponsors?select=name&tier=eq.presenting&season_id=eq.${entry.season_id}`),
-    photoSize(photo, fetcher),
+    entry.share_card
+      ? { url: `${storage}/share-cards/${entry.share_card}`, ...CARD_SIZE }
+      : photoSize(photo, fetcher).then((size) => ({ url: photo, ...size })),
   ]);
-  return { entry, presenting: sponsors[0]?.name ?? null, photo: { url: photo, ...size } };
+  return { entry, presenting: sponsors[0]?.name ?? null, image };
 }
 
 // Facebook draws the preview on the first share only if it knows the image's size up front;
 // otherwise the first person to share a deer sees no photo. Read it from the JPEG's frame
-// header, a few hundred bytes in (submit-entry strips the big metadata segments).
+// header, a few hundred bytes in (submit-entry strips the big metadata segments). A share card
+// needs none of this: its size is fixed.
 async function photoSize(url: string, fetcher: Fetch): Promise<{ width: number; height: number } | null> {
   try {
     const response = await fetcher(url, { headers: { range: "bytes=0-16383" } });
