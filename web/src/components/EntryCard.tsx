@@ -2,22 +2,37 @@ import { useId, useState } from "react";
 import { apDay, describeDeer, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../supabase";
 import type { EntryFields, Sponsor } from "../types";
+import { ShareButton } from "./ShareButton";
 import { SponsorCredit } from "./SponsorCredit";
 
 // Stories longer than this are clamped to three lines with a toggle.
 const LONG_STORY = 160;
 
-// `award` and `awardSponsor` are set on winner cards.
-export function EntryCard({ entry, award, awardSponsor }: { entry: EntryFields; award?: string; awardSponsor?: Sponsor }) {
+interface Props {
+  entry: EntryFields;
+  // Set on winner cards.
+  award?: string;
+  awardSponsor?: Sponsor;
+  // Public cards only: a deer waiting for review has no share page.
+  share?: boolean;
+  // The deer a link opened: the full photo, uncropped, with the whole story.
+  featured?: boolean;
+}
+
+export function EntryCard({ entry, award, awardSponsor, share = false, featured = false }: Props) {
   const [storyOpen, setStoryOpen] = useState(false);
   const storyId = useId();
   const deer = describeDeer(entry.deer_type, entry.points);
-  const longStory = entry.story !== null && entry.story.length > LONG_STORY;
+  const longStory = !featured && entry.story !== null && entry.story.length > LONG_STORY;
 
   return (
-    <article className="entry">
+    <article className={featured ? "entry entry-featured" : "entry"}>
       <a className="entry-photo" href={photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
-        <img src={photoUrl(entry.photo_id, "thumb")} alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`} loading="lazy" />
+        <img
+          src={photoUrl(entry.photo_id, featured ? "full" : "thumb")}
+          alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
+          loading={featured ? "eager" : "lazy"}
+        />
         {entry.first_deer && <span className="entry-tag">First deer</span>}
       </a>
       {award && <p className="entry-award">{award}</p>}
@@ -45,6 +60,7 @@ export function EntryCard({ entry, award, awardSponsor }: { entry: EntryFields; 
           {storyOpen ? "Show less" : "Read the story"}
         </button>
       )}
+      {share && <ShareButton entry={entry} />}
     </article>
   );
 }

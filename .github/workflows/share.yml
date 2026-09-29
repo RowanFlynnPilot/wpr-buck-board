@@ -1,0 +1,71 @@
+name: Share pages
+
+# The share-page Worker (share/): Deno tests on every PR; on main, deploy to Cloudflare with the
+# same repository variables the web app builds with. Needs two repository secrets:
+# CLOUDFLARE_API_TOKEN (the "Edit Cloudflare Workers" token template, limited to WPR's account
+# and the wausaupilotandreview.com zone) and CLOUDFLARE_ACCOUNT_ID. Until both are added, the
+# deploy job warns and skips rather than failing every push (README "Share pages").
+
+on:
+  pull_request:
+    paths: ["share/**", ".github/workflows/share.yml"]
+  push:
+    branches: [main]
+    paths: ["share/**", ".github/workflows/share.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test share/
+      - run: deno check share/src/index.ts
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: share-deploy
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: share
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      GALLERY_PAGE_URL: ${{ vars.VITE_GALLERY_PAGE_URL }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check for Cloudflare credentials
+        id: creds
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Share pages not deployed: add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets (README, Share pages)."
+          fi
+      - uses: actions/setup-node@v5
+        if: steps.creds.outputs.configured == 'true'
+        with:
+          node-version: 22
+      - name: Deploy the Worker
+        if: steps.creds.outputs.configured == 'true'
+        run: |
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY GALLERY_PAGE_URL; do
+            if [ -z "${!name}" ]; then echo "::error::Missing repository variable VITE_$name."; exit 1; fi
+          done
+          npx --yes wrangler@4.143.0 deploy \
+            --var "SUPABASE_URL:$SUPABASE_URL" \
+            --var "SUPABASE_PUBLISHABLE_KEY:$SUPABASE_PUBLISHABLE_KEY" \
+            --var "GALLERY_PAGE_URL:$GALLERY_PAGE_URL"

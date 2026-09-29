@@ -1,0 +1,12 @@
+# Share pages (src/index.ts), on WPR's own domain. Deployed by .github/workflows/share.yml,
+# which passes SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and GALLERY_PAGE_URL from the repository
+# variables the web app builds with (VITE_*), so they live in one place. One-time setup is in
+# README.md ("Share pages"). The route must be on the gallery page's host: the web app builds
+# share links as <gallery page's origin>/brag/<entry-id>.
+name = "wpr-brag-board-share"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = false
+routes = [
+  { pattern = "wausaupilotandreview.com/brag/*", zone_name = "wausaupilotandreview.com" },
+]

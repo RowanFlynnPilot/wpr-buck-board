@@ -4,6 +4,7 @@ import { SponsorCredit } from "../components/SponsorCredit";
 import { countEntries, loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
 import { awardSponsor, gunOpenerLine, phaseLine, presentingSponsor } from "../phase";
+import { entryPageUrl } from "../share";
 import { photoUrl } from "../supabase";
 import { useLoad } from "../useLoad";
 
@@ -67,7 +68,7 @@ export function Embed() {
         <ul className="strip-photos">
           {latest.map((entry) => (
             <li key={entry.id}>
-              <a href={env.galleryPageUrl} target="_top">
+              <a href={entryPageUrl(entry.id, "front-page")} target="_top">
                 <img src={photoUrl(entry.photo_id, "thumb")} alt={`${entry.hunter_name}'s deer`} loading="lazy" />
                 <span>{entry.hunter_name}</span>
               </a>
