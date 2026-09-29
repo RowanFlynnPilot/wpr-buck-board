@@ -1,8 +1,8 @@
 name: Pages
 
 on:
+  # Every PR, whatever it touches: main requires this job (CLAUDE.md, CI).
   pull_request:
-    paths: ["web/**", ".github/workflows/pages.yml"]
   push:
     branches: [main]
     paths: ["web/**", ".github/workflows/pages.yml"]
@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  web:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,7 +44,7 @@ jobs:
           path: web/dist
 
   deploy:
-    needs: build
+    needs: web
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:

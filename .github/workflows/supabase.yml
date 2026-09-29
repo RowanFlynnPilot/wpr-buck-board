@@ -1,15 +1,15 @@
 name: Supabase
 
 on:
+  # Every PR, whatever it touches: main requires this job (CLAUDE.md, CI).
   pull_request:
-    paths: ["supabase/**", ".github/workflows/supabase.yml"]
   push:
     branches: [main]
     paths: ["supabase/**", ".github/workflows/supabase.yml"]
   workflow_dispatch:
 
 jobs:
-  test:
+  database:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -27,7 +27,7 @@ jobs:
       - run: supabase test db
 
   deploy:
-    needs: test
+    needs: database
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     concurrency:
