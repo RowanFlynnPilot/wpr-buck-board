@@ -13,7 +13,7 @@ Project rules, invariants, and operations SQL are in [CLAUDE.md](CLAUDE.md).
 ```sh
 supabase start                       # migrations + the 2026 season seed
 supabase test db                     # pgTAP suite
-deno test supabase/functions/_shared # photo metadata tests
+deno test supabase/functions/_shared # photo metadata and entry email tests
 deno test share/                     # share-page tests
 
 cp supabase/functions/.env.example supabase/functions/.env   # Cloudflare's always-pass Turnstile test secret
@@ -26,6 +26,8 @@ npm run dev                          # http://localhost:5173/wpr-buck-board/#/en
 ```
 
 Views: `#/embed` (front page), `#/gallery`, `#/enter`, `#/admin` (staff, opened directly). `?entry=<id>#/gallery` opens one deer.
+
+Entry emails are off locally unless `supabase/functions/.env` sets `RESEND_API_KEY`; set `RESEND_API_URL` too, to a stand-in that records requests, to see both emails without sending them (the example file shows how).
 
 The share Worker runs locally with `npx wrangler dev` in `share/`, given the three settings it reads: `--var SUPABASE_URL:http://127.0.0.1:54321 --var SUPABASE_PUBLISHABLE_KEY:<key> --var GALLERY_PAGE_URL:<a page embedding #/gallery>`. Send a crawler's user agent (`curl -A facebookexternalhit …/brag/<id>`) to see its Open Graph page; anything else gets the redirect.
 
@@ -41,6 +43,7 @@ The share Worker runs locally with `npx wrangler dev` in `share/`, given the thr
 8. In the SQL editor, run `supabase/seasons/2026.sql` once. Add each staff member under Authentication > Users (Add user, auto-confirm), then insert them into `staff` (see CLAUDE.md).
 9. Authentication > Email Templates > Magic Link: paste `supabase/templates/magic_link.html`. Staff sign in at `#/admin` with the 6-digit code it sends.
 10. Share pages. In WPR's Cloudflare dashboard, create an API token from the "Edit Cloudflare Workers" template, limited to WPR's account and the wausaupilotandreview.com zone. Add it and the account ID (Workers & Pages overview, right-hand column) as the GitHub secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then run Actions > Share pages > Run workflow. It deploys `wpr-brag-board-share` on the route `wausaupilotandreview.com/brag/*`, with the Supabase URL, publishable key and gallery page taken from the `VITE_` variables (after changing one of those, run it again). Check it with a posted deer's id: `curl -A facebookexternalhit https://wausaupilotandreview.com/brag/<id>` prints the deer's Open Graph tags, the same link in a browser opens the deer on `/brag-board/`, and Facebook's Sharing Debugger (developers.facebook.com/tools/debug) shows the preview. The share buttons go live with the gallery, so do this before entries open.
+11. Entry emails (a confirmation to the entrant, replies to the editor; a notice to Shereen and Chris for each entry). In Resend (the same account as step 2's SMTP, if that's Resend), verify wausaupilotandreview.com (its DNS records go in Cloudflare), create an API key, then `supabase secrets set RESEND_API_KEY=re_...`. Defaults, each overridable with a secret of the same name: `EMAIL_FROM` "Wausau Pilot & Review <bragboard@wausaupilotandreview.com>", `EMAIL_REPLY_TO` editor@wausaupilotandreview.com, `STAFF_EMAILS` editor@ and weber.chris@ (comma-separated), `STAFF_QUEUE_URL` the `#/admin` page. Without the key, entries save and nothing is sent. Each entry sends two emails and Resend's free plan allows 100 a day, so the gun-opener weekend (more than 50 entries a day) needs the paid plan for November. Check it with one real entry: both emails should arrive within a minute.
 
 ## WordPress embed
 
