@@ -73,4 +73,4 @@ Keep all of the snippet, attributes included:
 </script>
 ```
 
-For sales pitches, `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/gallery` (or `#/embed`) fills every unsold slot with "Your business here" under a ribbon that explains the preview. Readers never see it.
+For sales pitches, `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/gallery` (or `#/embed`) fills every unsold slot with "Your business here" under a ribbon that explains the preview. Readers never see it. `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/enter` is the entry form to try out, on a phone too: it works as it will for readers but sends nothing, and ends on the deer as it would look on the board.

@@ -1,7 +1,11 @@
 // Entry form. Built for a phone in a truck: photo first, big targets, one screen of questions.
 // Entrants never pick an award; the database works out which ones each deer qualifies for.
+// In a `?demo` preview (/wpr-buck-board/?demo#/enter) the form is open whatever the date and
+// works as it does for readers, photo handling included, but sends nothing: no bot check, no
+// upload, no entry. The confirmation shows how the deer would look on the board.
 import { useEffect, useState, type FormEvent } from "react";
 import { track } from "../analytics";
+import { EntryCard } from "../components/EntryCard";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { Turnstile } from "../components/Turnstile";
 import { loadCatalog, loadCounties, loadSeason, submitEntry, type EntrySubmission } from "../data";
@@ -10,7 +14,8 @@ import { AGE_LABELS, WEAPON_LABELS, apDay, todayInWausau } from "../format";
 import { scrollToTop } from "../host";
 import { phaseLine, presentingSponsor } from "../phase";
 import { preparePhoto, type PreparedPhoto } from "../photo";
-import type { AgeGroup, Weapon } from "../types";
+import { DEMO } from "../sales";
+import type { AgeGroup, DeerType, EntryFields, Weapon } from "../types";
 import { useLoad } from "../useLoad";
 
 const STORY_LIMIT = 1200;
@@ -94,6 +99,13 @@ export function Enter() {
       setError("Add a photo of your deer.");
       return;
     }
+    if (DEMO) {
+      setSending(true);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      setSending(false);
+      setSent(true);
+      return;
+    }
     if (!token) {
       setError("Wait for the check above the button to finish.");
       return;
@@ -122,7 +134,7 @@ export function Enter() {
     setSent(false);
   };
 
-  if (season.phase !== "entries") {
+  if (season.phase !== "entries" && !DEMO) {
     return (
       <main className="enter">
         <h1>Enter your deer</h1>
@@ -144,8 +156,19 @@ export function Enter() {
           It will show up on the Brag Board once our staff reviews it. We'll email you if it wins. You're also in the
           prize drawing.
         </p>
+        {DEMO && photo && (
+          <>
+            <p className="demo-note">
+              Preview only: nothing was sent. Here's how this deer would look on the Brag Board once our staff posts it.
+            </p>
+            <div className="entry-preview">
+              <EntryCard entry={previewCard(entry)} photo={photo.preview} />
+            </div>
+          </>
+        )}
         <div className="actions">
-          <a className="button" href={env.galleryPageUrl} target="_top">
+          {/* The preview stays in the preview; the WordPress page may not exist yet. */}
+          <a className="button" href={DEMO ? "?demo#/gallery" : env.galleryPageUrl} target={DEMO ? undefined : "_top"}>
             See the board
           </a>
           <button type="button" className="button" onClick={startOver}>
@@ -372,7 +395,7 @@ export function Enter() {
           </label>
         </fieldset>
 
-        <Turnstile key={attempt} onToken={setToken} onError={setError} />
+        {!DEMO && <Turnstile key={attempt} onToken={setToken} onError={setError} />}
 
         {error && (
           <p className="error" role="alert">
@@ -380,10 +403,29 @@ export function Enter() {
           </p>
         )}
 
-        <button type="submit" className="button button-blaze" disabled={sending || preparing || !token}>
+        <button type="submit" className="button button-blaze" disabled={sending || preparing || (!DEMO && !token)}>
           {sending ? "Entering your deer…" : "Enter your deer"}
         </button>
       </form>
     </main>
   );
+}
+
+// The preview's answers as a board card. The database would trim and store them the same way.
+function previewCard(entry: EntrySubmission): EntryFields {
+  return {
+    id: "preview",
+    hunter_name: entry.hunter_name.trim(),
+    hometown: entry.hometown.trim(),
+    county: entry.county,
+    harvest_date: entry.harvest_date,
+    weapon: entry.weapon as Weapon,
+    deer_type: entry.deer_type as DeerType,
+    points: entry.deer_type === "buck" && entry.points ? Number(entry.points) : null,
+    first_deer: entry.first_deer,
+    age_group: entry.age_group as AgeGroup,
+    story: entry.story.trim() || null,
+    photo_id: "",
+    created_at: new Date().toISOString(),
+  };
 }

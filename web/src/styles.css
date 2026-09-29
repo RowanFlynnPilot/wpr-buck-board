@@ -177,6 +177,17 @@ img {
   font-weight: 700;
 }
 
+/* The entry form preview's confirmation: what was (not) sent, and the deer as a board card. */
+.demo-note {
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  background: #fbeccb;
+}
+
+.entry-preview {
+  max-width: 320px;
+}
+
 /* The presenting sponsor's name, part of the board's title. */
 .title-sponsor {
   display: block;
