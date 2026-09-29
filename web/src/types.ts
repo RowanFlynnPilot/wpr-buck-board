@@ -79,6 +79,11 @@ export interface ModerationEntry extends EntryFields {
   };
 }
 
+// An approved entry and when it went up. Staff only: moderated_at lives in entry_private.
+export interface PostedEntry extends EntryFields {
+  entry_private: { moderated_at: string };
+}
+
 export interface AwardWinner {
   award_id: string;
   entry_id: string;

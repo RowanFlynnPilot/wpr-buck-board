@@ -29,6 +29,28 @@ export function todayInWausau(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: CHICAGO }).format(new Date());
 }
 
+// A calendar date (YYYY-MM-DD) moved by whole days.
+export function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// The moment a Wausau calendar day begins, as an ISO timestamp (CST or CDT, whichever applies).
+export function wausauMidnight(date: string): string {
+  const cstMidnight = new Date(`${date}T06:00:00Z`);
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: CHICAGO, hour: "numeric", hourCycle: "h23" }).format(cstMidnight),
+  );
+  return new Date(cstMidnight.getTime() - hour * 3_600_000).toISOString();
+}
+
+// AP style: spell out one through nine, numerals from 10.
+const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+export function apNumber(n: number): string {
+  return n < 10 ? NUMBER_WORDS[n] : n.toLocaleString("en-US");
+}
+
 export function daysUntil(timestamp: string): number {
   return Math.ceil((Date.parse(timestamp) - Date.now()) / 86_400_000);
 }
