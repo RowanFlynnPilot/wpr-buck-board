@@ -31,6 +31,9 @@ export function presentingSponsor(board: Board): Sponsor | undefined {
   return board.sponsors.find((s) => s.tier === "presenting");
 }
 
+// Readers' Choice belongs to the presenting sponsor, so a missed attach step in the SQL
+// editor still credits them rather than leaving the grand prize without a sponsor.
 export function awardSponsor(board: Board, award: Award): Sponsor | undefined {
-  return board.sponsors.find((s) => s.id === award.sponsor_id);
+  const sponsor = board.sponsors.find((s) => s.id === award.sponsor_id);
+  return sponsor ?? (award.kind === "readers_choice" ? presentingSponsor(board) : undefined);
 }

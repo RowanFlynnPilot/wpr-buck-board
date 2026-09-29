@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(26);
 
 -- Reference data and seed ---------------------------------------------------
 
@@ -89,6 +89,19 @@ select lives_ok(
   $$ update public.awards set sponsor_id = '00000000-0000-0000-0000-00000000c001'
      where kind = 'readers_choice' and season_id = (select id from public.seasons where year = 2026) $$,
   'the presenting sponsor presents Readers'' Choice'
+);
+
+select throws_ok(
+  $$ update public.sponsors set website_url = 'https://exa mple.com' where qr_slug = 'award-co' $$,
+  '23514', null, 'a sponsor website with a space in it is refused'
+);
+select throws_ok(
+  $$ update public.sponsors set website_url = 'https://' where qr_slug = 'award-co' $$,
+  '23514', null, 'a bare https:// is not a sponsor website'
+);
+select lives_ok(
+  $$ update public.sponsors set website_url = 'https://www.example.com/shop?ref=home' where qr_slug = 'award-co' $$,
+  'a sponsor website with a path and query is accepted'
 );
 
 -- Entries: row-level invariants -----------------------------------------------

@@ -8,12 +8,26 @@ export function salesMailto(subject: string): string {
 }
 
 // Where a sponsor's logo sits; it rides along as utm_content so each placement is reportable.
-export type Placement = "front-page" | "board-title" | "entry-form" | "award-filter" | "awards-list" | "prize-drawing";
+export type Placement =
+  | "front-page"
+  | "board-title"
+  | "entry-form"
+  | "award-filter"
+  | "awards-list"
+  | "prize-drawing"
+  | "winner-card";
 
 // Tagged so the visit shows up in the sponsor's own analytics as coming from us.
 export function sponsorHref(sponsor: Sponsor, placement: Placement): string | null {
   if (!sponsor.website_url) return null;
-  const url = new URL(sponsor.website_url);
+  let url: URL;
+  try {
+    url = new URL(sponsor.website_url);
+  } catch {
+    // A typo in one sponsor row must not take the front page down with it: show the logo unlinked.
+    console.warn(`Sponsor ${sponsor.qr_slug} has an unusable website_url`, sponsor.website_url);
+    return null;
+  }
   url.searchParams.set("utm_source", "wausaupilotandreview");
   url.searchParams.set("utm_medium", "widget");
   url.searchParams.set("utm_campaign", "brag-board");

@@ -1,6 +1,7 @@
 // Entry form. Built for a phone in a truck: photo first, big targets, one screen of questions.
 // Entrants never pick an award; the database works out which ones each deer qualifies for.
 import { useEffect, useState, type FormEvent } from "react";
+import { track } from "../analytics";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { Turnstile } from "../components/Turnstile";
 import { loadCatalog, loadCounties, loadSeason, submitEntry, type EntrySubmission } from "../data";
@@ -101,6 +102,7 @@ export function Enter() {
     setError(null);
     try {
       await submitEntry(entry, photo, token);
+      track("Entry Submitted");
       setSent(true);
     } catch (err) {
       setError((err as Error).message);

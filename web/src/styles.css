@@ -581,6 +581,22 @@ img {
   font-size: 0.875rem;
 }
 
+/* The award sponsor on a winner card: smaller than the page-level credits. */
+.entry .sponsor-credit {
+  margin: 0.1rem 0 0.4rem;
+  font-size: 0.8125rem;
+}
+
+.entry .sponsor-logo {
+  max-height: 32px;
+  max-width: 120px;
+}
+
+.entry .sponsor-logo-demo {
+  height: 32px;
+  font-size: 0.6875rem;
+}
+
 .entry-name {
   font-weight: 500;
   font-size: 1.375rem;

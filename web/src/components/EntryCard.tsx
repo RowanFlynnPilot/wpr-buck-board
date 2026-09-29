@@ -1,12 +1,14 @@
 import { useId, useState } from "react";
 import { apDay, describeDeer, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../supabase";
-import type { EntryFields } from "../types";
+import type { EntryFields, Sponsor } from "../types";
+import { SponsorCredit } from "./SponsorCredit";
 
 // Stories longer than this are clamped to three lines with a toggle.
 const LONG_STORY = 160;
 
-export function EntryCard({ entry, award }: { entry: EntryFields; award?: string }) {
+// `award` and `awardSponsor` are set on winner cards.
+export function EntryCard({ entry, award, awardSponsor }: { entry: EntryFields; award?: string; awardSponsor?: Sponsor }) {
   const [storyOpen, setStoryOpen] = useState(false);
   const storyId = useId();
   const deer = describeDeer(entry.deer_type, entry.points);
@@ -19,6 +21,7 @@ export function EntryCard({ entry, award }: { entry: EntryFields; award?: string
         {entry.first_deer && <span className="entry-tag">First deer</span>}
       </a>
       {award && <p className="entry-award">{award}</p>}
+      {awardSponsor && <SponsorCredit sponsor={awardSponsor} placement="winner-card" />}
       <h3 className="entry-name">{entry.hunter_name}</h3>
       <p className="entry-home">{entry.hometown}</p>
       <p className="entry-record">
