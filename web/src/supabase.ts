@@ -8,6 +8,10 @@ export function photoUrl(photoId: string, size: "full" | "thumb"): string {
   return supabase.storage.from("entry-photos").getPublicUrl(`${photoId}/${size}.jpg`).data.publicUrl;
 }
 
+export function shareCardUrl(name: string): string {
+  return supabase.storage.from("share-cards").getPublicUrl(name).data.publicUrl;
+}
+
 export function logoUrl(path: string): string {
   return supabase.storage.from("sponsor-logos").getPublicUrl(path).data.publicUrl;
 }

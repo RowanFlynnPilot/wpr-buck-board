@@ -71,6 +71,8 @@ export interface GalleryEntry extends EntryFields {
 
 export interface ModerationEntry extends EntryFields {
   status: EntryStatus;
+  // The current share card (migration 0008): <entry id>/<uuid>.jpg in share-cards.
+  share_card: string | null;
   entry_private: {
     submitter_name: string;
     email: string;

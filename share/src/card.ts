@@ -16,12 +16,15 @@ export interface Entry {
   points: number | null;
   first_deer: boolean;
   photo_id: string;
+  // The share card staff made for it (migration 0008), if any: <entry id>/<uuid>.jpg.
+  share_card: string | null;
 }
 
 export interface Card {
   entry: Entry;
   presenting: string | null;
-  photo: { url: string; width: number; height: number } | { url: string };
+  // The share card when there is one, otherwise the photo (with its size when it could be read).
+  image: { url: string; width: number; height: number } | { url: string };
 }
 
 const AP_MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."];
@@ -64,8 +67,8 @@ function escape(text: string): string {
 // follows one, and would read the gallery page's tags instead of these.
 export function renderSharePage({ card, shareUrl, entryPage }: { card: Card; shareUrl: string; entryPage: string }) {
   const { title, description, alt } = cardText(card);
-  const size = "width" in card.photo
-    ? `\n<meta property="og:image:width" content="${card.photo.width}">\n<meta property="og:image:height" content="${card.photo.height}">`
+  const size = "width" in card.image
+    ? `\n<meta property="og:image:width" content="${card.image.width}">\n<meta property="og:image:height" content="${card.image.height}">`
     : "";
 
   return `<!doctype html>
@@ -81,7 +84,7 @@ export function renderSharePage({ card, shareUrl, entryPage }: { card: Card; sha
 <meta property="og:url" content="${escape(shareUrl)}">
 <meta property="og:title" content="${escape(title)}">
 <meta property="og:description" content="${escape(description)}">
-<meta property="og:image" content="${escape(card.photo.url)}">
+<meta property="og:image" content="${escape(card.image.url)}">
 <meta property="og:image:type" content="image/jpeg">${size}
 <meta property="og:image:alt" content="${escape(alt)}">
 <meta name="twitter:card" content="summary_large_image">

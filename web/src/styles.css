@@ -874,6 +874,29 @@ textarea {
   font-size: 0.875rem;
 }
 
+/* A posted deer's share card, at about the size a phone's feed shows it. */
+.share-image {
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+
+.share-image img {
+  width: 240px;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.remake-all {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
 /* Staff tools: tabs, so they read differently from the status pills under them. */
 .tools {
   display: flex;

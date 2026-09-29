@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(40);
 
 -- These assert the privilege map in both directions, so a missing grant fails CI
 -- as loudly as an extra one.
@@ -50,6 +50,8 @@ select ok(not has_function_privilege('anon', 'public.cast_vote(uuid, boolean)', 
 select ok(has_function_privilege('authenticated', 'public.is_staff()', 'execute'), 'authenticated can check staff status');
 select ok(has_function_privilege('authenticated', 'public.edit_entry(uuid, text, text, text)', 'execute'), 'authenticated can call edit_entry (staff check inside)');
 select ok(not has_function_privilege('anon', 'public.edit_entry(uuid, text, text, text)', 'execute'), 'anon cannot call edit_entry');
+select ok(has_function_privilege('authenticated', 'public.set_share_card(uuid, text)', 'execute'), 'authenticated can call set_share_card (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.set_share_card(uuid, text)', 'execute'), 'anon cannot call set_share_card');
 
 -- Hygiene.
 select is(
