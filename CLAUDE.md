@@ -17,17 +17,21 @@ supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RL
 supabase/seasons/      one file per season; local seed, run once in prod
 supabase/tests/        pgTAP (supabase test db)
 supabase/functions/    submit-entry + _shared (Deno)
+share/                 Cloudflare Worker: share pages at wausaupilotandreview.com/brag/<entry-id> (Deno tests)
 web/                   React/Vite, hash routes: #/embed #/gallery #/enter #/admin
 web/public/            WPR typewriter badge and wordmark: committed copies, never hot-linked
 web/src/sales.ts       sales contact, UTM-tagged sponsor links, ?demo previews
 web/src/analytics.ts   Plausible pageviews and events
+web/src/share.ts       share links, and links that open one deer (?entry=)
 ```
 
 The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the pet contest; the front-page strip already sits inside WPR's front page, and `#/admin` is staff-only. The presenting sponsor's name is part of the board's title ("Hunting Brag Board presented by …"), per the sponsor sheet.
 
 **Sponsor slots.** Until entries close, an unsold slot shows a "Sponsorship available" card that emails Chris and copies the address (the WordPress iframe needs `allow="clipboard-write"`). `?demo` before the hash (`/wpr-buck-board/?demo#/gallery`) fills every unsold slot with "Your business here" for pitches; sold slots are never overridden. Sponsor links carry `rel="noopener noreferrer sponsored"` and `utm_source=wausaupilotandreview&utm_medium=widget&utm_campaign=brag-board&utm_content=<placement>`. A sponsor address the browser can't parse shows the logo unlinked rather than breaking the page; migration 0006 refuses most typos at insert. Readers' Choice credits the presenting sponsor even if the attach step below was missed, and winner cards credit their award's sponsor.
 
-**Analytics.** Cookieless Plausible on `rowanflynnpilot.github.io`, the site WPR's other tools report to (`web/src/analytics.ts`; off in `?demo`). The hash script makes each view its own page, and with the front-page iframe's `loading="lazy"` a `#/embed` pageview means the strip was seen. Events: `Sponsor Click` {sponsor, placement}, `Sponsor Inquiry` {slot}, `Entry Submitted`, `Donate Click` {from}, `App Error` {message}. Never send anything about an entrant. Each view sits in an error boundary, so a crash shows a status line instead of an empty frame.
+**Analytics.** Cookieless Plausible on `rowanflynnpilot.github.io`, the site WPR's other tools report to (`web/src/analytics.ts`; off in `?demo`). The hash script makes each view its own page, and with the front-page iframe's `loading="lazy"` a `#/embed` pageview means the strip was seen. Events: `Sponsor Click` {sponsor, placement}, `Sponsor Inquiry` {slot}, `Entry Submitted`, `Donate Click` {from}, `App Error` {message}, `Entry Shared` {method: share sheet, facebook, copy link}, `Entry Opened` {from: share, front-page}. Never send anything about an entrant, including which entry. Each view sits in an error boundary, so a crash shows a status line instead of an empty frame.
+
+**Share pages.** Every deer on the board has a Share button, and its link is `wausaupilotandreview.com/brag/<entry-id>`: the Worker in `share/`, on WPR's Cloudflare zone, because Supabase edge functions serve HTML as plain text without a paid custom domain. Link-preview crawlers (Facebook, iMessage, X, Slack, WhatsApp…) get Open Graph tags: the full photo with its size (without it Facebook shows no photo on a deer's first share), "Carter’s first deer on the Hunting Brag Board", and the presenting sponsor. People are redirected before any lookup to `/brag-board/#entry=<id>&from=share`, which keeps the click's referrer (Facebook) for WPR's analytics and costs Supabase nothing. The embed snippet hands `#entry=` to the app as `?entry=` (a query string, so Plausible still counts `#/gallery`, not a page per deer); the gallery opens that deer under the title and scrolls the WordPress page to it. Front-page strip photos link the same way (`from=front-page`). The Worker reads only `gallery_entries` with the publishable key, so a deer that isn't on the board has no share page, only the redirect. Phones get their own share sheet (the iframe needs `allow="web-share"`); elsewhere Share offers Facebook and Copy link.
 
 ## Invariants — keep these true
 
@@ -47,11 +51,12 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 ```sh
 supabase start && supabase test db          # 134 pgTAP tests
 deno test supabase/functions/_shared        # 5 JPEG tests (real GPS-tagged fixture)
+deno test share/                            # 12 share-page tests
 deno check supabase/functions/submit-entry/index.ts
 cd web && npm run build                     # tsc + vite; needs the five VITE_ vars
 ```
 
-CI (`.github/workflows/supabase.yml`): Deno tests + pgTAP on every PR (full `supabase start`, because migration 0004 writes storage columns the storage service creates); on `main`, `db push` and function deploy in a non-cancelling concurrency group. `pages.yml` builds on PRs, deploys on `main`.
+CI (`.github/workflows/supabase.yml`): Deno tests + pgTAP on every PR (full `supabase start`, because migration 0004 writes storage columns the storage service creates); on `main`, `db push` and function deploy in a non-cancelling concurrency group. `pages.yml` builds on PRs, deploys on `main`. `share.yml` tests the Worker on PRs and, on `main`, deploys it with `wrangler` using the `VITE_` repository variables, once the Cloudflare secrets exist (README "First deploy" step 10; until then it warns and skips).
 
 ## Operations (SQL editor)
 
@@ -77,6 +82,8 @@ select email, source, created_at from public.newsletter_optins order by created_
 select e.hunter_name, s.votes from public.readers_choice_standings s join public.entries e on e.id = s.entry_id order by s.votes desc;
 ```
 
+A deer taken down after it was shared: its share page stops at once, but Facebook shows the preview it already scraped until someone pastes the link into the Sharing Debugger (developers.facebook.com/tools/debug) and clicks Scrape Again.
+
 Staff fix a typo, or trim a youth hunter to a first name, with **Edit…** in the `#/admin` queue (`edit_entry(entry_id, hunter_name, hometown, story)`): only those three fields change, so award qualification and any winner already picked are untouched, and the queue flags a youth entry whose name has a space in it.
 
 Winners and the drawing go through RPCs so the rules hold: `set_award_winner(award_id, entry_id)` (after entries close; must qualify; Readers' Choice only after voting, only to a top vote-getter) and `run_prize_drawing(season_id)` (once; one prize per Prize Partner; one prize per entrant by email). Winners stay hidden from the public until `winners_at`.
@@ -92,13 +99,14 @@ Verified end to end in Chromium and WebKit (Safari's engine), browser in a WordP
 - Shereen's rules page live at `VITE_RULES_URL` (the form links to it and requires the checkbox).
 - Custom SMTP, Turnstile widget, keys, secrets, seed, staff accounts, magic-link template: README "First deploy".
 - Sponsor logos uploaded and rows inserted, with prize text written the way it should read on the page.
-- WordPress: `/brag-board/` (gallery) and `/brag-board/enter/` (form) pages, then the front-page embed. Publishing the gallery page early gives Chris a live awards-and-prizes page to sell from.
+- WordPress: `/brag-board/` (gallery) and `/brag-board/enter/` (form) pages, then the front-page embed, each with the README snippet as is (`allow="clipboard-write; web-share"` and the `#entry=` lines included). Publishing the gallery page early gives Chris a live awards-and-prizes page to sell from.
+- Share pages deployed: a Cloudflare token and account ID as GitHub secrets, then the Share pages workflow (README "First deploy" step 10). Share buttons appear with the first posted deer.
 - One real-iPhone entry end to end, then take it down in `#/admin`.
 - County's Choice nominations open the same day; settle which gets the front page.
 
 **First week (next):**
-- Share pages. Supabase edge functions rewrite `text/html` to `text/plain` without a paid custom domain, so share pages come from a Cloudflare Worker on wausaupilotandreview.com (e.g. `/brag/<entry-id>`): read the entry from the REST API with the publishable key, return Open Graph tags, redirect people to the gallery page. Facebook shows our domain, not supabase.co.
-- Share card image framed with the presenting sponsor (generate at approval time).
+- Share pages (built; see Share pages above).
+- Share card image framed with the presenting sponsor (generate at approval time). The share page uses the photo itself until then.
 - Friday newsletter block (built; the entry form promises "new Brag Board entries every Friday", first due Oct. 16): `#/admin` > Friday newsletter lists deer approved since a date (default: a week ago), staff pick up to eight, and Copy HTML gives one Noptin Custom HTML block. `web/src/newsletter.ts` renders it to match the wpr-newsletter templates (600px rows, Oswald eyebrow, Merriweather/Source Sans 3, teal rule) inside the same wrapper that repo's `noptin_blocks.py` uses, under Noptin's ~13 KB per-block limit, with `utm_source=newsletter&utm_medium=email&utm_campaign=brag-board-<date>`. Sponsor logos go in only as PNG, JPEG or GIF (email clients drop SVG and WebP); otherwise the name. Next step, if wanted: have wpr-newsletter's build pull the section automatically on Fridays, like its featured-pet block.
 - Counter-card QR codes: link to the WordPress Brag Board page with `?ref=<sponsors.qr_slug>` (e.g. `?ref=example-meats`). Plausible reads `ref` as the traffic source and ignores `src`; the visit lands in the WordPress site's own analytics, since the iframe never sees its parent's query string. (Plausible in the app itself is built; see Analytics above.)
 

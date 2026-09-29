@@ -1,11 +1,15 @@
-// Dedicated page: every approved entry, filterable by the award each one qualifies for.
-import { useState } from "react";
+// Dedicated page: every approved entry, filterable by the award each one qualifies for. A link
+// to one deer (a share, or a photo on the front-page strip) opens it above the rest.
+import { useEffect, useRef, useState } from "react";
+import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { EntryCard } from "../components/EntryCard";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
+import { scrollIntoView } from "../host";
 import { awardSponsor, gunOpenerLine, phaseLine, presentingSponsor } from "../phase";
+import { LINKED_ENTRY } from "../share";
 import type { AwardKind } from "../types";
 import { useLoad } from "../useLoad";
 
@@ -25,6 +29,15 @@ export function Gallery() {
   const page = useLoad(loadGalleryPage);
   const [filter, setFilter] = useState<AwardKind | null>(null);
   const [shown, setShown] = useState(PAGE_SIZE);
+  const ready = page.status === "ready";
+  const linkedRef = useRef<HTMLElement>(null);
+
+  // On a phone the title fills the first screen, so take the reader down to the deer they tapped.
+  useEffect(() => {
+    if (!ready || !LINKED_ENTRY) return;
+    track("Entry Opened", { from: LINKED_ENTRY.from });
+    if (linkedRef.current) void scrollIntoView(linkedRef.current);
+  }, [ready]);
 
   if (page.status === "loading") return <p className="status">Loading the Brag Board…</p>;
   if (page.status === "failed") return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
@@ -32,6 +45,10 @@ export function Gallery() {
   const { board, entries, winners } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
+  const linkedId = LINKED_ENTRY?.id;
+  const linked = linkedId ? entries.find((e) => e.id === linkedId) : undefined;
+  const linkedWin = linked ? winners.find((w) => w.entry_id === linked.id) : undefined;
+  const linkedAward = linkedWin ? board.awards.find((a) => a.id === linkedWin.award_id) : undefined;
   // Every entry qualifies for Readers' Choice, so it isn't a useful filter.
   const filters = board.awards.filter((a) => a.kind !== "readers_choice");
   const selected = filters.find((a) => a.kind === filter);
@@ -65,6 +82,21 @@ export function Gallery() {
         )}
       </header>
 
+      {LINKED_ENTRY &&
+        (linked ? (
+          <section ref={linkedRef} className="linked-entry" aria-label="The deer from your link">
+            <EntryCard
+              entry={linked}
+              award={linkedAward?.label}
+              awardSponsor={linkedAward ? awardSponsor(board, linkedAward) : undefined}
+              share
+              featured
+            />
+          </section>
+        ) : (
+          <p className="linked-missing">The deer from that link isn't on the board.</p>
+        ))}
+
       {winners.length > 0 && (
         <section className="winners" aria-labelledby="winners-heading">
           <h2 id="winners-heading">{season.year} winners</h2>
@@ -73,7 +105,7 @@ export function Gallery() {
               const winner = winners.find((w) => w.award_id === award.id);
               const entry = winner && entries.find((e) => e.id === winner.entry_id);
               return entry
-                ? [<EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} />]
+                ? [<EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} share />]
                 : [];
             })}
           </div>
@@ -123,7 +155,7 @@ export function Gallery() {
           ) : (
             <div className="entry-grid">
               {visible.slice(0, shown).map((entry) => (
-                <EntryCard key={entry.id} entry={entry} />
+                <EntryCard key={entry.id} entry={entry} share />
               ))}
             </div>
           )}
