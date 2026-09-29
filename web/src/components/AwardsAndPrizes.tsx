@@ -62,7 +62,7 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
         <div>
           <h2>The prize drawing</h2>
           <p className="prizes-intro">
-            Everyone who enters gets one ticket, however many deer they enter.
+            Everyone with a deer on the board gets one ticket, however many deer they enter.
             {season.phase !== "winners" && ` Winners are announced ${apDate(season.winners_at)}.`}
           </p>
           <ul className="drawing-list">

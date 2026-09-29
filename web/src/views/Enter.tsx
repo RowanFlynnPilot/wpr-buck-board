@@ -5,7 +5,7 @@
 // In a `?demo` preview (/wpr-buck-board/?demo#/enter) the form is open whatever the date and
 // works as it does for readers, photo handling included, but sends nothing: no bot check, no
 // upload, no entry. The confirmation shows how the deer would look on the board.
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { track } from "../analytics";
 import { EntryCard } from "../components/EntryCard";
 import { SponsorCredit } from "../components/SponsorCredit";
@@ -21,6 +21,9 @@ import type { AgeGroup, DeerType, EntryFields, Weapon } from "../types";
 import { useLoad } from "../useLoad";
 
 const STORY_LIMIT = 1200;
+// Checked in the browser, so a blank or unusable answer is caught before the photo uploads.
+const NOT_BLANK = String.raw`.*\S.*`;
+const PHONE = String.raw`(\D*\d){7,15}\D*`;
 
 const BLANK: EntrySubmission = {
   hunter_name: "",
@@ -80,15 +83,22 @@ export function Enter() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Shown by the photo picker, where the reader is looking when a photo won't read.
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const wasSent = useRef(sent);
 
   useEffect(() => {
     if (!photo) return;
     return () => URL.revokeObjectURL(photo.preview);
   }, [photo]);
 
-  // Runs after the confirmation renders, so the host has already shrunk the iframe.
+  // Runs after the confirmation renders, so the host has already shrunk the iframe. Sending, or
+  // starting another entry, swaps the whole page: focus its heading so a screen reader says so.
   useEffect(() => {
     if (sent) scrollToTop();
+    if (wasSent.current !== sent) headingRef.current?.focus({ preventScroll: true });
+    wasSent.current = sent;
   }, [sent]);
 
   if (page.status === "loading") return <p className="status">Loading the entry form…</p>;
@@ -105,16 +115,16 @@ export function Enter() {
   const set = <K extends keyof EntrySubmission>(field: K, value: EntrySubmission[K]) =>
     setEntry((current) => ({ ...current, [field]: value }));
 
+  // A photo that won't read leaves the one already chosen, if any, in place.
   const choosePhoto = async (file: File | undefined) => {
-    setError(null);
+    setPhotoError(null);
     if (!file) return;
     setPreparing(true);
     try {
       const prepared = await preparePhoto(file);
       setPhoto({ ...prepared, preview: URL.createObjectURL(prepared.full) });
     } catch (err) {
-      setPhoto(null);
-      setError((err as Error).message);
+      setPhotoError((err as Error).message);
     } finally {
       setPreparing(false);
     }
@@ -158,6 +168,7 @@ export function Enter() {
     setPhoto(null);
     setRulesAccepted(false);
     setPublishingAllowed(false);
+    setPhotoError(null);
     setToken(null);
     setSent(false);
   };
@@ -179,7 +190,9 @@ export function Enter() {
   if (sent) {
     return (
       <main className="enter">
-        <h1>Thanks for entering the Hunting Brag Board!</h1>
+        <h1 ref={headingRef} tabIndex={-1}>
+          Thanks for entering the Hunting Brag Board!
+        </h1>
         <p>
           Watch for your deer in our Friday Brag Board feature. Winners will be announced {apDate(season.winners_at)} and
           contacted by email. Got another deer this season? Enter again anytime through {lastDay}.
@@ -210,7 +223,9 @@ export function Enter() {
   return (
     <main className="enter">
       <header>
-        <h1>Hunting Brag Board {season.year}</h1>
+        <h1 ref={headingRef} tabIndex={-1}>
+          Hunting Brag Board {season.year}
+        </h1>
         {presenting && <SponsorCredit sponsor={presenting} placement="entry-form" />}
         <p>
           Show off your deer! Send us a photo of you with your deer from the {season.year} Wisconsin season for a chance
@@ -227,6 +242,8 @@ export function Enter() {
             <input
               required
               maxLength={60}
+              pattern={NOT_BLANK}
+              title="The hunter's name, as it should appear"
               autoComplete="off"
               value={entry.hunter_name}
               onChange={(e) => set("hunter_name", e.target.value)}
@@ -255,7 +272,14 @@ export function Enter() {
           />
           <label>
             Hometown
-            <input required maxLength={60} value={entry.hometown} onChange={(e) => set("hometown", e.target.value)} />
+            <input
+              required
+              maxLength={60}
+              pattern={NOT_BLANK}
+              title="A city, village or town"
+              value={entry.hometown}
+              onChange={(e) => set("hometown", e.target.value)}
+            />
             <span className="hint">City, village or town. We publish your hometown, never your street address.</span>
           </label>
         </fieldset>
@@ -289,6 +313,8 @@ export function Enter() {
               required={youth}
               autoComplete="tel"
               maxLength={25}
+              pattern={PHONE}
+              title="A phone number with area code, like 715-555-0100"
               value={entry.phone}
               onChange={(e) => set("phone", e.target.value)}
             />
@@ -443,6 +469,12 @@ export function Enter() {
             One photo of the hunter with the deer is all we need.
             {photo && " Tap the photo to pick a different one."}
           </p>
+          {photoError && (
+            <p className="error" role="alert">
+              {photoError}
+              {photo && " Your earlier photo is still in place."}
+            </p>
+          )}
           <label>
             <span>
               Who took the photo? <span className="optional">(optional)</span>
@@ -464,6 +496,8 @@ export function Enter() {
               <input
                 required
                 maxLength={100}
+                pattern={NOT_BLANK}
+                title="Your full name"
                 autoComplete="name"
                 value={entry.submitter_name}
                 onChange={(e) => set("submitter_name", e.target.value)}
@@ -588,9 +622,15 @@ function Choices({
 // parent or guardian. Youth-only answers go only with a youth entry.
 function forSubmission(entry: EntrySubmission): EntrySubmission {
   const youth = entry.age_group === "youth";
+  const hunter = entry.hunter_name.trim();
   return {
     ...entry,
-    submitter_name: youth ? entry.submitter_name : entry.hunter_name,
+    hunter_name: hunter,
+    hometown: entry.hometown.trim(),
+    email: entry.email.trim(),
+    phone: entry.phone.trim(),
+    photo_credit: entry.photo_credit.trim(),
+    submitter_name: youth ? entry.submitter_name.trim() : hunter,
     guardian_relationship: youth ? entry.guardian_relationship : "",
     first_name_only: youth ? entry.first_name_only : "false",
     guardian_consent: youth && entry.guardian_consent,

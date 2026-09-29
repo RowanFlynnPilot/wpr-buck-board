@@ -386,7 +386,10 @@ function EditForm({ entry, onSaved, onCancel }: { entry: ModerationEntry; onSave
         Story
         <textarea rows={4} maxLength={1200} value={fields.story} onChange={(e) => set("story", e.target.value)} />
       </label>
-      <p className="hint">Only these words change. The weapon, deer, age and dates stay as entered, so awards aren't affected.</p>
+      <p className="hint">
+        Only these words change; the weapon, deer, age and dates stay as entered. Adding or clearing the story puts the
+        deer in or out of the running for Best Story.
+      </p>
       <div className="actions">
         <button type="submit" className="button" disabled={busy}>
           Save

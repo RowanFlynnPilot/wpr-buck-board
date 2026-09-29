@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(28);
+select plan(29);
 
 -- Fixtures --------------------------------------------------------------------
 
@@ -164,6 +164,11 @@ insert into public.sponsors (id, season_id, name, tier, logo_path, prize, qr_slu
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000b001', 'editor@example.com');
 set local role authenticated;
+-- Cat's entry is still waiting: only posted deer get a ticket, so it must be decided first.
+select throws_ok($$ select public.run_prize_drawing('00000000-0000-0000-0000-00000000a001') $$,
+  'P0001', '1 entry is still waiting for review. Post or decline it before the drawing.',
+  'the drawing waits until every entry is decided');
+select public.moderate_entry((select id from ids where label = 'cat'), 'rejected', 'Duplicate entry');
 select throws_ok($$ select public.run_prize_drawing('00000000-0000-0000-0000-00000000a001') $$,
   'P0001', 'Only 2 entrants for 3 prizes.', 'entrants are counted once each, however many deer they entered');
 reset role;

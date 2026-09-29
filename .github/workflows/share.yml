@@ -30,7 +30,8 @@ jobs:
 
   deploy:
     needs: share
-    if: github.event_name != 'pull_request'
+    # Main only, even when run by hand: a feature branch must never deploy to production.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
       group: share-deploy

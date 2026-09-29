@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(40);
+select plan(49);
 
 -- These assert the privilege map in both directions, so a missing grant fails CI
 -- as loudly as an extra one.
@@ -18,6 +18,12 @@ select ok(has_table_privilege('anon', 'public.drawing_winners', 'select'), 'anon
 select ok(has_table_privilege('authenticated', 'public.entry_private', 'select'), 'authenticated reads entry_private (RLS: staff only)');
 select ok(has_table_privilege('authenticated', 'public.votes', 'select'), 'authenticated reads votes (RLS: own or staff)');
 select ok(has_table_privilege('authenticated', 'public.entry_edits', 'select'), 'authenticated reads entry_edits (RLS: staff only)');
+select ok(has_table_privilege('authenticated', 'public.readers_choice_standings', 'select'), 'authenticated reads vote standings (RLS on votes: staff only)');
+
+-- The entry function writes its emails from these, as service_role (migration 0010).
+select ok(has_table_privilege('service_role', 'public.entries', 'select'), 'service role reads entries for the entry emails');
+select ok(has_table_privilege('service_role', 'public.seasons', 'select'), 'service role reads seasons for the entry emails');
+select ok(has_table_privilege('service_role', 'public.entry_private', 'select'), 'service role reads entrant details for the entry emails');
 
 -- Private data (negative).
 select ok(not has_table_privilege('anon', 'public.entry_private', 'select'), 'anon cannot read entry_private');
@@ -35,6 +41,15 @@ select ok(not has_table_privilege('authenticated', 'public.votes', 'insert,updat
 select ok(not has_table_privilege('authenticated', 'public.award_winners', 'insert,update,delete'), 'authenticated cannot write winners directly');
 select ok(not has_table_privilege('authenticated', 'public.seasons', 'insert,update,delete'), 'authenticated cannot change the calendar');
 select ok(not has_table_privilege('authenticated', 'public.entry_edits', 'insert,update,delete'), 'authenticated cannot write the edit log directly');
+select is(
+  (select array_agg(role || ' ' || tbl order by role, tbl)
+   from unnest(array['anon', 'authenticated']) role,
+        unnest(array['public.staff', 'public.entry_private', 'public.drawing_winners', 'public.newsletter_optins',
+                     'public.sponsors', 'public.awards', 'public.wi_counties']) tbl
+   where has_table_privilege(role, tbl, 'insert,update,delete,truncate')),
+  null,
+  'no API role can write staff, entrant details, the drawing, opt-ins or the catalog directly'
+);
 
 -- RPC execute map.
 select ok(has_function_privilege('service_role', 'public.submit_entry(text, text, text, date, public.weapon, public.deer_type, smallint, boolean, public.age_group, boolean, text, uuid, text, text, boolean, text, text, boolean, text)', 'execute'),
@@ -52,6 +67,10 @@ select ok(has_function_privilege('authenticated', 'public.edit_entry(uuid, text,
 select ok(not has_function_privilege('anon', 'public.edit_entry(uuid, text, text, text)', 'execute'), 'anon cannot call edit_entry');
 select ok(has_function_privilege('authenticated', 'public.set_share_card(uuid, text)', 'execute'), 'authenticated can call set_share_card (staff check inside)');
 select ok(not has_function_privilege('anon', 'public.set_share_card(uuid, text)', 'execute'), 'anon cannot call set_share_card');
+select ok(has_function_privilege('authenticated', 'public.set_award_winner(uuid, uuid)', 'execute'), 'authenticated can call set_award_winner (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.set_award_winner(uuid, uuid)', 'execute'), 'anon cannot pick winners');
+select ok(has_function_privilege('authenticated', 'public.run_prize_drawing(uuid)', 'execute'), 'authenticated can call run_prize_drawing (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.run_prize_drawing(uuid)', 'execute'), 'anon cannot run the drawing');
 
 -- Hygiene.
 select is(

@@ -36,7 +36,16 @@ export default {
   fetch: (request: Request, env: Env) => handle(request, env, (input, init) => fetch(input, init)),
 };
 
-export async function handle(request: Request, env: Env, fetcher: Fetch): Promise<Response> {
+// A crawler waits only so long. If Supabase is slower than this, send it to the board page's own
+// preview rather than time out with none (and have Facebook cache that).
+const SUPABASE_TIMEOUT_MS = 3000;
+
+export async function handle(
+  request: Request,
+  env: Env,
+  fetcher: Fetch,
+  timeoutMs = SUPABASE_TIMEOUT_MS,
+): Promise<Response> {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
   }
@@ -48,7 +57,7 @@ export async function handle(request: Request, env: Env, fetcher: Fetch): Promis
   const entryPage = `${gallery}#entry=${id}&from=share`;
   if (!PREVIEW_CRAWLERS.test(request.headers.get("user-agent") ?? "")) return Response.redirect(entryPage, 302);
 
-  const card = await loadCard(env, id, fetcher).catch((error) => {
+  const card = await loadCard(env, id, fetcher, timeoutMs).catch((error) => {
     console.error(`Share page for ${id}:`, error);
     return null;
   });
@@ -65,11 +74,14 @@ export async function handle(request: Request, env: Env, fetcher: Fetch): Promis
   });
 }
 
-async function loadCard(env: Env, id: string, fetcher: Fetch): Promise<Card | null> {
+async function loadCard(env: Env, id: string, fetcher: Fetch, timeoutMs: number): Promise<Card | null> {
   const supabase = setting(env, "SUPABASE_URL");
   const key = setting(env, "SUPABASE_PUBLISHABLE_KEY");
   const rest = async <T>(query: string): Promise<T> => {
-    const response = await fetcher(`${supabase}/rest/v1/${query}`, { headers: { apikey: key } });
+    const response = await fetcher(`${supabase}/rest/v1/${query}`, {
+      headers: { apikey: key },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
     if (!response.ok) throw new Error(`Supabase answered ${response.status}: ${await response.text()}`);
     return response.json();
   };
@@ -83,7 +95,7 @@ async function loadCard(env: Env, id: string, fetcher: Fetch): Promise<Card | nu
     rest<{ name: string }[]>(`sponsors?select=name&tier=eq.presenting&season_id=eq.${entry.season_id}`),
     entry.share_card
       ? { url: `${storage}/share-cards/${entry.share_card}`, ...CARD_SIZE }
-      : photoSize(photo, fetcher).then((size) => ({ url: photo, ...size })),
+      : photoSize(photo, fetcher, timeoutMs).then((size) => ({ url: photo, ...size })),
   ]);
   return { entry, presenting: sponsors[0]?.name ?? null, image };
 }
@@ -92,9 +104,13 @@ async function loadCard(env: Env, id: string, fetcher: Fetch): Promise<Card | nu
 // otherwise the first person to share a deer sees no photo. Read it from the JPEG's frame
 // header, a few hundred bytes in (submit-entry strips the big metadata segments). A share card
 // needs none of this: its size is fixed.
-async function photoSize(url: string, fetcher: Fetch): Promise<{ width: number; height: number } | null> {
+async function photoSize(
+  url: string,
+  fetcher: Fetch,
+  timeoutMs: number,
+): Promise<{ width: number; height: number } | null> {
   try {
-    const response = await fetcher(url, { headers: { range: "bytes=0-16383" } });
+    const response = await fetcher(url, { headers: { range: "bytes=0-16383" }, signal: AbortSignal.timeout(timeoutMs) });
     if (!response.ok) throw new Error(`storage answered ${response.status}`);
     const size = jpegSize(new Uint8Array(await response.arrayBuffer()));
     if (!size) throw new Error("no frame header in the first 16 KB");

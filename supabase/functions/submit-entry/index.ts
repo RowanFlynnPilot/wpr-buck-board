@@ -160,7 +160,8 @@ async function readPhoto(form: FormData, name: string, maxBytes: number): Promis
 function text(form: FormData, name: string): string {
   const value = form.get(name);
   if (typeof value !== "string") throw new BadRequest(`Missing field: ${name}.`);
-  return value;
+  // Browsers send a textarea's line breaks as CRLF; keep them as the form counted them (one each).
+  return value.replace(/\r\n?/g, "\n");
 }
 
 function optionalText(form: FormData, name: string): string | null {

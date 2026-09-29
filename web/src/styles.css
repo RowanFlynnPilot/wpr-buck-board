@@ -314,6 +314,9 @@ img {
 }
 
 .button-ink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.55rem 1rem;
   border-color: var(--ink);
   background: var(--ink);
@@ -452,6 +455,7 @@ img {
 }
 
 .filters button {
+  min-height: 44px;
   padding: 0.45rem 0.9rem;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -641,22 +645,28 @@ img {
 
 .entry .link-button {
   justify-self: start;
+  min-height: 44px;
   font-size: 0.875rem;
 }
 
-/* Share: a quiet link with a thumb-sized hit area. */
+/* Share: a quiet link with a thumb-sized hit area (44px, like every reader tap target). */
 .entry .share-button {
   margin-top: 0.1rem;
-  padding: 0.45rem 0;
 }
 
 .share-options {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem 1rem;
-  padding: 0.45rem 0;
+  gap: 0 1rem;
   font-size: 0.875rem;
+}
+
+.share-options a,
+.share-options .link-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .share-options a {
@@ -822,6 +832,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 44px;
   padding: 0.6rem 0.9rem;
   border: 1px solid var(--bark);
   border-radius: 6px;
@@ -1068,4 +1079,9 @@ textarea {
     scroll-behavior: auto !important;
     transition: none !important;
   }
+}
+
+/* Headings that take focus only so a screen reader announces a new page (the entry form). */
+h1[tabindex="-1"]:focus {
+  outline: none;
 }
