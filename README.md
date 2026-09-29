@@ -39,11 +39,11 @@ Views: `#/embed` (front page), `#/gallery`, `#/enter`, `#/admin` (staff, opened 
 
 ## WordPress embed
 
-Use a Custom HTML block. Front page: `#/embed`. Brag Board page (`/brag-board/`): `#/gallery`. Entry page (`/brag-board/enter/`): `#/enter`.
+Use a Custom HTML block. Front page: `#/embed`. Brag Board page (`/brag-board/`): `#/gallery`. Entry page (`/brag-board/enter/`): `#/enter`. Keep `allow="clipboard-write"`: an unsold sponsor slot's "Book" button copies the sales address for readers whose computer has no mail app.
 
 ```html
 <iframe id="wpr-buck-board" src="https://rowanflynnpilot.github.io/wpr-buck-board/#/gallery"
-  title="Hunting Brag Board" style="width:100%;border:0;display:block" height="600"></iframe>
+  title="Hunting Brag Board" allow="clipboard-write" style="width:100%;border:0;display:block" height="600"></iframe>
 <script>
   (function () {
     var frame = document.getElementById("wpr-buck-board");
@@ -55,3 +55,5 @@ Use a Custom HTML block. Front page: `#/embed`. Brag Board page (`/brag-board/`)
   })();
 </script>
 ```
+
+For sales pitches, `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/gallery` (or `#/embed`) fills every unsold slot with "Your business here" under a ribbon that explains the preview. Readers never see it.

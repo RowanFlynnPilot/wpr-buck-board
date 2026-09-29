@@ -125,9 +125,11 @@ export function Enter() {
       <main className="enter">
         <h1>Enter your deer</h1>
         <p>{phaseLine(season)}</p>
-        <a className="button" href={env.galleryPageUrl} target="_top">
-          See the board
-        </a>
+        <div className="actions">
+          <a className="button" href={env.galleryPageUrl} target="_top">
+            See the board
+          </a>
+        </div>
       </main>
     );
   }
@@ -158,7 +160,7 @@ export function Enter() {
     <main className="enter">
       <header>
         <h1>Enter your deer</h1>
-        {presenting && <SponsorCredit sponsor={presenting} />}
+        {presenting && <SponsorCredit sponsor={presenting} placement="entry-form" />}
         <p>
           Any deer taken in Wisconsin since {apDay(season.harvest_since)} can go on the {season.year} Brag Board. Entering
           puts you in the prize drawing, and our staff sorts every deer into the awards it qualifies for.

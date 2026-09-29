@@ -48,11 +48,13 @@ export function Embed() {
           <a href={env.galleryPageUrl} target="_top">
             Hunting Brag Board
           </a>
+          {presenting && <span className="title-sponsor">presented by {presenting.name}</span>}
         </h2>
-        {presenting && <SponsorCredit sponsor={presenting} />}
+        {presenting && <SponsorCredit sponsor={presenting} placement="front-page" lead={null} />}
       </div>
 
-      {season.phase !== "upcoming" && (
+      {/* "0 deer on the board" would greet readers on launch morning. */}
+      {season.phase !== "upcoming" && count > 0 && (
         <p className="strip-count">
           <strong>{count}</strong> deer on the board
         </p>
