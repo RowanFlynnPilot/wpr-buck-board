@@ -2,7 +2,17 @@ import { FunctionsFetchError, FunctionsHttpError, type PostgrestError } from "@s
 import type { PreparedPhoto } from "./photo";
 import { withDemoSponsors } from "./sales";
 import { supabase } from "./supabase";
-import type { Award, AwardWinner, Board, EntryStatus, GalleryEntry, ModerationEntry, Season, Sponsor } from "./types";
+import type {
+  Award,
+  AwardWinner,
+  Board,
+  EntryStatus,
+  GalleryEntry,
+  ModerationEntry,
+  PostedEntry,
+  Season,
+  Sponsor,
+} from "./types";
 
 type Result = { data: unknown; error: PostgrestError | null };
 
@@ -69,6 +79,20 @@ export async function loadModerationQueue(seasonId: string, status: EntryStatus)
       .eq("season_id", seasonId)
       .eq("status", status)
       .order("created_at", { ascending: status === "pending" }),
+  );
+}
+
+// Staff: entries approved at or after `since` (an ISO timestamp), newest first. "Posted"
+// means approved, so an entry sent in Thursday and approved Saturday lands in the next week.
+export async function loadPostedSince(seasonId: string, since: string): Promise<PostedEntry[]> {
+  return rows<PostedEntry[]>(
+    supabase
+      .from("entries")
+      .select(`${ENTRY_COLUMNS}, entry_private!inner(moderated_at)`)
+      .eq("season_id", seasonId)
+      .eq("status", "approved")
+      .gte("entry_private.moderated_at", since)
+      .order("created_at", { ascending: false }),
   );
 }
 

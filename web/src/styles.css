@@ -797,6 +797,113 @@ textarea {
   flex: 1 1 180px;
 }
 
+/* Staff tools: tabs, so they read differently from the status pills under them. */
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tools button {
+  margin-bottom: -1px;
+  padding: 0.5rem 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--bark);
+  font: 700 1rem var(--body);
+  cursor: pointer;
+}
+
+.tools button[aria-pressed="true"] {
+  border-bottom-color: var(--teal);
+  color: var(--ink);
+}
+
+/* Friday newsletter ---------------------------------------------------------- */
+
+.newsletter {
+  display: grid;
+  gap: 1rem;
+}
+
+.newsletter-since {
+  max-width: 16rem;
+}
+
+.newsletter-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.pick-on {
+  border-color: var(--ink);
+  background: #fffdf8;
+}
+
+.pick input {
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  flex: none;
+  accent-color: var(--teal);
+}
+
+.pick img {
+  width: 64px;
+  height: 48px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.pick span {
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.pick .pick-when {
+  display: block;
+  color: var(--bark);
+  font-size: 0.8125rem;
+}
+
+.newsletter-size {
+  color: var(--bark);
+  font-size: 0.875rem;
+}
+
+.newsletter-size-over {
+  color: #b3261e;
+  font-weight: 700;
+}
+
+.newsletter-preview {
+  width: 100%;
+  max-width: 680px;
+  height: 900px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f6f2e9;
+}
+
 @media (min-width: 720px) {
   :root {
     --gap: 1.5rem;

@@ -15,7 +15,8 @@ export type Placement =
   | "award-filter"
   | "awards-list"
   | "prize-drawing"
-  | "winner-card";
+  | "winner-card"
+  | "newsletter";
 
 // Tagged so the visit shows up in the sponsor's own analytics as coming from us.
 export function sponsorHref(sponsor: Sponsor, placement: Placement): string | null {

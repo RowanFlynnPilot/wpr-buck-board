@@ -1,5 +1,6 @@
-// Staff moderation queue. Open directly (not embedded): /wpr-buck-board/#/admin
-// Staff sign in with a one-time email code; accounts must already exist and be in `staff`.
+// Staff desk: the moderation queue and the Friday newsletter section. Open directly (not
+// embedded): /wpr-buck-board/#/admin. Staff sign in with a one-time email code; accounts
+// must already exist and be in `staff`.
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState, type FormEvent } from "react";
 import { EntryCard } from "../components/EntryCard";
@@ -8,6 +9,13 @@ import { AGE_LABELS, apDate } from "../format";
 import { supabase } from "../supabase";
 import type { EntryStatus, ModerationEntry } from "../types";
 import { useLoad } from "../useLoad";
+import { NewsletterBlock } from "./NewsletterBlock";
+
+const TOOLS = [
+  { tool: "queue", label: "Moderation queue" },
+  { tool: "newsletter", label: "Friday newsletter" },
+] as const;
+type Tool = (typeof TOOLS)[number]["tool"];
 
 export function Admin() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -49,7 +57,7 @@ function SignIn() {
 
   return (
     <>
-      <h1>Brag Board moderation</h1>
+      <h1>Brag Board staff</h1>
       {codeSent ? (
         <form onSubmit={verify}>
           <label>
@@ -89,6 +97,7 @@ function SignIn() {
 
 function StaffOnly({ email }: { email: string | undefined }) {
   const staff = useLoad(isStaff);
+  const [tool, setTool] = useState<Tool>("queue");
   const signOut = (
     <button type="button" className="link-button" onClick={() => supabase.auth.signOut()}>
       Sign out
@@ -108,12 +117,19 @@ function StaffOnly({ email }: { email: string | undefined }) {
   return (
     <>
       <header className="admin-head">
-        <h1>Brag Board moderation</h1>
+        <h1>Brag Board staff</h1>
         <p>
           Signed in as {email}. {signOut}
         </p>
       </header>
-      <Queue />
+      <nav className="tools" aria-label="Staff tools">
+        {TOOLS.map(({ tool: t, label }) => (
+          <button key={t} type="button" aria-pressed={tool === t} onClick={() => setTool(t)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+      {tool === "queue" ? <Queue /> : <NewsletterBlock />}
     </>
   );
 }
