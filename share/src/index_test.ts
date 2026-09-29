@@ -181,3 +181,14 @@ Deno.test("jpegSize skips segments before the frame header", () => {
   const withIcc = new Uint8Array([0xff, 0xd8, ...icc, ...JPEG.subarray(2)]);
   assertEquals(jpegSize(withIcc), { width: 1200, height: 1600 });
 });
+
+Deno.test("a crawler isn't kept waiting on a slow Supabase: it gets the redirect", async () => {
+  // Answers only when the Worker gives up, the way fetch does when its signal aborts.
+  const hanging = (_input: string, init?: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal!.reason)));
+  const started = Date.now();
+  const response = await handle(get(`/brag/${ID}`, FACEBOOK), ENV, hanging, 50);
+  assertEquals(response.status, 302);
+  assertEquals(response.headers.get("location"), `${ENV.GALLERY_PAGE_URL}#entry=${ID}&from=share`);
+  assert(Date.now() - started < 2000, "gave up at the time limit");
+});

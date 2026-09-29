@@ -37,33 +37,49 @@ The share Worker runs locally with `npx wrangler dev` in `share/`, given the thr
 2. Authentication > SMTP: set up custom SMTP (Resend, Postmark or SES, sending from a wausaupilotandreview.com address; the DNS records go in Cloudflare). This is required: Supabase's built-in sender only reaches members of the Supabase organization, caps at 2 emails an hour, and doesn't allow template edits.
 3. GitHub secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`.
 4. Cloudflare dashboard > Turnstile > Add widget: mode Managed, hostname `rowanflynnpilot.github.io` (the form runs inside that iframe, not on wausaupilotandreview.com).
-5. GitHub repository variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GALLERY_PAGE_URL`, `VITE_ENTER_PAGE_URL`, `VITE_RULES_URL`, `VITE_TURNSTILE_SITE_KEY`. Enable Pages with "GitHub Actions" as the source.
+5. GitHub repository variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GALLERY_PAGE_URL` (the Brag Board page, https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/), `VITE_ENTER_PAGE_URL` (the same address with `#enter`), `VITE_RULES_URL` (Shereen's rules, on the same page for now), `VITE_TURNSTILE_SITE_KEY`. Enable Pages with "GitHub Actions" as the source. Changing a variable deploys nothing by itself: run Pages, and Share pages, from the Actions tab afterward.
 6. `supabase secrets set ALLOWED_ORIGIN=https://rowanflynnpilot.github.io TURNSTILE_SECRET_KEY=<widget secret>`
-7. Push to `main`. CI tests, pushes migrations, deploys the function, and publishes the web app.
+7. Push to `main`. CI tests, pushes migrations, deploys the function, and publishes the web app, but each deploy runs only when its own files changed, so for a first deploy run Supabase, Pages and Share pages by hand from the Actions tab (from `main`; the deploy steps refuse any other branch).
 8. In the SQL editor, run `supabase/seasons/2026.sql` once. Add each staff member under Authentication > Users (Add user, auto-confirm), then insert them into `staff` (see CLAUDE.md).
 9. Authentication > Email Templates > Magic Link: paste `supabase/templates/magic_link.html`. Staff sign in at `#/admin` with the 6-digit code it sends.
-10. Share pages. In WPR's Cloudflare dashboard, create an API token from the "Edit Cloudflare Workers" template, limited to WPR's account and the wausaupilotandreview.com zone. Add it and the account ID (Workers & Pages overview, right-hand column) as the GitHub secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then run Actions > Share pages > Run workflow. It deploys `wpr-brag-board-share` on the route `wausaupilotandreview.com/brag/*`, with the Supabase URL, publishable key and gallery page taken from the `VITE_` variables (after changing one of those, run it again). Check it with a posted deer's id: `curl -A facebookexternalhit https://wausaupilotandreview.com/brag/<id>` prints the deer's Open Graph tags, the same link in a browser opens the deer on `/brag-board/`, and Facebook's Sharing Debugger (developers.facebook.com/tools/debug) shows the preview. The share buttons go live with the gallery, so do this before entries open.
+10. Share pages. In WPR's Cloudflare dashboard, create an API token from the "Edit Cloudflare Workers" template, limited to WPR's account and the wausaupilotandreview.com zone. Add it and the account ID (Workers & Pages overview, right-hand column) as the GitHub secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then run Actions > Share pages > Run workflow. It deploys `wpr-brag-board-share` on the route `wausaupilotandreview.com/brag/*`, with the Supabase URL, publishable key and gallery page taken from the `VITE_` variables (after changing one of those, run it again). Check it with a posted deer's id: `curl -A facebookexternalhit https://wausaupilotandreview.com/brag/<id>` prints the deer's Open Graph tags, the same link in a browser opens the deer on the Brag Board page, and Facebook's Sharing Debugger (developers.facebook.com/tools/debug) shows the preview. The share buttons go live with the gallery, so do this before entries open.
 11. Entry emails (a confirmation to the entrant, replies to the editor; a notice to Shereen and Chris for each entry). In Resend (the same account as step 2's SMTP, if that's Resend), verify wausaupilotandreview.com (its DNS records go in Cloudflare), create an API key, then `supabase secrets set RESEND_API_KEY=re_...`. Defaults, each overridable with a secret of the same name: `EMAIL_FROM` "Wausau Pilot & Review <bragboard@wausaupilotandreview.com>", `EMAIL_REPLY_TO` editor@wausaupilotandreview.com, `STAFF_EMAILS` editor@ and weber.chris@ (comma-separated), `STAFF_QUEUE_URL` the `#/admin` page. Without the key, entries save and nothing is sent. Each entry sends two emails and Resend's free plan allows 100 a day, so the gun-opener weekend (more than 50 entries a day) needs the paid plan for November. Check it with one real entry: both emails should arrive within a minute.
 
 ## WordPress embed
 
-Use a Custom HTML block. Front page: `#/embed`, `height="400"`. Brag Board page (`/brag-board/`): `#/gallery`, `height="600"`. Entry page (`/brag-board/enter/`): `#/enter`, `height="600"`. The height is only the starting size (the app resizes the frame), so match it to the page and it won't jump as it loads.
+The board lives on one WordPress page, Shereen's [Hunting Brag Board page](https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/), in a single frame that shows the board or, at `#enter`, the entry form; her rules tell readers to fill out the form "on this page." The front page carries the strip. Paste the same snippet in a Custom HTML block on each, changing only the view and the starting height:
 
-Keep all of the snippet, attributes included:
+- Brag Board page: `#/gallery`, `height="600"` (as below). Its address is `VITE_GALLERY_PAGE_URL`, and the same address with `#enter` is `VITE_ENTER_PAGE_URL`.
+- Front page: `#/embed`, `height="400"`.
+
+The height is only the starting size (the app resizes the frame), so match it to the page and it won't jump as it loads. The frame's `src` has no query string. Keep all of the snippet, attributes included:
 
 - `loading="lazy"`: on the front page the strip, its script, fonts and six photos load only as a reader scrolls near it, and a `#/embed` pageview in Plausible then means the strip was actually seen.
 - `allow="clipboard-write; web-share"`: an unsold sponsor slot's "Book" button copies the sales address for readers whose computer has no mail app, and a deer's Share button opens a phone's own share sheet (without it, Share falls back to Facebook and Copy link).
-- The `#entry=` lines: a link to one deer (`/brag-board/#entry=<id>`, where share links and front-page strip photos land) opens that deer at the top of the board. They do nothing on the other pages.
+- `route()`, on the Brag Board page only (it does nothing on the front page):
+  - `#enter` shows the entry form. Every "Enter your deer" link points there. On the board it swaps the frame without reloading the page; from the front page, the newsletter or a counter card it opens straight to the form.
+  - `#entry=<id>`, where share links and front-page strip photos land, opens that deer at the top of the board.
+  - Anything else shows the board.
 
 ```html
-<iframe id="wpr-buck-board" src="https://rowanflynnpilot.github.io/wpr-buck-board/#/embed"
+<iframe id="wpr-buck-board" src="https://rowanflynnpilot.github.io/wpr-buck-board/#/gallery"
   title="Hunting Brag Board" loading="lazy" allow="clipboard-write; web-share"
-  style="width:100%;border:0;display:block" height="400"></iframe>
+  style="width:100%;border:0;display:block" height="600"></iframe>
 <script>
   (function () {
     var frame = document.getElementById("wpr-buck-board");
-    var deer = /^#(entry=[0-9a-f-]{36}(&from=[a-z-]+)?)$/i.exec(location.hash);
-    if (deer) frame.src = frame.src.replace("#/", "?" + deer[1] + "#/");
+    var app = frame.src.split("#")[0];
+    var board = frame.src.indexOf("#/gallery") > 0;
+    function route() {
+      if (!board) return;
+      var deer = /^#(entry=[0-9a-f-]{36}(&from=[a-z-]+)?)$/i.exec(location.hash);
+      var view = location.hash === "#enter" ? "#/enter" : "#/gallery";
+      var src = deer ? app + "?" + deer[1] + view : app + view;
+      if (frame.src !== src) frame.src = src;
+      if (location.hash === "#enter") frame.scrollIntoView({ block: "start" });
+    }
+    route();
+    window.addEventListener("hashchange", route);
     window.addEventListener("message", function (event) {
       if (event.origin !== "https://rowanflynnpilot.github.io" || event.source !== frame.contentWindow) return;
       if (event.data.height) frame.style.height = event.data.height + "px";

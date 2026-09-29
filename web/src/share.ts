@@ -30,7 +30,8 @@ export function shareTitle(entry: EntryFields): string {
 }
 
 // The deer a link opened, read once at load. It rides in the query string, not the hash, so
-// Plausible counts the view as #/gallery rather than one page per deer.
+// Plausible counts the view as #/gallery rather than one page per deer, and it comes off the
+// address before Plausible's script loads: the pageview never carries which deer (CLAUDE.md).
 const params = new URLSearchParams(window.location.search);
 const linkedId = params.get("entry");
 const from = params.get("from");
@@ -38,3 +39,11 @@ export const LINKED_ENTRY =
   linkedId && ENTRY_ID.test(linkedId)
     ? { id: linkedId.toLowerCase(), from: from === "share" || from === "front-page" ? from : "link" }
     : null;
+if (params.has("entry") || params.has("from")) {
+  params.delete("entry");
+  params.delete("from");
+  const query = params.toString();
+  // URLSearchParams writes a bare flag like ?demo as "demo="; keep it as it was.
+  const search = query ? `?${query.replace(/=(&|$)/g, "$1")}` : "";
+  window.history.replaceState(null, "", window.location.pathname + search + window.location.hash);
+}
