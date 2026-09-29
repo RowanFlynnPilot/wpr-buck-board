@@ -37,11 +37,11 @@ select ok(not has_table_privilege('authenticated', 'public.seasons', 'insert,upd
 select ok(not has_table_privilege('authenticated', 'public.entry_edits', 'insert,update,delete'), 'authenticated cannot write the edit log directly');
 
 -- RPC execute map.
-select ok(has_function_privilege('service_role', 'public.submit_entry(text, text, text, date, public.weapon, public.deer_type, smallint, boolean, public.age_group, boolean, text, uuid, text, text, boolean)', 'execute'),
+select ok(has_function_privilege('service_role', 'public.submit_entry(text, text, text, date, public.weapon, public.deer_type, smallint, boolean, public.age_group, boolean, text, uuid, text, text, boolean, text, text, boolean, text)', 'execute'),
   'service role can submit entries');
-select ok(not has_function_privilege('anon', 'public.submit_entry(text, text, text, date, public.weapon, public.deer_type, smallint, boolean, public.age_group, boolean, text, uuid, text, text, boolean)', 'execute'),
+select ok(not has_function_privilege('anon', 'public.submit_entry(text, text, text, date, public.weapon, public.deer_type, smallint, boolean, public.age_group, boolean, text, uuid, text, text, boolean, text, text, boolean, text)', 'execute'),
   'anon cannot call submit_entry');
-select ok(not has_function_privilege('authenticated', 'public.submit_entry(text, text, text, date, public.weapon, public.deer_type, smallint, boolean, public.age_group, boolean, text, uuid, text, text, boolean)', 'execute'),
+select ok(not has_function_privilege('authenticated', 'public.submit_entry(text, text, text, date, public.weapon, public.deer_type, smallint, boolean, public.age_group, boolean, text, uuid, text, text, boolean, text, text, boolean, text)', 'execute'),
   'authenticated cannot call submit_entry');
 select ok(has_function_privilege('authenticated', 'public.moderate_entry(uuid, public.entry_status, text)', 'execute'), 'authenticated can call moderate_entry (staff check inside)');
 select ok(not has_function_privilege('anon', 'public.moderate_entry(uuid, public.entry_status, text)', 'execute'), 'anon cannot call moderate_entry');

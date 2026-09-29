@@ -1,16 +1,18 @@
-// Entry form. Built for a phone in a truck: photo first, big targets, one screen of questions.
+// Entry form. Built for a phone in a truck: big targets, one screen of questions. The questions,
+// their order and wording follow Shereen's 2026 entry form plan: the hunter, how to reach you,
+// the deer, the story, the photo, a parent or guardian for hunters 17 and under, then consent.
 // Entrants never pick an award; the database works out which ones each deer qualifies for.
 // In a `?demo` preview (/wpr-buck-board/?demo#/enter) the form is open whatever the date and
 // works as it does for readers, photo handling included, but sends nothing: no bot check, no
 // upload, no entry. The confirmation shows how the deer would look on the board.
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { track } from "../analytics";
 import { EntryCard } from "../components/EntryCard";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { Turnstile } from "../components/Turnstile";
 import { loadCatalog, loadCounties, loadSeason, submitEntry, type EntrySubmission } from "../data";
 import { env } from "../env";
-import { AGE_LABELS, WEAPON_LABELS, apDay, todayInWausau } from "../format";
+import { AGE_LABELS, WEAPON_LABELS, apDate, apDay, apLastDay, todayInWausau } from "../format";
 import { scrollToTop } from "../host";
 import { phaseLine, presentingSponsor } from "../phase";
 import { preparePhoto, type PreparedPhoto } from "../photo";
@@ -28,14 +30,36 @@ const BLANK: EntrySubmission = {
   weapon: "",
   deer_type: "",
   points: "",
-  first_deer: false,
+  first_deer: "",
   age_group: "",
   guardian_consent: false,
   story: "",
   submitter_name: "",
   email: "",
   newsletter_opt_in: false,
+  phone: "",
+  guardian_relationship: "",
+  first_name_only: "",
+  photo_credit: "",
 };
+
+// Shown just above the upload, in Shereen's words (one photo, where her plan allowed three).
+const PHOTO_GUIDELINES: [lead: string, text: string][] = [
+  ["Get in the picture.", "We feature hunters with their deer, so the hunter needs to be in the photo."],
+  [
+    "Keep the photo respectful.",
+    "Wipe away blood where you can and tuck the tongue in. We can't publish photos that show heavy blood, open wounds or field dressing.",
+  ],
+  [
+    "Handle weapons safely.",
+    "If a firearm or bow is in the frame, point the muzzle or arrow away from the camera and everyone else.",
+  ],
+  ["Leave the drinks out of the shot.", "We can't publish photos with alcohol in them."],
+  ["Find good light.", "Daylight works best. Step out of the garage and get close enough that we can see faces and antlers."],
+  ["Send the original.", "No filters, stickers, text or borders. We may crop your photo to fit."],
+  ["", "Share only your own photos, or photos you have permission to send."],
+  ["", "JPG, PNG or iPhone photos."],
+];
 
 async function loadEnterPage() {
   const [season, counties] = await Promise.all([loadSeason(), loadCounties()]);
@@ -50,6 +74,7 @@ export function Enter() {
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [publishingAllowed, setPublishingAllowed] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [sending, setSending] = useState(false);
@@ -74,6 +99,8 @@ export function Enter() {
   const { board, counties } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
+  const youth = entry.age_group === "youth";
+  const lastDay = apLastDay(season.entries_close_at);
 
   const set = <K extends keyof EntrySubmission>(field: K, value: EntrySubmission[K]) =>
     setEntry((current) => ({ ...current, [field]: value }));
@@ -113,7 +140,7 @@ export function Enter() {
     setSending(true);
     setError(null);
     try {
-      await submitEntry(entry, photo, token);
+      await submitEntry(forSubmission(entry), photo, token);
       track("Entry Submitted");
       setSent(true);
     } catch (err) {
@@ -130,6 +157,7 @@ export function Enter() {
     setEntry(BLANK);
     setPhoto(null);
     setRulesAccepted(false);
+    setPublishingAllowed(false);
     setToken(null);
     setSent(false);
   };
@@ -151,10 +179,10 @@ export function Enter() {
   if (sent) {
     return (
       <main className="enter">
-        <h1>Your deer is entered</h1>
+        <h1>Thanks for entering the Hunting Brag Board!</h1>
         <p>
-          It will show up on the Brag Board once our staff reviews it. We'll email you if it wins. You're also in the
-          prize drawing.
+          Watch for your deer in our Friday Brag Board feature. Winners will be announced {apDate(season.winners_at)} and
+          contacted by email. Got another deer this season? Enter again anytime through {lastDay}.
         </p>
         {DEMO && photo && (
           <>
@@ -179,46 +207,110 @@ export function Enter() {
     );
   }
 
-  const youth = entry.age_group === "youth";
-
   return (
     <main className="enter">
       <header>
-        <h1>Enter your deer</h1>
+        <h1>Hunting Brag Board {season.year}</h1>
         {presenting && <SponsorCredit sponsor={presenting} placement="entry-form" />}
         <p>
-          Any deer taken in Wisconsin since {apDay(season.harvest_since)} can go on the {season.year} Brag Board. Entering
-          puts you in the prize drawing, and our staff sorts every deer into the awards it qualifies for.
+          Show off your deer! Send us a photo of you with your deer from the {season.year} Wisconsin season for a chance
+          to be featured on Wausau Pilot & Review and win prizes from local businesses. Entry is free, hunters of all ages
+          are welcome, and bow and gun hunters alike can enter. Entries close at 11:59 p.m. {lastDay}.
         </p>
       </header>
 
       <form onSubmit={send}>
         <fieldset>
-          <legend>The photo</legend>
-          <label className="photo-picker">
-            {photo ? (
-              <img src={photo.preview} alt="Your deer" />
-            ) : (
-              <span>{preparing ? "Preparing your photo…" : "Choose a photo"}</span>
-            )}
+          <legend>About the hunter</legend>
+          <label>
+            Hunter's first and last name
             <input
-              type="file"
-              accept="image/*"
-              required={!photo}
-              disabled={preparing}
-              onChange={(e) => choosePhoto(e.target.files?.[0])}
+              required
+              maxLength={60}
+              autoComplete="off"
+              value={entry.hunter_name}
+              onChange={(e) => set("hunter_name", e.target.value)}
             />
+            <span className="hint">
+              As you'd like the name to appear if we feature your deer.
+              {youth && " For a hunter 17 and under, you'll choose below whether we use the last name."}
+            </span>
           </label>
-          <p className="hint">
-            Field-dressed, with as little blood as possible. Photos that don't meet that standard won't be posted.
-            {photo && " Tap the photo to pick a different one."}
-          </p>
+          <Choices
+            label="Hunter's age group"
+            name="age_group"
+            options={(Object.keys(AGE_LABELS) as AgeGroup[]).map((age) => [age, AGE_LABELS[age]])}
+            value={entry.age_group}
+            hint="Hunters 17 and under must be entered by a parent or guardian."
+            onChange={(age) =>
+              setEntry((current) => ({
+                ...current,
+                age_group: age,
+                submitter_name: "",
+                guardian_relationship: "",
+                first_name_only: "",
+                guardian_consent: false,
+              }))
+            }
+          />
+          <label>
+            Hometown
+            <input required maxLength={60} value={entry.hometown} onChange={(e) => set("hometown", e.target.value)} />
+            <span className="hint">City, village or town. We publish your hometown, never your street address.</span>
+          </label>
         </fieldset>
 
         <fieldset>
-          <legend>The deer</legend>
+          <legend>How we reach you</legend>
           <label>
-            Date taken
+            Email
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={entry.email}
+              onChange={(e) => set("email", e.target.value)}
+            />
+            <span className="hint">
+              We use this only to contact you about your entry and prizes. We never publish your email. For a hunter under
+              18, enter a parent or guardian's email.
+            </span>
+          </label>
+          <label>
+            {youth ? (
+              "Parent or guardian's phone"
+            ) : (
+              <span>
+                Phone <span className="optional">(optional)</span>
+              </span>
+            )}
+            <input
+              type="tel"
+              required={youth}
+              autoComplete="tel"
+              maxLength={25}
+              value={entry.phone}
+              onChange={(e) => set("phone", e.target.value)}
+            />
+            <span className="hint">In case we can't reach you by email.</span>
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={entry.newsletter_opt_in}
+              onChange={(e) => set("newsletter_opt_in", e.target.checked)}
+            />
+            <span>
+              Sign me up for Wausau Pilot & Review's free newsletter
+              <span className="hint">Local news in your inbox twice a day, plus the weekly Brag Board feature.</span>
+            </span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>About the deer</legend>
+          <label>
+            Date harvested
             <input
               type="date"
               required
@@ -227,6 +319,9 @@ export function Enter() {
               value={entry.harvest_date}
               onChange={(e) => set("harvest_date", e.target.value)}
             />
+            <span className="hint">
+              Any date from {apDay(season.harvest_since)}, {season.year}, on.
+            </span>
           </label>
           <label>
             County
@@ -238,9 +333,10 @@ export function Enter() {
                 <option key={county}>{county}</option>
               ))}
             </select>
+            <span className="hint">County is all we need. Keep your favorite spot to yourself.</span>
           </label>
           <label>
-            Taken with
+            Weapon
             <select required value={entry.weapon} onChange={(e) => set("weapon", e.target.value)}>
               <option value="" disabled>
                 Choose one
@@ -252,24 +348,21 @@ export function Enter() {
               ))}
             </select>
           </label>
-          <div className="choice-group" role="radiogroup" aria-label="Buck or antlerless">
-            {(["buck", "antlerless"] as const).map((deer) => (
-              <label key={deer} className="choice">
-                <input
-                  type="radio"
-                  name="deer_type"
-                  required
-                  checked={entry.deer_type === deer}
-                  onChange={() => setEntry((current) => ({ ...current, deer_type: deer, points: "" }))}
-                />
-                {deer === "buck" ? "Buck" : "Antlerless"}
-              </label>
-            ))}
-          </div>
+          <Choices
+            label="Buck or doe?"
+            name="deer_type"
+            options={[
+              ["buck", "Buck"],
+              ["antlerless", "Doe"],
+            ]}
+            value={entry.deer_type}
+            hint="Antlerless deer are welcome too: choose Doe for any deer without antlers."
+            onChange={(deer) => setEntry((current) => ({ ...current, deer_type: deer, points: "" }))}
+          />
           {entry.deer_type === "buck" && (
             <label>
               <span>
-                Points <span className="optional">(optional)</span>
+                Number of antler points <span className="optional">(optional)</span>
               </span>
               <input
                 type="number"
@@ -281,64 +374,23 @@ export function Enter() {
               />
             </label>
           )}
-          <label className="check">
-            <input type="checkbox" checked={entry.first_deer} onChange={(e) => set("first_deer", e.target.checked)} />
-            This was the hunter's first deer ever
-          </label>
-        </fieldset>
-
-        <fieldset>
-          <legend>The hunter</legend>
-          <p id="age-label" className="group-label">
-            Hunter's age
-          </p>
-          <div className="choice-group" role="radiogroup" aria-labelledby="age-label">
-            {(Object.keys(AGE_LABELS) as AgeGroup[]).map((age) => (
-              <label key={age} className="choice">
-                <input
-                  type="radio"
-                  name="age_group"
-                  required
-                  checked={entry.age_group === age}
-                  onChange={() => setEntry((current) => ({ ...current, age_group: age, guardian_consent: false }))}
-                />
-                {AGE_LABELS[age]}
-              </label>
-            ))}
-          </div>
-          <label>
-            Name to show on the board
-            <input
-              required
-              maxLength={60}
-              autoComplete="off"
-              value={entry.hunter_name}
-              onChange={(e) => set("hunter_name", e.target.value)}
-            />
-            {youth && <span className="hint">First name only for hunters 17 and under.</span>}
-          </label>
-          <label>
-            Hometown
-            <input required maxLength={60} value={entry.hometown} onChange={(e) => set("hometown", e.target.value)} />
-          </label>
-          {youth && (
-            <label className="check">
-              <input
-                type="checkbox"
-                required
-                checked={entry.guardian_consent}
-                onChange={(e) => set("guardian_consent", e.target.checked)}
-              />
-              I'm this hunter's parent or guardian, and I agree to their photo and first name appearing on the Brag Board.
-            </label>
-          )}
+          <Choices
+            label="Is this the hunter's first deer ever?"
+            name="first_deer"
+            options={[
+              ["true", "Yes"],
+              ["false", "No"],
+            ]}
+            value={entry.first_deer}
+            onChange={(answer) => set("first_deer", answer as EntrySubmission["first_deer"])}
+          />
         </fieldset>
 
         <fieldset>
           <legend>The story</legend>
           <label>
             <span>
-              Tell us about the hunt <span className="optional">(optional)</span>
+              Tell us how it happened <span className="optional">(optional)</span>
             </span>
             <textarea
               rows={5}
@@ -347,51 +399,137 @@ export function Enter() {
               onChange={(e) => set("story", e.target.value)}
             />
             <span className="hint">
-              Our staff picks a Best Story winner. {STORY_LIMIT - entry.story.length} characters left.
+              Where were you sitting? What went through your head when the deer stepped out? Did anything go wrong, or
+              perfectly right? The best telling wins the Best Story award. We may edit for length and clarity.{" "}
+              {STORY_LIMIT - entry.story.length} characters left.
             </span>
           </label>
         </fieldset>
 
         <fieldset>
-          <legend>You</legend>
-          <label>
-            Your name
+          <legend>The photo</legend>
+          <div className="guidelines">
+            <p className="group-label">Photo guidelines</p>
+            <ul>
+              {PHOTO_GUIDELINES.map(([lead, text]) => (
+                <li key={text}>
+                  {lead && <strong>{lead} </strong>}
+                  {text}
+                </li>
+              ))}
+            </ul>
+            <p className="hint">
+              <a href={env.rulesUrl} target="_blank" rel="noreferrer">
+                Read the full contest rules
+              </a>
+              .
+            </p>
+          </div>
+          <label className="photo-picker">
+            {photo ? (
+              <img src={photo.preview} alt="Your deer" />
+            ) : (
+              <span>{preparing ? "Preparing your photo…" : "Upload your photo"}</span>
+            )}
             <input
-              required
-              maxLength={100}
-              autoComplete="name"
-              value={entry.submitter_name}
-              onChange={(e) => set("submitter_name", e.target.value)}
+              type="file"
+              accept="image/*"
+              required={!photo}
+              disabled={preparing}
+              onChange={(e) => choosePhoto(e.target.files?.[0])}
             />
           </label>
+          <p className="hint">
+            One photo of the hunter with the deer is all we need.
+            {photo && " Tap the photo to pick a different one."}
+          </p>
           <label>
-            Your email
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={entry.email}
-              onChange={(e) => set("email", e.target.value)}
+            <span>
+              Who took the photo? <span className="optional">(optional)</span>
+            </span>
+            <input maxLength={60} value={entry.photo_credit} onChange={(e) => set("photo_credit", e.target.value)} />
+            <span className="hint">We'll give them credit.</span>
+          </label>
+        </fieldset>
+
+        {youth && (
+          <fieldset>
+            <legend>Parent or guardian</legend>
+            <p>
+              Hunters 17 and under must be entered by a parent or legal guardian. We'll contact you, not the hunter, about
+              this entry and any prize.
+            </p>
+            <label>
+              Parent or guardian's full name
+              <input
+                required
+                maxLength={100}
+                autoComplete="name"
+                value={entry.submitter_name}
+                onChange={(e) => set("submitter_name", e.target.value)}
+              />
+            </label>
+            <Choices
+              label="Relationship to the hunter"
+              name="guardian_relationship"
+              options={[
+                ["parent", "Parent"],
+                ["legal guardian", "Legal guardian"],
+              ]}
+              value={entry.guardian_relationship}
+              onChange={(relationship) => set("guardian_relationship", relationship)}
             />
-            <span className="hint">We'll only use it to reach you about prizes.</span>
+            <Choices
+              label="How should we name the hunter if we publish this entry?"
+              name="first_name_only"
+              options={[
+                ["false", "First and last name"],
+                ["true", "First name only"],
+              ]}
+              value={entry.first_name_only}
+              hint="Either way, we publish the hunter's hometown, never a street address or school."
+              onChange={(choice) => set("first_name_only", choice as EntrySubmission["first_name_only"])}
+            />
+            <label className="check">
+              <input
+                type="checkbox"
+                required
+                checked={entry.guardian_consent}
+                onChange={(e) => set("guardian_consent", e.target.checked)}
+              />
+              <span>
+                I am the parent or legal guardian of the hunter named in this entry, and I am submitting this entry on the
+                hunter's behalf. I give Wausau Pilot & Review permission to publish the hunter's photos, name as I chose
+                above, hometown and story on its website, newsletters and social media, and in promotions for the Hunting
+                Brag Board. I understand that Wausau Pilot & Review will contact me, not the hunter, about this entry and
+                any prize, and that I can have the entry removed at any time by emailing editor@wausaupilotandreview.com.
+              </span>
+            </label>
+          </fieldset>
+        )}
+
+        <fieldset>
+          <legend>Before you submit</legend>
+          <label className="check">
+            <input type="checkbox" required checked={rulesAccepted} onChange={(e) => setRulesAccepted(e.target.checked)} />
+            <span>
+              I have read and agree to the{" "}
+              <a href={env.rulesUrl} target="_blank" rel="noreferrer">
+                contest rules
+              </a>{" "}
+              and photo guidelines. The deer in this entry was legally harvested and registered in Wisconsin, and I have
+              the right to share these photos.
+            </span>
           </label>
           <label className="check">
             <input
               type="checkbox"
-              checked={entry.newsletter_opt_in}
-              onChange={(e) => set("newsletter_opt_in", e.target.checked)}
+              required
+              checked={publishingAllowed}
+              onChange={(e) => setPublishingAllowed(e.target.checked)}
             />
-            Send me the Pilot's free newsletter, with new Brag Board entries every Friday
-          </label>
-          <label className="check">
-            <input type="checkbox" required checked={rulesAccepted} onChange={(e) => setRulesAccepted(e.target.checked)} />
-            <span>
-              I've read the{" "}
-              <a href={env.rulesUrl} target="_blank" rel="noreferrer">
-                contest rules
-              </a>
-              .
-            </span>
+            I give Wausau Pilot & Review permission to publish the photos, the hunter's name and hometown, and the story on
+            its website, newsletters and social media, and in promotions for the Hunting Brag Board.
           </label>
         </fieldset>
 
@@ -411,21 +549,72 @@ export function Enter() {
   );
 }
 
-// The preview's answers as a board card. The database would trim and store them the same way.
+// One required question with a few big buttons to choose from.
+function Choices({
+  label,
+  name,
+  options,
+  value,
+  hint,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  options: [value: string, label: string][];
+  value: string;
+  hint?: string;
+  onChange: (value: string) => void;
+}) {
+  const labelId = useId();
+  return (
+    <div className="choices">
+      <p id={labelId} className="group-label">
+        {label}
+      </p>
+      <div className="choice-group" role="radiogroup" aria-labelledby={labelId}>
+        {options.map(([option, text]) => (
+          <label key={option} className="choice">
+            <input type="radio" name={name} required checked={value === option} onChange={() => onChange(option)} />
+            {text}
+          </label>
+        ))}
+      </div>
+      {hint && <p className="hint">{hint}</p>}
+    </div>
+  );
+}
+
+// An adult enters themselves, so the hunter is the person to contact; a youth entry names the
+// parent or guardian. Youth-only answers go only with a youth entry.
+function forSubmission(entry: EntrySubmission): EntrySubmission {
+  const youth = entry.age_group === "youth";
+  return {
+    ...entry,
+    submitter_name: youth ? entry.submitter_name : entry.hunter_name,
+    guardian_relationship: youth ? entry.guardian_relationship : "",
+    first_name_only: youth ? entry.first_name_only : "false",
+    guardian_consent: youth && entry.guardian_consent,
+  };
+}
+
+// The preview's answers as a board card, named the way the parent chose for a youth hunter.
 function previewCard(entry: EntrySubmission): EntryFields {
+  const name = entry.hunter_name.trim();
+  const firstOnly = entry.age_group === "youth" && entry.first_name_only === "true";
   return {
     id: "preview",
-    hunter_name: entry.hunter_name.trim(),
+    hunter_name: firstOnly ? name.split(/\s+/)[0] : name,
     hometown: entry.hometown.trim(),
     county: entry.county,
     harvest_date: entry.harvest_date,
     weapon: entry.weapon as Weapon,
     deer_type: entry.deer_type as DeerType,
     points: entry.deer_type === "buck" && entry.points ? Number(entry.points) : null,
-    first_deer: entry.first_deer,
+    first_deer: entry.first_deer === "true",
     age_group: entry.age_group as AgeGroup,
     story: entry.story.trim() || null,
     photo_id: "",
+    photo_credit: entry.photo_credit.trim() || null,
     created_at: new Date().toISOString(),
   };
 }

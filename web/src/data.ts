@@ -24,7 +24,7 @@ async function rows<T>(query: PromiseLike<Result>): Promise<T> {
 }
 
 const ENTRY_COLUMNS =
-  "id, hunter_name, hometown, county, harvest_date, weapon, deer_type, points, first_deer, age_group, story, photo_id, created_at";
+  "id, hunter_name, hometown, county, harvest_date, weapon, deer_type, points, first_deer, age_group, story, photo_id, photo_credit, created_at";
 
 export async function loadSeason(): Promise<Season> {
   return rows<Season>(supabase.from("current_season").select("*").single());
@@ -77,7 +77,7 @@ export async function loadModerationQueue(seasonId: string, status: EntryStatus)
     supabase
       .from("entries")
       .select(
-        `${ENTRY_COLUMNS}, status, share_card, entry_private(submitter_name, email, moderated_at, rejection_reason), entry_edits(edited_at)`,
+        `${ENTRY_COLUMNS}, status, share_card, entry_private(submitter_name, email, phone, guardian_relationship, hunter_full_name, moderated_at, rejection_reason), entry_edits(edited_at)`,
       )
       .eq("season_id", seasonId)
       .eq("status", status)
@@ -169,13 +169,18 @@ export interface EntrySubmission {
   weapon: string;
   deer_type: string;
   points: string;
-  first_deer: boolean;
+  // Radio answers, sent as the strings the function reads.
+  first_deer: "" | "true" | "false";
   age_group: string;
   guardian_consent: boolean;
   story: string;
   submitter_name: string;
   email: string;
   newsletter_opt_in: boolean;
+  phone: string;
+  guardian_relationship: string;
+  first_name_only: "" | "true" | "false";
+  photo_credit: string;
 }
 
 export async function submitEntry(entry: EntrySubmission, photo: PreparedPhoto, turnstileToken: string): Promise<void> {

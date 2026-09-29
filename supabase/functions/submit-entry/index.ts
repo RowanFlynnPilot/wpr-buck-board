@@ -81,6 +81,12 @@ function readFields(form: FormData) {
     p_submitter_name: text(form, "submitter_name"),
     p_email: text(form, "email"),
     p_newsletter_opt_in: flag(form, "newsletter_opt_in"),
+    // Added with the 2026 form plan (migration 0009). Optional here so an older form still
+    // works; submit_entry() requires the youth ones for a youth entry.
+    p_phone: optionalText(form, "phone"),
+    p_guardian_relationship: optionalText(form, "guardian_relationship"),
+    p_first_name_only: optionalText(form, "first_name_only") === "true",
+    p_photo_credit: optionalText(form, "photo_credit"),
   };
 }
 
@@ -95,6 +101,11 @@ function text(form: FormData, name: string): string {
   const value = form.get(name);
   if (typeof value !== "string") throw new BadRequest(`Missing field: ${name}.`);
   return value;
+}
+
+function optionalText(form: FormData, name: string): string | null {
+  const value = form.get(name);
+  return typeof value === "string" && value.trim() !== "" ? value : null;
 }
 
 function flag(form: FormData, name: string): boolean {

@@ -62,6 +62,8 @@ export interface EntryFields {
   age_group: AgeGroup;
   story: string | null;
   photo_id: string;
+  // Who took the photo, if the entrant said.
+  photo_credit: string | null;
   created_at: string;
 }
 
@@ -76,6 +78,11 @@ export interface ModerationEntry extends EntryFields {
   entry_private: {
     submitter_name: string;
     email: string;
+    phone: string | null;
+    // Youth entries only: "parent" or "legal guardian".
+    guardian_relationship: string | null;
+    // The name as entered; the board may show a first name only (a parent's choice).
+    hunter_full_name: string | null;
     moderated_at: string | null;
     rejection_reason: string | null;
   };

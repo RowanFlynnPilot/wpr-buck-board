@@ -21,7 +21,8 @@ grant select on ids to anon, authenticated;
 
 -- A parent entered a youth hunter by full name.
 insert into ids values ('kid', public.submit_entry('Carter Johnson', 'Antigo', 'Langlade', current_date - 2, 'rifle',
-  'antlerless', null, true, 'youth', true, 'My first deer.', gen_random_uuid(), 'Mike Johnson', 'mike@example.com', false));
+  'antlerless', null, true, 'youth', true, 'My first deer.', gen_random_uuid(), 'Mike Johnson', 'mike@example.com', false,
+  '715-555-0100', 'parent'));
 
 -- Who may edit ------------------------------------------------------------------
 
