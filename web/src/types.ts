@@ -77,6 +77,8 @@ export interface ModerationEntry extends EntryFields {
     moderated_at: string | null;
     rejection_reason: string | null;
   };
+  // Staff edits to the name, hometown or story (the full before/after is in the table).
+  entry_edits: { edited_at: string }[];
 }
 
 // An approved entry and when it went up. Staff only: moderated_at lives in entry_private.

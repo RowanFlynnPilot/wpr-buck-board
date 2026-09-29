@@ -13,7 +13,7 @@ The repo is `wpr-buck-board`; reader-facing copy keeps the sponsor sheet's name,
 ## Layout
 
 ```
-supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair · 0006 sponsor web-address check
+supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair · 0006 sponsor web-address check · 0007 staff edits
 supabase/seasons/      one file per season; local seed, run once in prod
 supabase/tests/        pgTAP (supabase test db)
 supabase/functions/    submit-entry + _shared (Deno)
@@ -35,7 +35,7 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 2. **`qualifies(entry, kind)` is the only award rule.** Entrants never choose categories. The gallery reads `award_kinds` from `gallery_entries`.
 3. **Explicit privileges only.** Migration 0003 revokes everything from `anon`/`authenticated` (and their default privileges) and grants exactly what's needed. Any new table, view, or function needs an explicit grant **and** assertions in `04_privileges.test.sql` in both directions — a missing grant must fail CI as loudly as a leak. The suite passes with and without Supabase's permissive default grants.
 4. **Security definer functions** set `search_path = ''` and fully qualify every name. **Views** are `security_invoker`. `04_privileges` checks both.
-5. **Public vs. private data.** `entries` holds only what can be public. Submitter name, email, and the moderation audit live in `entry_private` (staff only). No direct writes to either — RPCs only.
+5. **Public vs. private data.** `entries` holds only what can be public. Submitter name, email, and the moderation audit live in `entry_private` (staff only); staff edits to an entry's words are logged, before and after, in `entry_edits` (staff only). No direct writes to any of them — RPCs only.
 6. **Same-season rules are foreign keys**, via composite `(id, season_id)` keys, not function checks.
 7. **Photos:** the browser decodes once (orientation baked in) and encodes a 1600px full image and a 640px thumbnail. `submit-entry` strips APP1/APP13 (Exif/XMP/IPTC — GPS) from both, stores them as `entry-photos/<photo_id>/full.jpg` and `/thumb.jpg` with a one-year cache header (ids are never reused), then calls `submit_entry()`; if anything after the upload fails, it removes both. Nothing else writes to `entry-photos`. Grids and the front-page strip use thumbnails only; the full image opens on click. Hunters' stand locations must never be public.
 8. **Fail fast.** Missing env vars (including a `SUPABASE_SECRET_KEYS` without a `default` key; the function uses Supabase's new secret key, not the deprecated service_role key) stop the edge function at load and the web build at build time. Business rules raise plain-English `P0001` messages the form shows as-is; any other database error is logged and the entrant sees a generic retry message, so a raw constraint name never reaches a reader.
@@ -45,7 +45,7 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 ## Commands
 
 ```sh
-supabase start && supabase test db          # 114 pgTAP tests
+supabase start && supabase test db          # 134 pgTAP tests
 deno test supabase/functions/_shared        # 5 JPEG tests (real GPS-tagged fixture)
 deno check supabase/functions/submit-entry/index.ts
 cd web && npm run build                     # tsc + vite; needs the five VITE_ vars
@@ -76,6 +76,8 @@ select email, source, created_at from public.newsletter_optins order by created_
 -- Readers' Choice standings.
 select e.hunter_name, s.votes from public.readers_choice_standings s join public.entries e on e.id = s.entry_id order by s.votes desc;
 ```
+
+Staff fix a typo, or trim a youth hunter to a first name, with **Edit…** in the `#/admin` queue (`edit_entry(entry_id, hunter_name, hometown, story)`): only those three fields change, so award qualification and any winner already picked are untouched, and the queue flags a youth entry whose name has a space in it.
 
 Winners and the drawing go through RPCs so the rules hold: `set_award_winner(award_id, entry_id)` (after entries close; must qualify; Readers' Choice only after voting, only to a top vote-getter) and `run_prize_drawing(season_id)` (once; one prize per Prize Partner; one prize per entrant by email). Winners stay hidden from the public until `winners_at`.
 

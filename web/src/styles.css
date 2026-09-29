@@ -797,6 +797,18 @@ textarea {
   flex: 1 1 180px;
 }
 
+.edit-entry {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.nudge {
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  background: #fbeccb;
+  font-size: 0.875rem;
+}
+
 /* Staff tools: tabs, so they read differently from the status pills under them. */
 .tools {
   display: flex;
