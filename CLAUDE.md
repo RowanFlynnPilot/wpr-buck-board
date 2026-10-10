@@ -13,7 +13,7 @@ The repo is `wpr-buck-board`; reader-facing copy keeps the sponsor sheet's name,
 ## Layout
 
 ```
-supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair · 0006 sponsor web-address check · 0007 staff edits · 0008 share cards · 0009 entry form questions · 0010 launch fixes
+supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair · 0006 sponsor web-address check · 0007 staff edits · 0008 share cards · 0009 entry form questions · 0010 launch fixes · 0011 launch-week fixes
 supabase/seasons/      one file per season; local seed, run once in prod
 supabase/tests/        pgTAP (supabase test db)
 supabase/functions/    submit-entry + _shared (Deno)
@@ -38,7 +38,7 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 
 **Entry emails.** After `submit-entry` saves an entry it sends two emails through Resend (`_shared/email.ts`, as the pet contest does), after the response so the entrant isn't kept waiting: a confirmation to the entrant in Shereen's words with what was entered (replies go to editor@), and a notice to Shereen and Chris with the thumbnail, every answer, the contact details and a link to `#/admin` (replies go to the entrant). Both are built from the entry as stored (`_shared/entry_emails.ts`), so a youth hunter appears as the parent chose. A failed send is logged and never fails the entry; staff still see it in the queue. Setup and the free plan's 100-a-day limit: README "First deploy" step 11.
 
-**Share cards.** A 1200x630 image per posted deer (`web/src/shareCard.ts`): the photo, cropped from the middle, beside WPR's badge and rule, "Hunting Brag Board", "presented by" the presenting sponsor with its logo, and the name, hometown, deer and county set like the board's cards. Staff browsers draw it on a canvas, with the app's own fonts, when they post a deer, when they edit a posted deer's words, and on Remake all; each save is a new name, `share-cards/<entry_id>/<uuid>.jpg`, recorded by `set_share_card` in `entries.share_card`, and the card it replaces is removed. A deer posted while its card fails still goes up: the On the board tab shows "No share image yet" and a Make button, and its share link uses the photo meanwhile.
+**Share cards.** A 1200x630 image per posted deer (`web/src/shareCard.ts`): the photo, cropped like the board’s thumbnails (centred, 30% of the way down a tall photo, so a portrait keeps the hunter’s head), beside WPR's badge and rule, "Hunting Brag Board", "presented by" the presenting sponsor with its logo, and the name, hometown, deer and county set like the board's cards. Staff browsers draw it on a canvas, with the app's own fonts, when they post a deer, when they edit a posted deer's words, and on Remake all; each save is a new name, `share-cards/<entry_id>/<uuid>.jpg`, recorded by `set_share_card` in `entries.share_card`, and the card it replaces is removed. A deer posted while its card fails still goes up: the On the board tab shows "No share image yet" and a Make button, and its share link uses the photo meanwhile.
 
 ## Invariants — keep these true
 
@@ -57,14 +57,14 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 ## Commands
 
 ```sh
-supabase start && supabase test db          # 188 pgTAP tests
+supabase start && supabase test db          # 197 pgTAP tests
 deno test supabase/functions/_shared        # 14 tests: JPEG (real GPS-tagged fixture), Resend sender, entry emails
 deno test share/                            # 14 share-page tests
 deno check supabase/functions/submit-entry/index.ts
 cd web && npm run build                     # tsc + vite; needs the six VITE_ vars
 ```
 
-CI runs three jobs on every PR, whatever it touches, and `main` requires all three (branch protection; admins can still push directly), so GitHub auto-merge waits for them: `database` (`supabase.yml`: Deno tests + pgTAP, about two minutes; full `supabase start`, because migration 0004 writes storage columns the storage service creates), `web` (`pages.yml`: the production build) and `share` (`share.yml`: the Worker's tests). A renamed job must be renamed in the protection rule too, or every PR waits forever. Deploys run only from `main`, even when a workflow is run by hand, and on a push only when their own files change (so after changing a `VITE_` variable, run Pages and Share pages by hand): `db push` and function deploy in a non-cancelling concurrency group; Pages; and `share.yml` deploys the Worker with `wrangler` using the `VITE_` repository variables, once the Cloudflare secrets exist (README "First deploy" step 10; until then it warns and skips).
+CI runs three jobs on every PR, whatever it touches, and `main` requires all three (branch protection; admins can still push directly), so GitHub auto-merge waits for them: `database` (`supabase.yml`: Deno tests + pgTAP, about two minutes; full `supabase start`, because migration 0004 writes storage columns the storage service creates), `web` (`pages.yml`: the production build) and `share` (`share.yml`: the Worker's tests). A renamed job must be renamed in the protection rule too, or every PR waits forever. Every job runs on `ubuntu-24.04`, pinned for the season because `ubuntu-latest` moves to a new Ubuntu in mid-October 2026; revisit after Dec. 21. Deploys run only from `main`, even when a workflow is run by hand, and on a push only when their own files change (so after changing a `VITE_` variable, run Pages and Share pages by hand): `db push` and function deploy in a non-cancelling concurrency group; Pages; and `share.yml` deploys the Worker with `wrangler` using the `VITE_` repository variables, once the Cloudflare secrets exist (README "First deploy" step 10; until then it warns and skips).
 
 ## Operations (SQL editor)
 
@@ -94,7 +94,7 @@ Every share card names the presenting sponsor, so after the presenting sponsor i
 
 A deer taken down after it was shared: its share page stops at once, but Facebook shows the preview it already scraped until someone pastes the link into the Sharing Debugger (developers.facebook.com/tools/debug) and clicks Scrape Again.
 
-Staff fix a typo with **Edit…** in the `#/admin` queue (`edit_entry(entry_id, hunter_name, hometown, story)`): only those three fields change, so award qualification and any winner already picked are untouched. For a hunter 17 and under, the parent chooses on the form whether the board uses the first and last name or the first name only; `submit_entry` publishes accordingly, and the queue shows the full name as entered.
+Staff fix a typo with **Edit…** in the `#/admin` queue (`edit_entry(entry_id, hunter_name, hometown, story)`): only those three fields change, so award qualification and any winner already picked are untouched. For a hunter 17 and under, the parent chooses on the form whether the board uses the first and last name or the first name only; `submit_entry` publishes accordingly, refuses a youth entry without that answer, and the queue shows the full name as entered. One email address can send at most 10 entries in a rolling day (Resend's free plan sends 100 emails a day, two per entry); the eleventh is told to try tomorrow or email editor@.
 
 Winners and the drawing go through RPCs so the rules hold: `set_award_winner(award_id, entry_id)` (after entries close; must qualify; Readers' Choice only after voting, only to a top vote-getter) and `run_prize_drawing(season_id)` (once; one prize per Prize Partner; one prize per entrant by email; refused while any entry is still waiting for review, since only posted deer get a ticket). Winners stay hidden from the public until `winners_at`.
 
@@ -107,7 +107,7 @@ Verified end to end in Chromium and WebKit (Safari's engine), browser in a WordP
 **Before Oct. 12 (not code):**
 - Custom SMTP, Turnstile widget, keys, secrets, seed, staff accounts, magic-link template: README "First deploy".
 - Sponsor logos uploaded and rows inserted, with prize text written the way it should read on the page.
-- WordPress: the README snippet as is (`allow="clipboard-write; web-share"` and `route()` included) on Shereen's Brag Board page (https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/, `#/gallery`; one frame that is the board and, at `#enter`, the form), then on the front page (`#/embed`). The page is already live outside the menu, so publishing the board there early gives Chris a live awards-and-prizes page to sell from.
+- WordPress: the README snippet as is on Shereen's Brag Board page (https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/, `#/gallery`; one frame that is the board and, at `#enter`, the form), then on the front page (`data-view="embed"`). The snippet builds its iframe in script because WPR’s LiteSpeed cache rewrites iframes written into a page (`src="about:blank"`, the address moved to `data-src`), which would stop `#enter` and `#entry=` from ever routing; purge the page after pasting and check both. The page is already live outside the menu, so publishing the board there early gives Chris a live awards-and-prizes page to sell from.
 - Entry emails on: a Resend key and verified domain (README "First deploy" step 11), then one real entry to see both emails arrive.
 - Share pages deployed: a Cloudflare token and account ID as GitHub secrets, then the Share pages workflow (README "First deploy" step 10). Share buttons appear with the first posted deer.
 - One real-iPhone entry end to end, then take it down in `#/admin`.
@@ -125,7 +125,7 @@ Verified end to end in Chromium and WebKit (Safari's engine), browser in a WordP
 
 ## Open decisions (Shereen / Rowan)
 
-- Entries per hunter: unlimited now (the drawing still counts each email once).
+- Entries per hunter: unlimited, up to 10 a day per email address (the drawing still counts each email once).
 - Can one entry win more than one award? Allowed now.
 - Rejected photos stay in storage at unguessable URLs; no cleanup job.
 - Supabase egress. Measured on a real deer photo: full 326 KB, thumbnail 62 KB, so the front-page strip costs about 370 KB per view that scrolls to it (it was about 2 MB before thumbnails). Multiply by monthly front-page views and compare with the project's plan: the free tier's 5 GB won't last; Pro includes 250 GB. Photos are cached for a year, so repeat readers cost nothing.

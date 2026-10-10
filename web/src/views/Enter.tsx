@@ -24,6 +24,7 @@ const STORY_LIMIT = 1200;
 // Checked in the browser, so a blank or unusable answer is caught before the photo uploads.
 const NOT_BLANK = String.raw`.*\S.*`;
 const PHONE = String.raw`(\D*\d){7,15}\D*`;
+const STILL_CHECKING = "The spam check above the button is still running. Give it a few seconds, then try again.";
 
 const BLANK: EntrySubmission = {
   hunter_name: "",
@@ -83,6 +84,9 @@ export function Enter() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The spam check's own trouble, shown under it and cleared when a token arrives. Kept apart
+  // from `error`, so a refused entry's message survives the fresh widget's new token.
+  const [checkError, setCheckError] = useState<string | null>(null);
   // Shown by the photo picker, where the reader is looking when a photo won't read.
   const [photoError, setPhotoError] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -144,7 +148,8 @@ export function Enter() {
       return;
     }
     if (!token) {
-      setError("Wait for the check above the button to finish.");
+      // A failed check already says so just above the button.
+      if (!checkError) setError(STILL_CHECKING);
       return;
     }
     setSending(true);
@@ -170,6 +175,7 @@ export function Enter() {
     setPublishingAllowed(false);
     setPhotoError(null);
     setToken(null);
+    setCheckError(null);
     setSent(false);
   };
 
@@ -194,8 +200,10 @@ export function Enter() {
           Thanks for entering the Hunting Brag Board!
         </h1>
         <p>
-          Watch for your deer in our Friday Brag Board feature. Winners will be announced {apDate(season.winners_at)} and
-          contacted by email. Got another deer this season? Enter again anytime through {lastDay}.
+          {/* What happens next, so nobody wonders why their deer isn't on the board yet. */}
+          {!DEMO && "We'll email you a confirmation. "}Our staff reviews every entry before it goes on the board, and we
+          feature new deer in our Friday newsletter. Winners will be announced {apDate(season.winners_at)} and contacted
+          by email. Got another deer this season? Enter again anytime through {lastDay}.
         </p>
         {DEMO && photo && (
           <>
@@ -567,7 +575,23 @@ export function Enter() {
           </label>
         </fieldset>
 
-        {!DEMO && <Turnstile key={attempt} onToken={setToken} onError={setError} />}
+        {!DEMO && (
+          <Turnstile
+            key={attempt}
+            onToken={(next) => {
+              setToken(next);
+              if (!next) return;
+              setCheckError(null);
+              setError((current) => (current === STILL_CHECKING ? null : current));
+            }}
+            onError={setCheckError}
+          />
+        )}
+        {checkError && (
+          <p className="error" role="alert">
+            {checkError}
+          </p>
+        )}
 
         {error && (
           <p className="error" role="alert">
@@ -575,7 +599,8 @@ export function Enter() {
           </p>
         )}
 
-        <button type="submit" className="button button-blaze" disabled={sending || preparing || (!DEMO && !token)}>
+        {/* Never disabled for a missing token: the reader would see a dead button and no reason. */}
+        <button type="submit" className="button button-blaze" disabled={sending || preparing}>
           {sending ? "Entering your deer…" : "Enter your deer"}
         </button>
       </form>

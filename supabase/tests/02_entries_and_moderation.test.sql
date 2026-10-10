@@ -22,7 +22,8 @@ returns uuid language sql as $$
   select public.submit_entry(p_name, ' Wausau ', 'Marathon', p_harvest, 'rifle', 'buck', 8::smallint, false,
     p_age, p_consent, p_story, gen_random_uuid(), 'Submitter', p_email, true,
     p_phone => case when p_age = 'youth' then '715-555-0100' end,
-    p_guardian_relationship => case when p_age = 'youth' then 'parent' end)
+    p_guardian_relationship => case when p_age = 'youth' then 'parent' end,
+    p_first_name_only => case when p_age = 'youth' then false end)
 $$;
 
 create temp table ids (label text primary key, id uuid not null);

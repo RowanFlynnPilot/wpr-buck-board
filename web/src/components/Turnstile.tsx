@@ -1,8 +1,14 @@
 // Cloudflare Turnstile on the entry form. The submit-entry function verifies the token
 // before it touches the photos. Mount once per attempt; remount (change its key) to get a
 // fresh token after a failed submission, since tokens are single-use.
+//
+// A failed check is reported through onError, never silently: the reader has just answered the
+// whole form. Turnstile retries on its own, and a token that arrives later clears the message.
 import { useEffect, useRef } from "react";
 import { env } from "../env";
+
+export const CHECK_FAILED =
+  "The spam check above the button didn't finish. Check your connection and try again in a moment, or open this page in another browser.";
 
 interface TurnstileApi {
   render(
@@ -55,7 +61,10 @@ export function Turnstile({ onToken, onError }: { onToken: (token: string | null
           size: "flexible",
           callback: (token) => onToken(token),
           "expired-callback": () => onToken(null),
-          "error-callback": () => onToken(null),
+          "error-callback": () => {
+            onToken(null);
+            onError(CHECK_FAILED);
+          },
         });
       },
       (error: Error) => onError(error.message),

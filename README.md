@@ -47,39 +47,53 @@ The share Worker runs locally with `npx wrangler dev` in `share/`, given the thr
 
 ## WordPress embed
 
-The board lives on one WordPress page, Shereen's [Hunting Brag Board page](https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/), in a single frame that shows the board or, at `#enter`, the entry form; her rules tell readers to fill out the form "on this page." The front page carries the strip. Paste the same snippet in a Custom HTML block on each, changing only the view and the starting height:
+The board lives on one WordPress page, Shereen's [Hunting Brag Board page](https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/), in a single frame that shows the board or, at `#enter`, the entry form; her rules tell readers to fill out the form "on this page." The front page carries the strip. Paste the same snippet in a Custom HTML block on each, changing only `data-view` and `data-height` on its first line:
 
-- Brag Board page: `#/gallery`, `height="600"` (as below). Its address is `VITE_GALLERY_PAGE_URL`, and the same address with `#enter` is `VITE_ENTER_PAGE_URL`.
-- Front page: `#/embed`, `height="400"`.
+- Brag Board page: `data-view="gallery" data-height="600"` (as below). Its address is `VITE_GALLERY_PAGE_URL`, and the same address with `#enter` is `VITE_ENTER_PAGE_URL`.
+- Front page: `data-view="embed" data-height="400"`.
 
-The height is only the starting size (the app resizes the frame), so match it to the page and it won't jump as it loads. The frame's `src` has no query string. Keep all of the snippet, attributes included:
+The height is only the starting size (the app resizes the frame), so match it to the page and it won't jump as it loads. Keep all of the snippet:
 
+- **The script builds the frame.** WPR's cache plugin, LiteSpeed, rewrites every iframe written into a page's HTML for its own lazy loading: `src` becomes `about:blank` and the real address moves to `data-src` (seen on the live Brag Board page, Oct. 9). A frame written into the page would then never route, and every "Enter your deer" and share link would leave the reader on the board. LiteSpeed leaves a frame the script creates alone, and the app's address is written into the script rather than read from the page. `data-no-optimize="1"` asks LiteSpeed to leave the script as written; if it defers the script anyway, the snippet still works.
 - `loading="lazy"`: on the front page the strip, its script, fonts and six photos load only as a reader scrolls near it, and a `#/embed` pageview in Plausible then means the strip was actually seen.
 - `allow="clipboard-write; web-share"`: an unsold sponsor slot's "Book" button copies the sales address for readers whose computer has no mail app, and a deer's Share button opens a phone's own share sheet (without it, Share falls back to Facebook and Copy link).
-- `route()`, on the Brag Board page only (it does nothing on the front page):
+- `route()`, on the Brag Board page only (the front page always shows the strip):
   - `#enter` shows the entry form. Every "Enter your deer" link points there. On the board it swaps the frame without reloading the page; from the front page, the newsletter or a counter card it opens straight to the form.
   - `#entry=<id>`, where share links and front-page strip photos land, opens that deer at the top of the board.
   - Anything else shows the board.
 
+After pasting, purge the page in LiteSpeed (and Cloudflare, if it caches the page), then check `/wausau-pilot-hunting-brag-board/#enter` opens the form and `#entry=` plus a posted deer's id opens that deer.
+
 ```html
-<iframe id="wpr-buck-board" src="https://rowanflynnpilot.github.io/wpr-buck-board/#/gallery"
-  title="Hunting Brag Board" loading="lazy" allow="clipboard-write; web-share"
-  style="width:100%;border:0;display:block" height="600"></iframe>
-<script>
+<div id="wpr-buck-board" data-view="gallery" data-height="600"></div>
+<script data-no-optimize="1">
   (function () {
-    var frame = document.getElementById("wpr-buck-board");
-    var app = frame.src.split("#")[0];
-    var board = frame.src.indexOf("#/gallery") > 0;
-    function route() {
-      if (!board) return;
+    var app = "https://rowanflynnpilot.github.io/wpr-buck-board/";
+    var box = document.getElementById("wpr-buck-board");
+    var board = box.getAttribute("data-view") === "gallery";
+    var frame = document.createElement("iframe");
+    frame.title = "Hunting Brag Board";
+    frame.setAttribute("loading", "lazy");
+    frame.setAttribute("allow", "clipboard-write; web-share");
+    frame.style.cssText = "width:100%;border:0;display:block";
+    frame.height = box.getAttribute("data-height");
+    function target() {
+      if (!board) return app + "#/" + box.getAttribute("data-view");
       var deer = /^#(entry=[0-9a-f-]{36}(&from=[a-z-]+)?)$/i.exec(location.hash);
       var view = location.hash === "#enter" ? "#/enter" : "#/gallery";
-      var src = deer ? app + "?" + deer[1] + view : app + view;
-      if (frame.src !== src) frame.src = src;
-      if (location.hash === "#enter") frame.scrollIntoView({ block: "start" });
+      return deer ? app + "?" + deer[1] + view : app + view;
     }
-    route();
+    function route() {
+      var src = target();
+      if (frame.src !== src) frame.src = src;
+      if (board && location.hash === "#enter") frame.scrollIntoView({ block: "start" });
+    }
+    frame.src = target();
+    box.appendChild(frame);
     window.addEventListener("hashchange", route);
+    // Once the rest of the page has loaded, so there's room to scroll the form to the top.
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", route);
+    else route();
     window.addEventListener("message", function (event) {
       if (event.origin !== "https://rowanflynnpilot.github.io" || event.source !== frame.contentWindow) return;
       if (event.data.height) frame.style.height = event.data.height + "px";
