@@ -145,7 +145,8 @@ function readFields(form: FormData) {
     // works; submit_entry() requires the youth ones for a youth entry.
     p_phone: optionalText(form, "phone"),
     p_guardian_relationship: optionalText(form, "guardian_relationship"),
-    p_first_name_only: optionalText(form, "first_name_only") === "true",
+    // Unanswered stays null, so submit_entry() can refuse a youth entry the parent didn't name.
+    p_first_name_only: optionalFlag(form, "first_name_only"),
     p_photo_credit: optionalText(form, "photo_credit"),
   };
 }
@@ -171,6 +172,13 @@ function optionalText(form: FormData, name: string): string | null {
 
 function flag(form: FormData, name: string): boolean {
   const value = text(form, name);
+  if (value !== "true" && value !== "false") throw new BadRequest(`${name} must be true or false.`);
+  return value === "true";
+}
+
+function optionalFlag(form: FormData, name: string): boolean | null {
+  const value = optionalText(form, name);
+  if (value === null) return null;
   if (value !== "true" && value !== "false") throw new BadRequest(`${name} must be true or false.`);
   return value === "true";
 }

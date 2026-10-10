@@ -19,7 +19,8 @@ concurrency:
 
 jobs:
   web:
-    runs-on: ubuntu-latest
+    # Pinned for the season: ubuntu-latest moves to a new Ubuntu in mid-October 2026. Revisit after Dec. 21.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: web
@@ -47,7 +48,8 @@ jobs:
     needs: web
     # Main only, even when run by hand: a feature branch must never deploy to production.
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # Pinned for the season: ubuntu-latest moves to a new Ubuntu in mid-October 2026. Revisit after Dec. 21.
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -61,6 +61,10 @@ export function Embed() {
         </p>
       )}
       <p className="strip-line">
+        {/* Why a reader would enter, before the dates. */}
+        {(season.phase === "upcoming" || season.phase === "entries") && (
+          <strong>Show off your deer. It's free to enter, and hunters of all ages are welcome. </strong>
+        )}
         {phaseLine(season)} {gunLine}
       </p>
 

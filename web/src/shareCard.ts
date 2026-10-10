@@ -171,12 +171,13 @@ function wrap(ctx: CanvasRenderingContext2D, text: string): string[] {
   return line ? [...lines, line] : lines;
 }
 
-// Fill the box from the middle of the photo, like the board's cropped thumbnails.
+// Fill the box like the board's cropped thumbnails: centred side to side, and 30% of the way
+// down a tall photo (object-position: 50% 30%), so a phone's portrait keeps the hunter's head.
 function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
   const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
   const sw = w / scale;
   const sh = h / scale;
-  ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, x, y, w, h);
+  ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) * 0.3, sw, sh, x, y, w, h);
 }
 
 // Fit inside the box, keeping its shape; returns the height drawn. An SVG without its own size
