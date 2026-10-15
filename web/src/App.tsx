@@ -3,7 +3,7 @@ import { DemoRibbon } from "./components/DemoRibbon";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Footer } from "./components/Footer";
 import { Masthead } from "./components/Masthead";
-import { useAutoHeight } from "./host";
+import { embedded, useAutoHeight } from "./host";
 import { DEMO } from "./sales";
 import { Admin } from "./views/Admin";
 import { Embed } from "./views/Embed";
@@ -11,8 +11,11 @@ import { Enter } from "./views/Enter";
 import { Gallery } from "./views/Gallery";
 
 // Hash routes, so GitHub Pages needs no rewrites. WordPress embeds each view by URL.
-// The reader pages carry WPR's flag and footer like the rest of the contest series; the
-// front-page strip already sits inside WPR's front page, and #/admin is staff-only.
+// The reader pages carry WPR's flag and footer like the rest of the contest series when
+// opened on their own (a shared link, a `?demo` preview). Inside a WordPress page, which has
+// WPR's own header and footer, the flag is left out and the footer keeps only what's the
+// contest's own. The front-page strip already sits inside WPR's front page, and #/admin is
+// staff-only.
 const ROUTES: Record<string, { View: ComponentType; flag: boolean }> = {
   "#/embed": { View: Embed, flag: false },
   "#/gallery": { View: Gallery, flag: true },
@@ -37,15 +40,16 @@ export function App() {
     return <p className="status">Unknown page "{path || "/"}". Views: {Object.keys(ROUTES).join(", ")}.</p>;
   }
   const { View, flag } = route;
+  const inWordPress = embedded && !DEMO;
   return (
     <>
       {DEMO && <DemoRibbon />}
-      {flag && <Masthead />}
+      {flag && !inWordPress && <Masthead />}
       <div className="blaze-band" aria-hidden="true" />
       <ErrorBoundary key={path}>
         <View />
       </ErrorBoundary>
-      {flag && <Footer />}
+      {flag && <Footer compact={inWordPress} />}
     </>
   );
 }

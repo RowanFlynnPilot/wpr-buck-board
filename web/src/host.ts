@@ -5,7 +5,8 @@ function tellHost(message: { height: number } | { scrollToTop: true } | { scroll
   window.parent.postMessage({ source: "wpr-buck-board", ...message }, "*");
 }
 
-const embedded = window.parent !== window;
+// In a frame on WPR's WordPress pages, which already carry WPR's header and footer.
+export const embedded = window.parent !== window;
 
 // Report our content height so the host can size the iframe. The root element's box is
 // its content height, so the frame shrinks as well as grows.

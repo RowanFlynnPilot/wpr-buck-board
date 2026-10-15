@@ -26,6 +26,21 @@ const NOT_BLANK = String.raw`.*\S.*`;
 const PHONE = String.raw`(\D*\d){7,15}\D*`;
 const STILL_CHECKING = "The spam check above the button is still running. Give it a few seconds, then try again.";
 
+// Facebook, Instagram and other apps open links in their own browser, where attaching a photo
+// often fails, and Facebook is where most share links will come from. A frame has the same user
+// agent as the page around it, so this works inside WordPress too.
+const IN_APP = [
+  [/Instagram/, "Instagram"],
+  [/FBAN|FBAV|FB_IAB|FBIOS|FB4A|Messenger|Orca-Android/, "Facebook"],
+  [/musical_ly|BytedanceWebview|TikTok/, "TikTok"],
+  [/Snapchat/, "Snapchat"],
+] as const;
+const inApp = IN_APP.find(([pattern]) => pattern.test(navigator.userAgent))?.[1];
+const realBrowser = /iPhone|iPad|iPod/.test(navigator.userAgent) ? "Safari" : "Chrome";
+const IN_APP_TIP = inApp
+  ? `You're in ${inApp}'s built-in browser, which can have trouble attaching photos. If yours won't attach, tap the ••• menu and open this page in ${realBrowser}.`
+  : null;
+
 const BLANK: EntrySubmission = {
   hunter_name: "",
   hometown: "",
@@ -240,6 +255,7 @@ export function Enter() {
           to be featured on Wausau Pilot & Review and win prizes from local businesses. Entry is free, hunters of all ages
           are welcome, and bow and gun hunters alike can enter. Entries close at 11:59 p.m. {lastDay}.
         </p>
+        {IN_APP_TIP && <p className="inapp-note">{IN_APP_TIP}</p>}
       </header>
 
       <form onSubmit={send}>
@@ -481,6 +497,7 @@ export function Enter() {
             <p className="error" role="alert">
               {photoError}
               {photo && " Your earlier photo is still in place."}
+              {inApp && ` Opening this page in ${realBrowser} usually fixes it.`}
             </p>
           )}
           <label>
