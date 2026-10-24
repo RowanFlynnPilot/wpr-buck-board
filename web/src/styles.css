@@ -693,6 +693,83 @@ img {
   min-height: 44px;
 }
 
+/* Where this season's deer came from: proportional circles over the counties */
+.county-map {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.county-map h2 {
+  font-size: 1.5rem;
+}
+
+.county-map-line {
+  max-width: 60ch;
+  color: var(--bark);
+}
+
+.county-map-line strong {
+  color: var(--ink);
+}
+
+.county-map-figure {
+  max-width: 560px;
+}
+
+.county-map-figure > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.county-map path {
+  fill: #fff;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.county-map circle {
+  fill: var(--blaze);
+  fill-opacity: 0.9;
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.county-map .county-dot text {
+  font: 700 15px var(--body);
+  fill: var(--ink);
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.county-map .county-legend text {
+  font: 500 13px var(--body);
+  fill: var(--bark);
+  text-anchor: middle;
+}
+
+.county-map-list summary {
+  cursor: pointer;
+  color: var(--teal-deep);
+  font-size: 0.875rem;
+}
+
+.county-map-list ol {
+  columns: 2;
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--bark);
+}
+
+.county-map-source {
+  font-size: 0.75rem;
+  color: var(--bark);
+}
+
 /* Friday pack: feed images and a caption from the newsletter picks */
 .social-pack {
   display: grid;

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
+import { CountyMap } from "../components/CountyMap";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { ReadersChoice } from "../components/ReadersChoice";
@@ -189,6 +190,8 @@ export function Gallery() {
               Show more deer
             </button>
           )}
+
+          <CountyMap entries={entries} />
 
           <AwardsAndPrizes board={board} />
         </>
