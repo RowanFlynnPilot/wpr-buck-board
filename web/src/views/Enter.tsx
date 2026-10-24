@@ -19,6 +19,7 @@ import { preparePhoto, type PreparedPhoto } from "../photo";
 import { DEMO } from "../sales";
 import type { AgeGroup, DeerType, EntryFields, Weapon } from "../types";
 import { useLoad } from "../useLoad";
+import { useReveal } from "../useReveal";
 
 const STORY_LIMIT = 1200;
 // Checked in the browser, so a blank or unusable answer is caught before the photo uploads.
@@ -62,7 +63,7 @@ const BLANK: EntrySubmission = {
   photo_credit: "",
 };
 
-// Shown just above the upload, in Shereen's words (one photo, where her plan allowed three).
+// Beside the questions, or folded above the upload, in Shereen's words (one photo, where her plan allowed three).
 const PHOTO_GUIDELINES: [lead: string, text: string][] = [
   ["Get in the picture.", "We feature hunters with their deer, so the hunter needs to be in the photo."],
   [
@@ -119,6 +120,9 @@ export function Enter() {
     if (wasSent.current !== sent) headingRef.current?.focus({ preventScroll: true });
     wasSent.current = sent;
   }, [sent]);
+
+  // The sections rise into view as the reader scrolls to them; re-armed when the form changes shape.
+  useReveal([page.status, sent, entry.age_group]);
 
   if (page.status === "loading") return <p className="status">Loading the entry form…</p>;
   if (page.status === "failed") {
@@ -244,7 +248,7 @@ export function Enter() {
   }
 
   return (
-    <main className="enter">
+    <main className="enter enter-with-rail">
       <header>
         <h1 ref={headingRef} tabIndex={-1}>
           Hunting Brag Board {season.year}
@@ -259,7 +263,7 @@ export function Enter() {
       </header>
 
       <form onSubmit={send}>
-        <fieldset>
+        <fieldset data-reveal>
           <legend>About the hunter</legend>
           <label>
             Hunter's first and last name
@@ -308,7 +312,7 @@ export function Enter() {
           </label>
         </fieldset>
 
-        <fieldset>
+        <fieldset data-reveal>
           <legend>How we reach you</legend>
           <label>
             Email
@@ -357,7 +361,7 @@ export function Enter() {
           </label>
         </fieldset>
 
-        <fieldset>
+        <fieldset data-reveal>
           <legend>About the deer</legend>
           <label>
             Date harvested
@@ -436,7 +440,7 @@ export function Enter() {
           />
         </fieldset>
 
-        <fieldset>
+        <fieldset data-reveal>
           <legend>The story</legend>
           <label>
             <span>
@@ -456,25 +460,13 @@ export function Enter() {
           </label>
         </fieldset>
 
-        <fieldset>
+        <fieldset data-reveal>
           <legend>The photo</legend>
-          <div className="guidelines">
-            <p className="group-label">Photo guidelines</p>
-            <ul>
-              {PHOTO_GUIDELINES.map(([lead, text]) => (
-                <li key={text}>
-                  {lead && <strong>{lead} </strong>}
-                  {text}
-                </li>
-              ))}
-            </ul>
-            <p className="hint">
-              <a href={env.rulesUrl} target="_blank" rel="noreferrer">
-                Read the full contest rules
-              </a>
-              .
-            </p>
-          </div>
+          {/* On a phone the guidelines fold away here; on a wide screen they stand beside the form. */}
+          <details className="guidelines-fold">
+            <summary>Photo guidelines</summary>
+            <Guidelines />
+          </details>
           <label className="photo-picker">
             {photo ? (
               <img src={photo.preview} alt="Your deer" />
@@ -510,7 +502,7 @@ export function Enter() {
         </fieldset>
 
         {youth && (
-          <fieldset>
+          <fieldset data-reveal>
             <legend>Parent or guardian</legend>
             <p>
               Hunters 17 and under must be entered by a parent or legal guardian. We'll contact you, not the hunter, about
@@ -567,7 +559,7 @@ export function Enter() {
           </fieldset>
         )}
 
-        <fieldset>
+        <fieldset data-reveal>
           <legend>Before you submit</legend>
           <label className="check">
             <input type="checkbox" required checked={rulesAccepted} onChange={(e) => setRulesAccepted(e.target.checked)} />
@@ -621,7 +613,42 @@ export function Enter() {
           {sending ? "Entering your deer…" : "Enter your deer"}
         </button>
       </form>
+
+      {/* Beside the questions on a wide screen, in reach at every step; on a phone the guidelines
+          fold into the photo section instead and this is hidden. */}
+      <aside className="enter-rail" aria-label="Photo guidelines and what happens next" data-reveal>
+        <p className="group-label">Photo guidelines</p>
+        <Guidelines />
+        <p className="group-label">After you send it</p>
+        <p>
+          An editor looks at every entry before it goes on the board. When yours is posted, we email you the link and a
+          share image for Facebook or Instagram, and new deer go in the Friday newsletter.
+        </p>
+      </aside>
     </main>
+  );
+}
+
+// Shereen's photo guidelines and the rules link: beside the form on a wide screen, folded into the
+// photo section on a phone.
+function Guidelines() {
+  return (
+    <div className="guidelines">
+      <ul>
+        {PHOTO_GUIDELINES.map(([lead, text]) => (
+          <li key={text}>
+            {lead && <strong>{lead} </strong>}
+            {text}
+          </li>
+        ))}
+      </ul>
+      <p className="hint">
+        <a href={env.rulesUrl} target="_blank" rel="noreferrer">
+          Read the full contest rules
+        </a>
+        .
+      </p>
+    </div>
   );
 }
 

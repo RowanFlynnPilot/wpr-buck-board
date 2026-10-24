@@ -1057,13 +1057,64 @@ img {
 
 /* Entry form ----------------------------------------------------------------- */
 
-.enter,
 .admin {
   display: grid;
   gap: 1.25rem;
   max-width: 640px;
   margin: 0 auto;
   padding: 1.5rem var(--gap) 3rem;
+}
+
+/* The entry form: one column on a phone; on a wide screen the questions in a column with Shereen's
+   photo guidelines standing beside them, in reach at every step. */
+.enter {
+  display: grid;
+  grid-template-columns: minmax(0, 640px);
+  justify-content: center;
+  gap: 1.25rem var(--gap);
+  margin: 0 auto;
+  padding: 1.5rem var(--gap) 3rem;
+}
+
+.enter > header h1 {
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  letter-spacing: -0.02em;
+}
+
+.enter-rail {
+  display: none;
+}
+
+.guidelines-fold > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.guidelines-fold[open] > summary {
+  margin-bottom: 0.6rem;
+}
+
+@media (min-width: 960px) {
+  .enter-with-rail {
+    grid-template-columns: minmax(0, 640px) minmax(260px, 340px);
+    column-gap: calc(var(--gap) * 2);
+  }
+
+  .enter-with-rail > header {
+    grid-column: 1 / -1;
+  }
+
+  .enter-rail {
+    position: sticky;
+    top: 1rem;
+    display: grid;
+    gap: 1.25rem;
+    align-self: start;
+  }
+
+  .guidelines-fold {
+    display: none;
+  }
 }
 
 .enter header,
@@ -1119,7 +1170,7 @@ textarea {
 .optional,
 .hint {
   color: var(--bark);
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 400;
 }
 
@@ -1205,14 +1256,13 @@ textarea {
   margin-bottom: 0;
 }
 
-/* Shereen's photo guidelines, just above the upload. */
+/* Shereen's photo guidelines: beside the form, or folded above the upload. */
 .guidelines {
   display: grid;
   gap: 0.4rem;
   padding: 0.9rem 1rem;
   border-radius: 6px;
   background: #fff;
-  font-size: 0.9375rem;
 }
 
 .guidelines ul {
