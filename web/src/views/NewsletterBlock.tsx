@@ -7,8 +7,9 @@ import { env } from "../env";
 import { addDays, apDate, apDay, describeDeer, todayInWausau, wausauMidnight } from "../format";
 import { MAX_DEER, NOPTIN_BLOCK_LIMIT, newsletterRows, wrapForNoptin } from "../newsletter";
 import { presentingSponsor } from "../phase";
+import { drawFeedCard } from "../shareCard";
 import { photoUrl } from "../supabase";
-import type { Board } from "../types";
+import type { Board, PostedEntry } from "../types";
 import { useLoad } from "../useLoad";
 
 // Three rows of two unless an editor picks more.
@@ -156,6 +157,92 @@ function Picks({
           }}
         />
       )}
+
+      {picked.length > 0 && <SocialPack key={picked.join()} picks={posted.data.filter((e) => picked.includes(e.id))} board={board} />}
     </>
+  );
+}
+
+// The same deer for Facebook and Instagram: one feed image per pick (1080x1350, drawn here like
+// the share images) and a caption to paste, so Friday's post takes a minute.
+function SocialPack({ picks, board }: { picks: PostedEntry[]; board: Board }) {
+  const [images, setImages] = useState<{ id: string; url: string; name: string; alt: string }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const make = async () => {
+    setBusy(true);
+    setFailed(0);
+    images?.forEach((image) => URL.revokeObjectURL(image.url));
+    const made: NonNullable<typeof images> = [];
+    let lost = 0;
+    for (const entry of picks) {
+      try {
+        const blob = await drawFeedCard({ entry, year: board.season.year, presenting: presentingSponsor(board) });
+        made.push({
+          id: entry.id,
+          url: URL.createObjectURL(blob),
+          name: `${entry.hunter_name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "deer"}-brag-board.jpg`,
+          alt: `${entry.hunter_name}'s ${describeDeer(entry.deer_type, entry.points).toLowerCase()}`,
+        });
+      } catch (err) {
+        lost += 1;
+        console.error("Feed image:", err);
+      }
+    }
+    setImages(made);
+    setFailed(lost);
+    setBusy(false);
+  };
+
+  // AP style, no hashtags: readers follow the link.
+  const names = picks.map((e) => `${e.hunter_name} of ${e.hometown} (${describeDeer(e.deer_type, e.points).toLowerCase()})`);
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+  const caption =
+    `New on the Hunting Brag Board this week: ${list}.\n\n` +
+    `See every deer and enter yours. It's free, and any deer taken in Wisconsin since ${apDay(board.season.harvest_since)} counts: ${env.galleryPageUrl}`;
+
+  const copyCaption = () => {
+    navigator.clipboard.writeText(caption).then(
+      () => setCopied(true),
+      () => setCopied(false),
+    );
+  };
+
+  return (
+    <div className="social-pack">
+      <h3>The same deer for Facebook and Instagram</h3>
+      <p className="hint">
+        One image per picked deer, sized for a post ({picks.length} {picks.length === 1 ? "image" : "images"}), and a
+        caption to paste. Download the images, then post them as an album or carousel with the caption.
+      </p>
+      <div className="actions">
+        <button type="button" className="button" disabled={busy} onClick={make}>
+          {busy ? "Making the images…" : images ? "Remake the images" : "Make the images"}
+        </button>
+        <button type="button" className="link-button" onClick={copyCaption} aria-live="polite">
+          {copied ? "✓ Caption copied" : "Copy the caption"}
+        </button>
+      </div>
+      {images && (
+        <ul className="social-images">
+          {images.map((image) => (
+            <li key={image.id}>
+              <a href={image.url} download={image.name}>
+                <img src={image.url} alt={image.alt} />
+                <span>Download</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {failed > 0 && (
+        <p className="error" role="alert">
+          {failed} {failed === 1 ? "image" : "images"} didn't draw. Try again, or post that deer's share image instead.
+        </p>
+      )}
+      <textarea className="social-caption" readOnly value={caption} aria-label="Caption for the post" rows={5} />
+    </div>
   );
 }
