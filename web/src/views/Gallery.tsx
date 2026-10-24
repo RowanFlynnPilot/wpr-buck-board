@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { CountyMap } from "../components/CountyMap";
+import { EmptyLead } from "../components/EmptyLead";
 import { LeadDeer } from "../components/LeadDeer";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
@@ -68,6 +69,8 @@ export function Gallery() {
   // (that deer leads instead) or an award filter is on.
   const lead = !filter && !LINKED_ENTRY && season.phase !== "upcoming" ? visible[0] : undefined;
   const rest = lead ? visible.slice(1) : visible;
+  // Before the first deer, and before entries open, a picture of the thing itself holds the lead.
+  const empty = entries.length === 0 && !LINKED_ENTRY && (season.phase === "upcoming" || season.phase === "entries");
   // What a deer's Story image names: the season and the presenting sponsor.
   const storyFacts = { year: season.year, presenting };
   const weekend = openingWeekend(season);
@@ -147,21 +150,27 @@ export function Gallery() {
       )}
 
       {season.phase === "upcoming" ? (
-        <AwardsAndPrizes board={board} />
+        <>
+          {empty && <EmptyLead season={season} />}
+          <AwardsAndPrizes board={board} />
+        </>
       ) : (
         <>
           {lead && <LeadDeer entry={lead} storyFacts={storyFacts} />}
+          {empty && <EmptyLead season={season} />}
 
-          <nav className="filters" aria-label="Filter by award">
-            <button type="button" aria-pressed={filter === null} onClick={() => choose(null)}>
-              All deer
-            </button>
-            {filters.map((award) => (
-              <button key={award.id} type="button" aria-pressed={filter === award.kind} onClick={() => choose(award.kind)}>
-                {award.label}
+          {entries.length > 0 && (
+            <nav className="filters" aria-label="Filter by award">
+              <button type="button" aria-pressed={filter === null} onClick={() => choose(null)}>
+                All deer
               </button>
-            ))}
-          </nav>
+              {filters.map((award) => (
+                <button key={award.id} type="button" aria-pressed={filter === award.kind} onClick={() => choose(award.kind)}>
+                  {award.label}
+                </button>
+              ))}
+            </nav>
+          )}
 
           {selected && (
             <div className="award-panel">
@@ -174,7 +183,7 @@ export function Gallery() {
             </div>
           )}
 
-          {visible.length === 0 ? (
+          {empty ? null : visible.length === 0 ? (
             <p className="empty">
               {season.phase === "entries" ? (
                 <>
