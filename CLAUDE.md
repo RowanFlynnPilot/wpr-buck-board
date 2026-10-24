@@ -61,7 +61,7 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 ## Commands
 
 ```sh
-supabase start && supabase test db          # 257 pgTAP tests
+supabase start && supabase test db          # 263 pgTAP tests
 deno test supabase/functions/_shared        # 17 tests: JPEG (real GPS-tagged fixture), Resend sender, entry and posted emails
 deno test share/                            # 14 share-page tests
 deno check supabase/functions/submit-entry/index.ts supabase/functions/entry-posted/index.ts

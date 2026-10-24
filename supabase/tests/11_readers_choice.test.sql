@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(33);
 
 -- Fixtures --------------------------------------------------------------------
 
@@ -43,13 +43,15 @@ create function pg_temp.shift_to(p_phase text) returns void language sql as $$
   where s.is_active and o.phase = p_phase
 $$;
 
--- Twelve posted deer from twelve hunters, e01 to e12.
+-- Twelve posted deer, e01 to e12. A deer camp entered e04 to e11 under one address, so the
+-- drawing sees four entrants: e01, e02, the camp and e12 (e03 becomes a staff household below).
 create temp table ids (label text primary key, id uuid not null);
 grant select on ids to anon, authenticated;
 insert into ids
 select 'e' || lpad(n::text, 2, '0'),
   public.submit_entry('Hunter ' || n, 'Wausau', 'Marathon', current_date - 2, 'rifle', 'buck', 8::smallint, false,
-    'adult', false, null, gen_random_uuid(), 'Hunter ' || n, 'hunter' || n || '@example.com', false)
+    'adult', false, null, gen_random_uuid(), 'Hunter ' || n,
+    case when n between 4 and 11 then 'camp@example.com' else 'hunter' || n || '@example.com' end, false)
 from generate_series(1, 12) n;
 update public.entries set status = 'approved' where id in (select id from ids);
 
@@ -156,8 +158,21 @@ select isnt((select entry_id from public.drawing_winners where sponsor_id = '000
   (select entry_id from before_redraw where sponsor_id = '00000000-0000-0000-0000-00000000c011'), 'the prize has a new winner');
 select is((select count(distinct p.email)::int from public.drawing_winners d join public.entry_private p on p.entry_id = d.entry_id), 2,
   'who does not already hold the other prize');
-select lives_ok($$ select public.moderate_entry((select entry_id from public.prize_forfeits), 'rejected', 'Never claimed, not their deer') $$,
-  'the former winner can now be taken down');
+
+-- Four entrants, two prizes: a second redraw takes the last free entrant, and a third finds none.
+select lives_ok($$ select public.redraw_prize('00000000-0000-0000-0000-00000000c011') $$, 'a second redraw takes the last entrant');
+select throws_ok($$ select public.redraw_prize('00000000-0000-0000-0000-00000000c011') $$,
+  'P0001', 'No entrants are left to draw for this prize.', 'a third finds no one left');
+select is((select count(*)::int from public.prize_forfeits), 2, 'and records nothing');
+select is((select count(*)::int from public.entry_private p
+  where p.email in (select p2.email from public.drawing_winners d join public.entry_private p2 on p2.entry_id = d.entry_id)
+    and p.email in (select p3.email from public.prize_forfeits f join public.entry_private p3 on p3.entry_id = f.entry_id)), 0,
+  'no entrant both holds a prize and forfeited one');
+
+-- A finalist that holds no prize comes down once withdrawn from the ballot.
+select public.set_finalist((select id from ids where label = 'e03'), false);
+select lives_ok($$ select public.moderate_entry((select id from ids where label = 'e03'), 'rejected', 'Not their deer') $$,
+  'a withdrawn finalist with no prize can be taken down');
 reset role;
 
 select * from finish();
