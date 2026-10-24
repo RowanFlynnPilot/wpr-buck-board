@@ -18,7 +18,7 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
   const openAward = board.awards.some((award) => award.kind !== "readers_choice" && !awardSponsor(board, award));
 
   return (
-    <section className="prizes">
+    <section className="prizes" data-reveal>
       <div>
         <h2>The awards</h2>
         <p className="prizes-intro">

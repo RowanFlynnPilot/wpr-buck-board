@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { CountyMap } from "../components/CountyMap";
+import { LeadDeer } from "../components/LeadDeer";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { ReadersChoice } from "../components/ReadersChoice";
@@ -15,6 +16,7 @@ import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSpons
 import { LINKED_ENTRY } from "../share";
 import type { AwardKind } from "../types";
 import { useLoad } from "../useLoad";
+import { useReveal } from "../useReveal";
 
 const PAGE_SIZE = 24;
 
@@ -44,6 +46,9 @@ export function Gallery() {
     if (linkedRef.current) void scrollIntoView(linkedRef.current);
   }, [ready]);
 
+  // Cards and sections rise into view as the reader scrolls; re-armed whenever the list changes.
+  useReveal([ready, filter, shown]);
+
   if (page.status === "loading") return <p className="status">Loading the Brag Board…</p>;
   if (page.status === "failed") return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
 
@@ -59,6 +64,10 @@ export function Gallery() {
   const selected = filters.find((a) => a.kind === filter);
   const selectedSponsor = selected && awardSponsor(board, selected);
   const visible = filter ? entries.filter((e) => e.award_kinds.includes(filter)) : entries;
+  // The newest deer opens the board, large; the grid takes the rest. Not when a link opened a deer
+  // (that deer leads instead) or an award filter is on.
+  const lead = !filter && !LINKED_ENTRY && season.phase !== "upcoming" ? visible[0] : undefined;
+  const rest = lead ? visible.slice(1) : visible;
   // What a deer's Story image names: the season and the presenting sponsor.
   const storyFacts = { year: season.year, presenting };
   const weekend = openingWeekend(season);
@@ -141,6 +150,8 @@ export function Gallery() {
         <AwardsAndPrizes board={board} />
       ) : (
         <>
+          {lead && <LeadDeer entry={lead} storyFacts={storyFacts} />}
+
           <nav className="filters" aria-label="Filter by award">
             <button type="button" aria-pressed={filter === null} onClick={() => choose(null)}>
               All deer
@@ -179,13 +190,13 @@ export function Gallery() {
             </p>
           ) : (
             <div className="entry-grid">
-              {visible.slice(0, shown).map((entry) => (
+              {rest.slice(0, shown).map((entry) => (
                 <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} />
               ))}
             </div>
           )}
 
-          {visible.length > shown && (
+          {rest.length > shown && (
             <button type="button" className="button more" onClick={() => setShown(shown + PAGE_SIZE)}>
               Show more deer
             </button>

@@ -30,7 +30,8 @@ async function loadEmbed() {
   const [catalog, latest, count, opener] = await Promise.all([
     loadCatalog(season.id),
     // During the vote the strip shows the finalists; otherwise the six newest deer.
-    voting ? loadFinalistEntries(season.id) : loadGallery(season.id, 6),
+    // Seven: the newest large, the next six in two rows of three beside it.
+    voting ? loadFinalistEntries(season.id) : loadGallery(season.id, 7),
     countEntries(season.id),
     weekend.on ? countHarvested(season.id, ...weekend.days) : Promise.resolve(null),
   ]);

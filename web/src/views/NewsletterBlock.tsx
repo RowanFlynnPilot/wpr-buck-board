@@ -222,7 +222,7 @@ function SocialPack({ picks, board }: { picks: PostedEntry[]; board: Board }) {
           {busy ? "Making the images…" : images ? "Remake the images" : "Make the images"}
         </button>
         <button type="button" className="link-button" onClick={copyCaption} aria-live="polite">
-          {copied ? "✓ Caption copied" : "Copy the caption"}
+          {copied ? "Caption copied" : "Copy the caption"}
         </button>
       </div>
       {images && (

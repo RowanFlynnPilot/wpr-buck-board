@@ -32,7 +32,7 @@ export function CountyMap({ entries }: { entries: GalleryEntry[] }) {
   const { width, height } = COUNTY_MAP_SIZE;
 
   return (
-    <section className="county-map" aria-labelledby={`${id}-heading`}>
+    <section className="county-map" aria-labelledby={`${id}-heading`} data-reveal>
       <h2 id={`${id}-heading`}>Where this season’s deer came from</h2>
       <p className="county-map-line">
         <strong>{summary}</strong> so far. {ranked[0][0]} County leads with {apNumber(ranked[0][1])}.
