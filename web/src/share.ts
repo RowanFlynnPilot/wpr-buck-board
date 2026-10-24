@@ -37,7 +37,7 @@ const linkedId = params.get("entry");
 const from = params.get("from");
 export const LINKED_ENTRY =
   linkedId && ENTRY_ID.test(linkedId)
-    ? { id: linkedId.toLowerCase(), from: from === "share" || from === "front-page" ? from : "link" }
+    ? { id: linkedId.toLowerCase(), from: from === "share" || from === "front-page" || from === "email" ? from : "link" }
     : null;
 if (params.has("entry") || params.has("from")) {
   params.delete("entry");

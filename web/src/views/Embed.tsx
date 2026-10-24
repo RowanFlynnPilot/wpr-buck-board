@@ -1,9 +1,10 @@
 // Front-page strip. One embed for the whole season: what it shows follows the calendar.
 import { EntryCard } from "../components/EntryCard";
+import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { countEntries, loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
+import { countEntries, countHarvested, loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
-import { awardSponsor, gunOpenerLine, phaseLine, presentingSponsor } from "../phase";
+import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor } from "../phase";
 import { entryPageUrl } from "../share";
 import { photoUrl } from "../supabase";
 import { useLoad } from "../useLoad";
@@ -22,14 +23,16 @@ async function loadEmbed() {
       const entry = winner && entries.find((e) => e.id === winner.entry_id);
       return entry ? [{ award, entry }] : [];
     });
-    return { board, count: entries.length, latest: [], picks };
+    return { board, count: entries.length, latest: [], picks, opener: null };
   }
-  const [catalog, latest, count] = await Promise.all([
+  const weekend = openingWeekend(season);
+  const [catalog, latest, count, opener] = await Promise.all([
     loadCatalog(season.id),
     loadGallery(season.id, 6),
     countEntries(season.id),
+    weekend.on ? countHarvested(season.id, ...weekend.days) : Promise.resolve(null),
   ]);
-  return { board: { season, ...catalog }, count, latest, picks: [] };
+  return { board: { season, ...catalog }, count, latest, picks: [], opener };
 }
 
 export function Embed() {
@@ -37,7 +40,7 @@ export function Embed() {
   if (page.status === "loading") return <p className="status">Loading the Brag Board…</p>;
   if (page.status === "failed") return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
 
-  const { board, count, latest, picks } = page.data;
+  const { board, count, latest, picks, opener } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
   const gunLine = gunOpenerLine(season);
@@ -67,6 +70,8 @@ export function Embed() {
         )}
         {phaseLine(season)} {gunLine}
       </p>
+
+      {opener !== null && <OpeningWeekend board={board} count={opener} />}
 
       {latest.length > 0 && (
         <ul className="strip-photos">

@@ -63,6 +63,18 @@ export async function countEntries(seasonId: string): Promise<number> {
   return count;
 }
 
+// Deer on the board taken between two calendar days, inclusive (the opening-weekend count).
+export async function countHarvested(seasonId: string, from: string, to: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("gallery_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("season_id", seasonId)
+    .gte("harvest_date", from)
+    .lte("harvest_date", to);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
 export async function loadAwardWinners(seasonId: string): Promise<AwardWinner[]> {
   return rows<AwardWinner[]>(supabase.from("award_winners").select("award_id, entry_id").eq("season_id", seasonId));
 }
@@ -155,6 +167,13 @@ export async function saveShareCard(entryId: string, card: Blob): Promise<void> 
     const { error: removeError } = await bucket.remove([previous]);
     if (removeError) console.warn(`Old share image ${previous} was left in storage:`, removeError);
   }
+}
+
+// Staff, after posting a deer: email the entrant that it's on the board. The entry-posted
+// function sends it once, and only while email is on; a failure never undoes the post.
+export async function notifyPosted(entryId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke("entry-posted", { body: { entry_id: entryId } });
+  if (error) throw new Error(error.message);
 }
 
 export async function isStaff(): Promise<boolean> {

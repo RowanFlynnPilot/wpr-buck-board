@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { EntryCard } from "../components/EntryCard";
+import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
 import { scrollIntoView } from "../host";
-import { awardSponsor, gunOpenerLine, phaseLine, presentingSponsor } from "../phase";
+import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor } from "../phase";
 import { LINKED_ENTRY } from "../share";
 import type { AwardKind } from "../types";
 import { useLoad } from "../useLoad";
@@ -54,6 +55,12 @@ export function Gallery() {
   const selected = filters.find((a) => a.kind === filter);
   const selectedSponsor = selected && awardSponsor(board, selected);
   const visible = filter ? entries.filter((e) => e.award_kinds.includes(filter)) : entries;
+  // What a deer's Story image names: the season and the presenting sponsor.
+  const storyFacts = { year: season.year, presenting };
+  const weekend = openingWeekend(season);
+  const openerDeer = weekend.on ? entries.filter((e) => weekend.days.includes(e.harvest_date)) : [];
+  // Entries come newest first, so the last opening-day buck is the first one posted.
+  const firstOpenerBuck = openerDeer.filter((e) => e.harvest_date === weekend.days[0] && e.deer_type === "buck").at(-1);
 
   const choose = (kind: AwardKind | null) => {
     setFilter(kind);
@@ -90,6 +97,7 @@ export function Gallery() {
               award={linkedAward?.label}
               awardSponsor={linkedAward ? awardSponsor(board, linkedAward) : undefined}
               share
+              storyFacts={storyFacts}
               featured
             />
           </section>
@@ -105,11 +113,15 @@ export function Gallery() {
               const winner = winners.find((w) => w.award_id === award.id);
               const entry = winner && entries.find((e) => e.id === winner.entry_id);
               return entry
-                ? [<EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} share />]
+                ? [<EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} share storyFacts={storyFacts} />]
                 : [];
             })}
           </div>
         </section>
+      )}
+
+      {weekend.on && (
+        <OpeningWeekend board={board} count={openerDeer.length} first={firstOpenerBuck} storyFacts={storyFacts} />
       )}
 
       {season.phase === "upcoming" ? (
@@ -155,7 +167,7 @@ export function Gallery() {
           ) : (
             <div className="entry-grid">
               {visible.slice(0, shown).map((entry) => (
-                <EntryCard key={entry.id} entry={entry} share />
+                <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} />
               ))}
             </div>
           )}

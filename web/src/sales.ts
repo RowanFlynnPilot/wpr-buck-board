@@ -16,7 +16,8 @@ export type Placement =
   | "awards-list"
   | "prize-drawing"
   | "winner-card"
-  | "newsletter";
+  | "newsletter"
+  | "opening-weekend";
 
 // Tagged so the visit shows up in the sponsor's own analytics as coming from us.
 export function sponsorHref(sponsor: Sponsor, placement: Placement): string | null {
@@ -66,5 +67,6 @@ export function withDemoSponsors(catalog: Pick<Board, "awards" | "sponsors">): P
     return { ...award, sponsor_id: sponsor.id };
   });
   add("demo-prize-partner", "prize_partner");
+  if (!sponsors.some((s) => s.tier === "opening_weekend")) add("demo-opening-weekend", "opening_weekend");
   return { awards, sponsors };
 }

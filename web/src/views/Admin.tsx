@@ -4,7 +4,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState, type FormEvent } from "react";
 import { EntryCard } from "../components/EntryCard";
-import { editEntry, isStaff, loadModerationQueue, loadSeason, moderate } from "../data";
+import { editEntry, isStaff, loadModerationQueue, loadSeason, moderate, notifyPosted } from "../data";
 import { AGE_LABELS, apDate } from "../format";
 import { makeShareCard } from "../shareCard";
 import { shareCardUrl, supabase } from "../supabase";
@@ -242,7 +242,11 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
     try {
       await moderate(entry.id, decision, decision === "rejected" ? reason : null);
       // The deer is posted either way; if its card fails, the "On the board" tab offers to make it.
-      if (decision === "approved") await makeShareCard(entry.id).catch((err) => console.error("Share image:", err));
+      if (decision === "approved") {
+        await makeShareCard(entry.id).catch((err) => console.error("Share image:", err));
+        // After the card, so the email can show it. Sent once per deer, so re-posting one is quiet.
+        await notifyPosted(entry.id).catch((err) => console.error("Posted email:", err));
+      }
       onDone();
     } catch (err) {
       setError((err as Error).message);

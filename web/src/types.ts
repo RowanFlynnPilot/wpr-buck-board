@@ -6,7 +6,7 @@ export type Weapon = "bow" | "crossbow" | "rifle" | "shotgun" | "muzzleloader" |
 export type DeerType = "buck" | "antlerless";
 export type AgeGroup = "youth" | "adult" | "veteran";
 export type EntryStatus = "pending" | "approved" | "rejected";
-export type SponsorTier = "presenting" | "award" | "prize_partner";
+export type SponsorTier = "presenting" | "award" | "prize_partner" | "opening_weekend";
 export type AwardKind =
   | "first_deer"
   | "youth"

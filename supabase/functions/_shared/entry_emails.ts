@@ -49,7 +49,7 @@ function apLastDay(exclusiveEnd: string): string {
   return apDate(new Date(Date.parse(exclusiveEnd) - 1).toISOString());
 }
 
-function deer(entry: StoredEntry): string {
+function deer(entry: Pick<StoredEntry, "deer_type" | "points">): string {
   if (entry.deer_type === "antlerless") return "antlerless deer";
   return entry.points === null ? "buck" : `${entry.points}-point buck`;
 }
@@ -79,10 +79,14 @@ function record(entry: StoredEntry): string[] {
   ];
 }
 
-// One simple, readable layout for both emails: paragraphs, with an optional photo up top.
-function page(paragraphs: string[], photo?: { src: string; alt: string }): string {
+// One simple, readable layout for every email: paragraphs, with an optional photo up top (linked
+// when it has somewhere to go).
+function page(paragraphs: string[], photo?: { src: string; alt: string; width?: number; href?: string }): string {
+  const img = photo
+    ? `<img src="${escape(photo.src)}" alt="${escape(photo.alt)}" width="${photo.width ?? 320}" style="display:block;max-width:100%;height:auto;border-radius:4px;border:0">`
+    : "";
   const image = photo
-    ? `<p style="margin:0 0 16px"><img src="${escape(photo.src)}" alt="${escape(photo.alt)}" width="320" style="display:block;max-width:100%;height:auto;border-radius:4px"></p>`
+    ? `<p style="margin:0 0 16px">${photo.href ? `<a href="${escape(photo.href)}">${img}</a>` : img}</p>`
     : "";
   return `<!doctype html><html><body style="margin:0;padding:24px 16px;background:#ffffff">` +
     `<div style="max-width:560px;margin:0 auto;border-top:4px solid #f26a1b;padding-top:16px;` +
@@ -171,6 +175,88 @@ export function staffNotice(
         `<span style="color:#6e6353;font-size:14px">Reply to this email to reach the entrant.</span>`,
       ],
       { src: links.thumbnail, alt: `${possessive(fullName)} ${deer(entry)}` },
+    ),
+  };
+}
+
+// What posted_notice() returns (migration 0013): the deer as the board shows it, who entered it,
+// and the season's dates.
+export interface PostedNotice {
+  hunter_name: string;
+  hometown: string;
+  county: string;
+  harvest_date: string;
+  weapon: StoredEntry["weapon"];
+  deer_type: StoredEntry["deer_type"];
+  points: number | null;
+  first_deer: boolean;
+  age_group: StoredEntry["age_group"];
+  photo_id: string;
+  share_card: string | null;
+  submitter_name: string;
+  email: string;
+  entries_close_at: string;
+  voting_open_at: string;
+  voting_close_at: string;
+  winners_at: string;
+}
+
+// "Dec. 14–18", or "Nov. 30 to Dec. 4" across a month.
+function apRange(start: string, exclusiveEnd: string): string {
+  const [first, last] = [apDate(start), apLastDay(exclusiveEnd)];
+  const [firstMonth, lastMonth] = [first.split(" ")[0], last.split(" ")[0]];
+  return firstMonth === lastMonth ? `${first}–${last.split(" ")[1]}` : `${first} to ${last}`;
+}
+
+// Sent once when staff post a deer (the entry-posted function): the deer is on the board, here's
+// its link, share it. Every entrant who shares it brings the board new readers and new entrants.
+export function postedEmail(
+  notice: PostedNotice,
+  id: string,
+  links: { board: string; share: string; image: string; imageIsCard: boolean },
+): Email {
+  const firstName = notice.submitter_name.trim().split(/\s+/)[0];
+  const what = notice.first_deer ? "first deer" : deer(notice);
+  const headline = `${possessive(notice.hunter_name)} ${what} is on the Hunting Brag Board`;
+  const onBoard = `${links.board}#entry=${id}&from=email`;
+  const enter = `${links.board}#enter`;
+  const facebook = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(links.share)}`;
+  const season =
+    `Everyone with a deer on the board is in the prize drawing. Readers vote for Readers’ Choice ` +
+    `${apRange(notice.voting_open_at, notice.voting_close_at)}, and winners are announced ${apDate(notice.winners_at)}.`;
+  const another = `Got another deer? Enter it anytime through ${apLastDay(notice.entries_close_at)}.`;
+  const story = "On a phone, tap Share under the deer on the board for an image sized for Facebook and Instagram Stories.";
+  const link = (href: string, text: string, bold = false) =>
+    `<a href="${escape(href)}" style="color:#2c6a62${bold ? ";font-weight:bold" : ""}">${escape(text)}</a>`;
+
+  return {
+    to: [notice.email],
+    subject: headline,
+    idempotencyKey: `brag-board-${id}-posted`,
+    text: [
+      `Hi ${firstName},`,
+      `Good news: ${headline}.`,
+      `See it on the board: ${onBoard}`,
+      `Share it on Facebook: ${facebook}\nOr send this link: ${links.share}`,
+      story,
+      season,
+      `${another} ${enter}`,
+      "Questions? Just reply to this email.",
+      "Wausau Pilot & Review\nwausaupilotandreview.com",
+    ].join("\n\n"),
+    html: page(
+      [
+        `Hi ${escape(firstName)},`,
+        `Good news: ${escape(headline)}.`,
+        link(onBoard, "See it on the board", true),
+        `Share it with friends and family: ${link(facebook, "share on Facebook")}, or send this link: ${link(links.share, links.share)}`,
+        escape(story),
+        escape(season),
+        `${escape(another)} ${link(enter, "Enter your deer")}`,
+        "Questions? Just reply to this email.",
+        `Wausau Pilot &amp; Review<br>${link("https://wausaupilotandreview.com", "wausaupilotandreview.com")}`,
+      ],
+      { src: links.image, alt: headline, width: links.imageIsCard ? 560 : 320, href: onBoard },
     ),
   };
 }

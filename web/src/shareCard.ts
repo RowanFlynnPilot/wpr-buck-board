@@ -125,43 +125,175 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   return canvas;
 }
 
+// The Story image, 1080x1920: the same deer, sized for Facebook and Instagram Stories. Readers'
+// own browsers draw it when they tap Share on the board, from what the board already shows, so it
+// needs no staff and is never stored. Stories lay their own buttons over roughly the top and
+// bottom 230 px, so the flag starts below that and the words end above it.
+export const STORY = { width: 1080, height: 1920 };
+
+export async function drawStoryCard(facts: CardFacts): Promise<Blob> {
+  const [photo, badge, logo] = await Promise.all([
+    loadImage(photoUrl(facts.entry.photo_id, "full")),
+    loadImage(`${import.meta.env.BASE_URL}wpr-typewriter-badge.png`),
+    // A `?demo` placeholder has no logo; its name stands in.
+    facts.presenting && !facts.presenting.demo ? loadImage(logoUrl(facts.presenting.logo_path)).catch(() => null) : null,
+    document.fonts.load(`700 96px ${DISPLAY}`),
+    document.fonts.load(`500 46px ${DISPLAY}`),
+    document.fonts.load(`400 40px ${BODY}`),
+    document.fonts.load(`700 40px ${BODY}`),
+  ]);
+  try {
+    return await toJpeg(paintStory(facts, photo, badge, logo));
+  } catch (error) {
+    if (!logo || !(error instanceof DOMException && error.name === "SecurityError")) throw error;
+    return toJpeg(paintStory(facts, photo, badge, null));
+  }
+}
+
+function paintStory({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, badge: HTMLImageElement, logo: HTMLImageElement | null) {
+  const { width: W, height: H } = STORY;
+  const M = 96;
+  const WIDE = W - 2 * M;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("This browser can't draw share images. Try another browser.");
+
+  ctx.fillStyle = COLOR.paper;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = COLOR.blaze;
+  ctx.fillRect(0, 0, W, 16);
+
+  // The flag over the thick-over-thin rule, as on the share card.
+  let y = 236;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(M + 44, y + 44, 44, 0, 2 * Math.PI);
+  ctx.clip();
+  ctx.drawImage(badge, M, y, 88, 88);
+  ctx.restore();
+  ctx.fillStyle = COLOR.slate;
+  ctx.font = `700 26px ${BODY}`;
+  ctx.textBaseline = "middle";
+  ctx.letterSpacing = "4px";
+  ctx.fillText("WAUSAU PILOT & REVIEW", M + 112, y + 46);
+  ctx.letterSpacing = "0px";
+  ctx.textBaseline = "alphabetic";
+  y += 116;
+  ctx.fillStyle = COLOR.ink;
+  ctx.fillRect(M, y, WIDE, 6);
+  ctx.fillRect(M, y + 12, WIDE, 2);
+
+  // The board's title and who presents it.
+  y += 30;
+  const title = fit(ctx, "Hunting Brag Board", (size) => `700 ${size}px ${DISPLAY}`, 1, 96, 64, WIDE);
+  y += title.size;
+  ctx.fillText(title.lines[0], M, y);
+  ctx.fillStyle = COLOR.bark;
+  const presents = fit(ctx, presenting ? `presented by ${presenting.name}` : `${year} season`, (size) => `500 ${size}px ${DISPLAY}`, 2, 46, 32, WIDE);
+  for (const line of presents.lines) {
+    y += Math.round(presents.size * 1.3);
+    ctx.fillText(line, M, y);
+  }
+  if (logo) {
+    y += 24;
+    y += drawContained(ctx, logo, M, y, 320, 90);
+  }
+  const photoTop = y + 44;
+
+  // The deer, from the foot up, then the name; the photo takes the room between.
+  const FOOT = 1500;
+  const record = [
+    { text: `${entry.county} County, ${apDay(entry.harvest_date)}`, color: COLOR.bark, weight: 400, size: 40 },
+    { text: `${describeDeer(entry.deer_type, entry.points)}, ${WEAPON_LABELS[entry.weapon].toLowerCase()}`, color: COLOR.ink, weight: 700, size: 44 },
+    { text: entry.hometown, color: COLOR.bark, weight: 400, size: 40 },
+  ];
+  let base = FOOT;
+  for (const { text, color, weight, size } of record) {
+    const line = fit(ctx, text, (s) => `${weight} ${s}px ${BODY}`, 1, size, size - 12, WIDE);
+    ctx.fillStyle = color;
+    ctx.fillText(line.lines[0], M, base);
+    base -= 60;
+  }
+  base -= 14;
+  const name = fitName(ctx, entry.hunter_name, 230, WIDE, 96, 48);
+  ctx.fillStyle = COLOR.ink;
+  name.lines.forEach((line, i) => {
+    ctx.font = `700 ${name.size}px ${DISPLAY}`;
+    ctx.fillText(line, M, base - (name.lines.length - 1 - i) * name.leading);
+  });
+  const photoBottom = base - (name.lines.length - 1) * name.leading - Math.round(name.size * 0.8) - 44;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(M, photoTop, WIDE, photoBottom - photoTop, 18);
+  ctx.clip();
+  drawCover(ctx, photo, M, photoTop, WIDE, photoBottom - photoTop);
+  ctx.restore();
+  if (entry.first_deer) drawTag(ctx, "First deer", M + 28, photoBottom - 28, 1.6);
+
+  // Where to find it: Stories can't carry a link in the image itself.
+  const where = "See the board at wausaupilotandreview.com";
+  ctx.font = `700 34px ${BODY}`;
+  const pill = ctx.measureText(where).width + 72;
+  ctx.fillStyle = COLOR.blaze;
+  ctx.beginPath();
+  ctx.roundRect((W - pill) / 2, FOOT + 46, pill, 80, 40);
+  ctx.fill();
+  ctx.fillStyle = COLOR.ink;
+  ctx.textAlign = "center";
+  ctx.fillText(where, W / 2, FOOT + 98);
+  ctx.textAlign = "left";
+
+  return canvas;
+}
+
 // The name at the largest size, on one line or two, that fits the width and the room left.
-function fitName(ctx: CanvasRenderingContext2D, name: string, room: number) {
-  for (let size = 56; size >= 26; size -= 2) {
+function fitName(ctx: CanvasRenderingContext2D, name: string, room: number, width = TEXT_WIDTH, max = 56, min = 26) {
+  for (let size = max; size >= min; size -= 2) {
     ctx.font = `700 ${size}px ${DISPLAY}`;
-    const lines = wrap(ctx, name);
+    const lines = wrap(ctx, name, width);
     const leading = Math.round(size * 1.08);
     const height = size * 0.75 + (lines.length - 1) * leading;
-    if (lines.length <= 2 && lines.every((l) => ctx.measureText(l).width <= TEXT_WIDTH) && height <= room) {
+    if (lines.length <= 2 && lines.every((l) => ctx.measureText(l).width <= width) && height <= room) {
       return { size, lines, leading };
     }
   }
-  const last = fit(ctx, name, (size) => `700 ${size}px ${DISPLAY}`, 1, 26, 26);
+  const last = fit(ctx, name, (size) => `700 ${size}px ${DISPLAY}`, 1, min, min, width);
   return { size: last.size, lines: last.lines, leading: 0 };
 }
 
 // Words on at most `maxLines` lines at the largest size from `size` down to `min` that fits the
 // text column. If nothing fits, the smallest size, cut short with an ellipsis.
-function fit(ctx: CanvasRenderingContext2D, text: string, font: (size: number) => string, maxLines: number, size: number, min: number) {
+function fit(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  font: (size: number) => string,
+  maxLines: number,
+  size: number,
+  min: number,
+  width = TEXT_WIDTH,
+) {
   for (let s = size; s >= min; s -= 1) {
     ctx.font = font(s);
-    const lines = wrap(ctx, text);
-    if (lines.length <= maxLines && lines.every((l) => ctx.measureText(l).width <= TEXT_WIDTH)) return { size: s, lines };
+    const lines = wrap(ctx, text, width);
+    if (lines.length <= maxLines && lines.every((l) => ctx.measureText(l).width <= width)) return { size: s, lines };
   }
   ctx.font = font(min);
-  const lines = wrap(ctx, text).slice(0, maxLines);
+  const lines = wrap(ctx, text, width).slice(0, maxLines);
   let last = lines[lines.length - 1];
-  while (last.length > 1 && ctx.measureText(`${last}…`).width > TEXT_WIDTH) last = last.slice(0, -1);
+  while (last.length > 1 && ctx.measureText(`${last}…`).width > width) last = last.slice(0, -1);
   lines[lines.length - 1] = `${last.trimEnd()}…`;
   return { size: min, lines };
 }
 
-function wrap(ctx: CanvasRenderingContext2D, text: string): string[] {
+function wrap(ctx: CanvasRenderingContext2D, text: string, width = TEXT_WIDTH): string[] {
   const lines: string[] = [];
   let line = "";
   for (const word of text.split(/\s+/).filter(Boolean)) {
     const next = line ? `${line} ${word}` : word;
-    if (line && ctx.measureText(next).width > TEXT_WIDTH) {
+    if (line && ctx.measureText(next).width > width) {
       lines.push(line);
       line = word;
     } else {
@@ -191,15 +323,15 @@ function drawContained(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: 
 }
 
 // The board's "First deer" tag, anchored at its bottom-left corner.
-function drawTag(ctx: CanvasRenderingContext2D, text: string, x: number, bottom: number) {
-  ctx.font = `700 24px ${BODY}`;
-  const width = ctx.measureText(text).width + 32;
+function drawTag(ctx: CanvasRenderingContext2D, text: string, x: number, bottom: number, scale = 1) {
+  ctx.font = `700 ${24 * scale}px ${BODY}`;
+  const width = ctx.measureText(text).width + 32 * scale;
   ctx.fillStyle = COLOR.blaze;
   ctx.beginPath();
-  ctx.roundRect(x, bottom - 44, width, 44, 5);
+  ctx.roundRect(x, bottom - 44 * scale, width, 44 * scale, 5 * scale);
   ctx.fill();
   ctx.fillStyle = COLOR.ink;
-  ctx.fillText(text, x + 16, bottom - 14);
+  ctx.fillText(text, x + 16 * scale, bottom - 14 * scale);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
