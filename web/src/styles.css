@@ -1112,7 +1112,7 @@ img {
     align-self: start;
   }
 
-  .guidelines-fold {
+  .guidelines-fold:not(.guidelines-fold-framed) {
     display: none;
   }
 }
@@ -1511,14 +1511,16 @@ h1[tabindex="-1"]:focus {
   object-position: 50% 30%;
 }
 
-/* Before the first deer: the Park Service's buck, cropped to the board's 4:3 like a deer's photo (the
-   source is 3:2, so only the sides go and the buck stays centred), and a line where the name goes. */
-.lead-empty .lead-photo img {
-  object-position: 50% 50%;
+/* Before the first deer: the Park Service's buck (a 3:2 source, so a crop takes only the sides; a
+   little left of centre keeps the far antler tip), and a line where the name goes, a step below the
+   title so the two don't compete. */
+.lead-photo-nps img {
+  object-position: 40% 50%;
 }
 
 .lead-empty .lead-name {
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  line-height: 1.05;
 }
 
 .lead-text {
@@ -1551,8 +1553,61 @@ h1[tabindex="-1"]:focus {
   line-height: 1.55;
 }
 
-.lead .share-actions {
+/* The cards tuck their photo credit up under the picture; beside or below a large picture it
+   stands on its own line. */
+.lead-text .entry-credit {
+  margin: 0.25rem 0 0;
+}
+
+.lead-text .share-actions {
   font-size: 0.875rem;
+}
+
+/* The front: while the board fills up, its title and the newest deer (before the first, the Park
+   Service's buck) as one composition, so the first screen is a picture. On a wide screen the words
+   take five columns and the picture seven, square, beside the title, with the deer's own words at
+   the picture's foot; on a phone the title, the picture, then the deer. Not an entrance: it's the
+   first screen, and the picture should paint as soon as it can. */
+.front {
+  display: grid;
+  grid-template-areas: "head" "photo" "text";
+  gap: 1.25rem;
+}
+
+.front > .masthead {
+  grid-area: head;
+}
+
+.front > .lead-photo {
+  grid-area: photo;
+}
+
+.front > .lead-text {
+  grid-area: text;
+}
+
+@media (min-width: 900px) {
+  .front {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "head photo"
+      "text photo";
+    gap: 2rem 2.5rem;
+  }
+
+  .front > .lead-photo {
+    align-self: start;
+  }
+
+  .front > .lead-photo img {
+    aspect-ratio: 1 / 1;
+  }
+
+  /* A short record sits at the picture's foot rather than leaving a hole under it. */
+  .front > .lead-text {
+    align-self: end;
+  }
 }
 
 /* Motion: parts rise into view once as they're scrolled to; pictures lift under the pointer;

@@ -65,12 +65,17 @@ export function Gallery() {
   const selected = filters.find((a) => a.kind === filter);
   const selectedSponsor = selected && awardSponsor(board, selected);
   const visible = filter ? entries.filter((e) => e.award_kinds.includes(filter)) : entries;
-  // The newest deer opens the board, large; the grid takes the rest. Not when a link opened a deer
-  // (that deer leads instead) or an award filter is on.
-  const lead = !filter && !LINKED_ENTRY && season.phase !== "upcoming" ? visible[0] : undefined;
-  const rest = lead ? visible.slice(1) : visible;
-  // Before the first deer, and before entries open, a picture of the thing itself holds the lead.
+  // The newest deer opens the board, large. While the board fills up it stands in the front, beside
+  // the title, whatever the filter (the list below then holds every deer that qualifies); during the
+  // vote and after, the ballot and the winners lead, and the newest deer waits above the filters,
+  // dropped for a filter. Not when a link opened a deer: that deer leads instead.
+  const filling = season.phase === "upcoming" || season.phase === "entries" || season.phase === "judging";
+  const newest = !LINKED_ENTRY && season.phase !== "upcoming" ? entries[0] : undefined;
+  // Before the first deer, and before entries open, a picture of the thing itself holds the front.
   const empty = entries.length === 0 && !LINKED_ENTRY && (season.phase === "upcoming" || season.phase === "entries");
+  const front = filling && (newest !== undefined || empty);
+  const lead = front || !filter ? newest : undefined;
+  const rest = lead && !filter ? visible.slice(1) : visible;
   // What a deer's Story image names: the season and the presenting sponsor.
   const storyFacts = { year: season.year, presenting };
   const weekend = openingWeekend(season);
@@ -85,25 +90,29 @@ export function Gallery() {
 
   return (
     <main className="gallery">
-      <header className="masthead">
-        <div className="masthead-title">
-          <h1>
-            Hunting Brag Board
-            {presenting && <span className="title-sponsor">presented by {presenting.name}</span>}
-          </h1>
-          <p className="masthead-season">{season.year} season</p>
-        </div>
-        {presenting && <SponsorCredit sponsor={presenting} placement="board-title" lead={null} />}
-        <p className="masthead-line">
-          {season.phase !== "upcoming" && entries.length > 0 && <strong>{entries.length} deer on the board. </strong>}
-          {phaseLine(season)} {gunOpenerLine(season)}
-        </p>
-        {season.phase === "entries" && (
-          <a className="button button-blaze" href={env.enterPageUrl} target="_top">
-            Enter your deer
-          </a>
-        )}
-      </header>
+      {/* While the board fills up, the title and the newest deer are one composition: the front. */}
+      <div className={front ? "front" : "board-title"}>
+        <header className="masthead">
+          <div className="masthead-title">
+            <h1>
+              Hunting Brag Board
+              {presenting && <span className="title-sponsor">presented by {presenting.name}</span>}
+            </h1>
+            <p className="masthead-season">{season.year} season</p>
+          </div>
+          {presenting && <SponsorCredit sponsor={presenting} placement="board-title" lead={null} />}
+          <p className="masthead-line">
+            {season.phase !== "upcoming" && entries.length > 0 && <strong>{entries.length} deer on the board. </strong>}
+            {phaseLine(season)} {gunOpenerLine(season)}
+          </p>
+          {season.phase === "entries" && (
+            <a className="button button-blaze" href={env.enterPageUrl} target="_top">
+              Enter your deer
+            </a>
+          )}
+        </header>
+        {front && (newest ? <LeadDeer entry={newest} storyFacts={storyFacts} /> : <EmptyLead season={season} />)}
+      </div>
 
       {LINKED_ENTRY &&
         (linked ? (
@@ -150,14 +159,14 @@ export function Gallery() {
       )}
 
       {season.phase === "upcoming" ? (
-        <>
-          {empty && <EmptyLead season={season} />}
-          <AwardsAndPrizes board={board} />
-        </>
+        <AwardsAndPrizes board={board} />
       ) : (
         <>
-          {lead && <LeadDeer entry={lead} storyFacts={storyFacts} />}
-          {empty && <EmptyLead season={season} />}
+          {lead && !front && (
+            <div className="lead" data-reveal>
+              <LeadDeer entry={lead} storyFacts={storyFacts} />
+            </div>
+          )}
 
           {entries.length > 0 && (
             <nav className="filters" aria-label="Filter by award">
