@@ -6,6 +6,7 @@ import type {
   Award,
   AwardWinner,
   Board,
+  DrawnPrize,
   EntryFields,
   EntryStatus,
   GalleryEntry,
@@ -13,6 +14,7 @@ import type {
   PostedEntry,
   Season,
   Sponsor,
+  Standing,
 } from "./types";
 
 type Result = { data: unknown; error: PostgrestError | null };
@@ -25,6 +27,8 @@ async function rows<T>(query: PromiseLike<Result>): Promise<T> {
 
 const ENTRY_COLUMNS =
   "id, hunter_name, hometown, county, harvest_date, weapon, deer_type, points, first_deer, age_group, story, photo_id, photo_credit, created_at";
+// Staff reads of `entries` take the award kinds from the same function the gallery view uses.
+const QUEUE_COLUMNS = `${ENTRY_COLUMNS}, award_kinds`;
 
 export async function loadSeason(): Promise<Season> {
   return rows<Season>(supabase.from("current_season").select("*").single());
@@ -79,6 +83,73 @@ export async function loadAwardWinners(seasonId: string): Promise<AwardWinner[]>
   return rows<AwardWinner[]>(supabase.from("award_winners").select("award_id, entry_id").eq("season_id", seasonId));
 }
 
+// Readers' Choice (migration 0014). Finalists are public from the vote on; before that, staff only.
+export async function loadFinalists(seasonId: string): Promise<string[]> {
+  const list = await rows<{ entry_id: string }[]>(supabase.from("finalists").select("entry_id").eq("season_id", seasonId));
+  return list.map((f) => f.entry_id);
+}
+
+export async function loadFinalistEntries(seasonId: string): Promise<GalleryEntry[]> {
+  const ids = await loadFinalists(seasonId);
+  if (ids.length === 0) return [];
+  return rows<GalleryEntry[]>(
+    supabase
+      .from("gallery_entries")
+      .select(`${ENTRY_COLUMNS}, award_kinds`)
+      .eq("season_id", seasonId)
+      .in("id", ids)
+      .order("created_at", { ascending: false }),
+  );
+}
+
+export async function setFinalist(entryId: string, on: boolean): Promise<void> {
+  await rows<null>(supabase.rpc("set_finalist", { p_entry_id: entryId, p_finalist: on }));
+}
+
+export async function setPrizeEligible(entryId: string, eligible: boolean): Promise<void> {
+  await rows<null>(supabase.rpc("set_prize_eligible", { p_entry_id: entryId, p_eligible: eligible }));
+}
+
+// Staff: votes per finalist (RLS on votes keeps readers to their own row).
+export async function loadStandings(seasonId: string): Promise<Standing[]> {
+  return rows<Standing[]>(supabase.from("readers_choice_standings").select("entry_id, votes").eq("season_id", seasonId));
+}
+
+// A signed-in reader's own vote this season, or null.
+export async function loadMyVote(seasonId: string): Promise<string | null> {
+  const mine = await rows<{ entry_id: string }[]>(supabase.from("votes").select("entry_id").eq("season_id", seasonId));
+  return mine[0]?.entry_id ?? null;
+}
+
+export async function castVote(entryId: string, newsletter: boolean): Promise<void> {
+  await rows<null>(supabase.rpc("cast_vote", { p_entry_id: entryId, p_newsletter_opt_in: newsletter }));
+}
+
+export async function loadBlockedDomains(): Promise<string[]> {
+  const list = await rows<{ domain: string }[]>(supabase.from("blocked_email_domains").select("domain"));
+  return list.map((d) => d.domain);
+}
+
+export async function setAwardWinner(awardId: string, entryId: string): Promise<void> {
+  await rows<null>(supabase.rpc("set_award_winner", { p_award_id: awardId, p_entry_id: entryId }));
+}
+
+export async function loadDrawingWinners(seasonId: string): Promise<DrawnPrize[]> {
+  return rows<DrawnPrize[]>(supabase.from("drawing_winners").select("sponsor_id, entry_id").eq("season_id", seasonId));
+}
+
+export async function loadForfeits(seasonId: string): Promise<DrawnPrize[]> {
+  return rows<DrawnPrize[]>(supabase.from("prize_forfeits").select("sponsor_id, entry_id").eq("season_id", seasonId));
+}
+
+export async function runDrawing(seasonId: string): Promise<void> {
+  await rows<null>(supabase.rpc("run_prize_drawing", { p_season_id: seasonId }));
+}
+
+export async function redrawPrize(sponsorId: string): Promise<void> {
+  await rows<null>(supabase.rpc("redraw_prize", { p_sponsor_id: sponsorId }));
+}
+
 export async function loadCounties(): Promise<string[]> {
   const counties = await rows<{ name: string }[]>(supabase.from("wi_counties").select("name").order("name"));
   return counties.map((c) => c.name);
@@ -89,7 +160,7 @@ export async function loadModerationQueue(seasonId: string, status: EntryStatus)
     supabase
       .from("entries")
       .select(
-        `${ENTRY_COLUMNS}, status, share_card, entry_private(submitter_name, email, phone, guardian_relationship, hunter_full_name, moderated_at, rejection_reason), entry_edits(edited_at)`,
+        `${QUEUE_COLUMNS}, status, share_card, entry_private(submitter_name, email, phone, guardian_relationship, hunter_full_name, moderated_at, rejection_reason, prize_eligible), entry_edits(edited_at)`,
       )
       .eq("season_id", seasonId)
       .eq("status", status)

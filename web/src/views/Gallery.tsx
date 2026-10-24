@@ -5,8 +5,9 @@ import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
+import { ReadersChoice } from "../components/ReadersChoice";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
+import { loadAwardWinners, loadCatalog, loadFinalists, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
 import { scrollIntoView } from "../host";
 import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor } from "../phase";
@@ -18,12 +19,14 @@ const PAGE_SIZE = 24;
 
 async function loadGalleryPage() {
   const season = await loadSeason();
-  const [catalog, entries, winners] = await Promise.all([
+  const voting = season.phase === "voting" || season.phase === "tallying";
+  const [catalog, entries, winners, finalists] = await Promise.all([
     loadCatalog(season.id),
     loadGallery(season.id),
     season.phase === "winners" ? loadAwardWinners(season.id) : Promise.resolve([]),
+    voting ? loadFinalists(season.id) : Promise.resolve([]),
   ]);
-  return { board: { season, ...catalog }, entries, winners };
+  return { board: { season, ...catalog }, entries, winners, finalists };
 }
 
 export function Gallery() {
@@ -43,7 +46,7 @@ export function Gallery() {
   if (page.status === "loading") return <p className="status">Loading the Brag Board…</p>;
   if (page.status === "failed") return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
 
-  const { board, entries, winners } = page.data;
+  const { board, entries, winners, finalists } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
   const linkedId = LINKED_ENTRY?.id;
@@ -118,6 +121,15 @@ export function Gallery() {
             })}
           </div>
         </section>
+      )}
+
+      {finalists.length > 0 && (
+        <ReadersChoice
+          season={season}
+          finalists={entries.filter((e) => finalists.includes(e.id))}
+          presenting={presenting}
+          storyFacts={storyFacts}
+        />
       )}
 
       {weekend.on && (

@@ -2,7 +2,7 @@
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { countEntries, countHarvested, loadAwardWinners, loadCatalog, loadGallery, loadSeason } from "../data";
+import { countEntries, countHarvested, loadAwardWinners, loadCatalog, loadFinalistEntries, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
 import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor } from "../phase";
 import { entryPageUrl } from "../share";
@@ -26,9 +26,11 @@ async function loadEmbed() {
     return { board, count: entries.length, latest: [], picks, opener: null };
   }
   const weekend = openingWeekend(season);
+  const voting = season.phase === "voting" || season.phase === "tallying";
   const [catalog, latest, count, opener] = await Promise.all([
     loadCatalog(season.id),
-    loadGallery(season.id, 6),
+    // During the vote the strip shows the finalists; otherwise the six newest deer.
+    voting ? loadFinalistEntries(season.id) : loadGallery(season.id, 6),
     countEntries(season.id),
     weekend.on ? countHarvested(season.id, ...weekend.days) : Promise.resolve(null),
   ]);

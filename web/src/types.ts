@@ -73,6 +73,7 @@ export interface GalleryEntry extends EntryFields {
 
 export interface ModerationEntry extends EntryFields {
   status: EntryStatus;
+  award_kinds: AwardKind[];
   // The current share card (migration 0008): <entry id>/<uuid>.jpg in share-cards.
   share_card: string | null;
   entry_private: {
@@ -85,6 +86,8 @@ export interface ModerationEntry extends EntryFields {
     hunter_full_name: string | null;
     moderated_at: string | null;
     rejection_reason: string | null;
+    // False for staff and their households, who share a deer but can't win prizes (migration 0014).
+    prize_eligible: boolean;
   };
   // Staff edits to the name, hometown or story (the full before/after is in the table).
   entry_edits: { edited_at: string }[];
@@ -97,6 +100,16 @@ export interface PostedEntry extends EntryFields {
 
 export interface AwardWinner {
   award_id: string;
+  entry_id: string;
+}
+
+export interface Standing {
+  entry_id: string;
+  votes: number;
+}
+
+export interface DrawnPrize {
+  sponsor_id: string;
   entry_id: string;
 }
 
