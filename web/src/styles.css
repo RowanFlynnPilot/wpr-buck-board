@@ -290,7 +290,7 @@ img {
   border-radius: 4px;
   background: #fff;
   color: var(--ink);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -339,7 +339,7 @@ img {
 
 .upsell .upsell-email {
   color: var(--bark);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
@@ -619,7 +619,7 @@ img {
 .entry-credit {
   margin: -0.4rem 0 0.3rem;
   color: var(--bark);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .entry-tag {
@@ -776,7 +776,7 @@ img {
 }
 
 .county-map-source {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--bark);
 }
 
@@ -1445,6 +1445,7 @@ h1[tabindex="-1"]:focus {
 .lead-photo {
   position: relative;
   display: block;
+  margin: 0;
   overflow: hidden;
   border-radius: 4px;
   background: var(--line);
@@ -1453,9 +1454,21 @@ h1[tabindex="-1"]:focus {
 .lead-photo img {
   display: block;
   width: 100%;
+  /* The empty board gives its picture width and height attributes; the width rules, the height follows. */
+  height: auto;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   object-position: 50% 30%;
+}
+
+/* Before the first deer: the Park Service's buck, cropped to the board's 4:3 like a deer's photo (the
+   source is 3:2, so only the sides go and the buck stays centred), and a line where the name goes. */
+.lead-empty .lead-photo img {
+  object-position: 50% 50%;
+}
+
+.lead-empty .lead-name {
+  font-size: clamp(2rem, 4vw, 3.5rem);
 }
 
 .lead-text {

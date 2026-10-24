@@ -13,7 +13,13 @@ export function LeadDeer({ entry, storyFacts }: { entry: GalleryEntry; storyFact
   return (
     <section className="lead" aria-labelledby="lead-heading" data-reveal>
       <a className="lead-photo" href={photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
-        <img src={photoUrl(entry.photo_id, "full")} alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`} />
+        {/* The one picture that should paint first; the grid's thumbnails wait behind it. */}
+        <img
+          src={photoUrl(entry.photo_id, "full")}
+          alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
+          fetchPriority="high"
+          decoding="async"
+        />
         {entry.first_deer && <span className="entry-tag">First deer</span>}
       </a>
       <div className="lead-text">
