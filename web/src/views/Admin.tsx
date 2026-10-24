@@ -4,17 +4,19 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState, type FormEvent } from "react";
 import { EntryCard } from "../components/EntryCard";
-import { editEntry, isStaff, loadModerationQueue, loadSeason, moderate, notifyPosted } from "../data";
+import { editEntry, isStaff, loadModerationQueue, loadSeason, moderate, notifyPosted, setPrizeEligible } from "../data";
 import { AGE_LABELS, apDate } from "../format";
 import { makeShareCard } from "../shareCard";
 import { shareCardUrl, supabase } from "../supabase";
 import type { EntryStatus, ModerationEntry } from "../types";
 import { useLoad } from "../useLoad";
 import { NewsletterBlock } from "./NewsletterBlock";
+import { Winners } from "./Winners";
 
 const TOOLS = [
   { tool: "queue", label: "Moderation queue" },
   { tool: "newsletter", label: "Friday newsletter" },
+  { tool: "winners", label: "Finalists and winners" },
 ] as const;
 type Tool = (typeof TOOLS)[number]["tool"];
 
@@ -130,7 +132,7 @@ function StaffOnly({ email }: { email: string | undefined }) {
           </button>
         ))}
       </nav>
-      {tool === "queue" ? <Queue /> : <NewsletterBlock />}
+      {tool === "queue" ? <Queue /> : tool === "newsletter" ? <NewsletterBlock /> : <Winners />}
     </>
   );
 }
@@ -236,6 +238,19 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
   const enteredAs =
     contact.hunter_full_name && contact.hunter_full_name !== entry.hunter_name ? contact.hunter_full_name : null;
 
+  // Staff and their households share a deer but can't win prizes (the rules).
+  const toggleEligible = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await setPrizeEligible(entry.id, !contact.prize_eligible);
+      onDone();
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+
   const decide = async (decision: "approved" | "rejected") => {
     setBusy(true);
     setError(null);
@@ -264,6 +279,7 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
         {enteredAs && ` Full name: ${enteredAs}.`}
         {contact.rejection_reason && ` Not posted: ${contact.rejection_reason}`}
         {lastEdit && ` Edited ${apDate(lastEdit)}.`}
+        {!contact.prize_eligible && " Staff household: shares the deer, can't win prizes."}
       </p>
       {entry.status === "approved" && <ShareImage entry={entry} onMade={onDone} />}
       {editing ? (
@@ -302,6 +318,9 @@ function ModerationItem({ entry, onDone }: { entry: ModerationEntry; onDone: () 
           )}
           <button type="button" className="link-button" disabled={busy} onClick={() => setEditing(true)}>
             Edit…
+          </button>
+          <button type="button" className="link-button" disabled={busy} onClick={toggleEligible}>
+            {contact.prize_eligible ? "Staff household…" : "Can win prizes"}
           </button>
         </div>
       )}

@@ -41,6 +41,11 @@ otp_expiry = 900
 subject = "Your Hunting Brag Board sign-in code"
 content_path = "./supabase/templates/magic_link.html"
 
+# A reader voting for the first time is a new account, so they get this one instead.
+[auth.email.template.confirmation]
+subject = "Your Readers’ Choice voting code"
+content_path = "./supabase/templates/confirm_signup.html"
+
 # Public endpoint: the anonymous entry form calls it. It uses the service role internally.
 [functions.submit-entry]
 verify_jwt = false

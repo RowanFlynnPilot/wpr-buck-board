@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(29);
+select plan(33);
 
 -- Fixtures --------------------------------------------------------------------
 
@@ -60,6 +60,17 @@ insert into ids values
   ('cat', pg_temp.submit('Cat', 'cat@example.com'));
 update public.entries set status = 'approved' where id in (select id from ids where label in ('ann1', 'bob', 'ann2'));
 
+-- Finalists: ann1 and bob are on the ballot; ann2 is on the board but not in the running.
+select pg_temp.act_as('00000000-0000-0000-0000-00000000b001', 'editor@example.com');
+set local role authenticated;
+select lives_ok($$ select public.set_finalist((select id from ids where label = 'ann1'), true) $$, 'staff pick a finalist from the board');
+select public.set_finalist((select id from ids where label = 'bob'), true);
+reset role;
+
+set local role anon;
+select is((select count(*)::int from public.finalists), 0, 'finalists stay hidden until voting opens');
+reset role;
+
 -- Voting ------------------------------------------------------------------------
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000b003', 'voter.a@example.com');
@@ -73,6 +84,7 @@ select pg_temp.shift_to('voting');
 set local role anon;
 select throws_ok($$ select public.cast_vote((select id from ids where label = 'ann1'), false) $$,
   '42501', null, 'anon cannot vote without signing in');
+select is((select count(*)::int from public.finalists), 2, 'finalists are public once voting opens');
 reset role;
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000b003', 'Voter.A@example.com');
@@ -90,6 +102,8 @@ select pg_temp.act_as('00000000-0000-0000-0000-00000000b004', 'voter.b@example.c
 set local role authenticated;
 select throws_ok($$ select public.cast_vote((select id from ids where label = 'cat'), false) $$,
   'P0001', 'That entry is not in the running.', 'pending entries cannot receive votes');
+select throws_ok($$ select public.cast_vote((select id from ids where label = 'ann2'), false) $$,
+  'P0001', 'That entry is not in the running.', 'a posted deer that is not a finalist cannot receive votes');
 select lives_ok($$ select public.cast_vote((select id from ids where label = 'ann1'), false) $$, 'a second reader votes');
 reset role;
 

@@ -693,6 +693,145 @@ img {
   min-height: 44px;
 }
 
+/* Readers' Choice: the finalists and the ballot ----------------------------- */
+
+.ballot {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 0 1.5rem;
+  border-top: 4px solid var(--blaze);
+  border-bottom: 1px solid var(--line);
+}
+
+.ballot-head {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ballot-intro {
+  max-width: 62ch;
+  color: var(--bark);
+}
+
+.ballot-done {
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  background: #fff;
+  border-top: 3px solid var(--teal);
+}
+
+.ballot-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 28rem;
+  padding: 1rem;
+  border-radius: 6px;
+  background: #fff;
+  border-top: 3px solid var(--blaze);
+}
+
+.ballot-form h3 {
+  font-size: 1.25rem;
+}
+
+.finalist {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.finalist > .button {
+  justify-self: start;
+}
+
+.finalist-mine .entry {
+  outline: 3px solid var(--teal);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+.finalist-voted {
+  color: var(--teal-deep);
+  font-weight: 700;
+}
+
+/* Staff: finalists, winners and the drawing */
+.winners-desk {
+  display: grid;
+  gap: 2rem;
+}
+
+.winners-desk section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.winners-desk h2 {
+  font-size: 1.5rem;
+}
+
+.winners-desk section > .button {
+  justify-self: start;
+}
+
+.standings {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--bark);
+}
+
+.standings strong {
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 1.125rem;
+}
+
+.finalist-search {
+  max-width: 24rem;
+}
+
+.finalist-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.award-pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  max-width: 44rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.award-pick .error {
+  grid-column: 1 / -1;
+}
+
+.drawn-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drawn-list li {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.drawn-list .actions {
+  display: inline-flex;
+  gap: 0.75rem;
+  margin-left: 0.75rem;
+}
+
 /* Opening weekend (the gun opener's four days): an accent on top, like the house's other callouts. */
 .opener {
   display: grid;

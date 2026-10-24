@@ -13,7 +13,7 @@ The repo is `wpr-buck-board`; reader-facing copy keeps the sponsor sheet's name,
 ## Layout
 
 ```
-supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair · 0006 sponsor web-address check · 0007 staff edits · 0008 share cards · 0009 entry form questions · 0010 launch fixes · 0011 launch-week fixes · 0012 + 0013 opener (Opening Weekend sponsor, posted email)
+supabase/migrations/   0001 schema · 0002 functions + views · 0003 grants + RLS · 0004 storage · 0005 prod copy repair · 0006 sponsor web-address check · 0007 staff edits · 0008 share cards · 0009 entry form questions · 0010 launch fixes · 0011 launch-week fixes · 0012 + 0013 opener (Opening Weekend sponsor, posted email) · 0014 Readers' Choice (finalists, one vote per inbox, prize eligibility, redraws)
 supabase/seasons/      one file per season; local seed, run once in prod
 supabase/tests/        pgTAP (supabase test db)
 supabase/functions/    submit-entry, entry-posted + _shared (Deno)
@@ -61,7 +61,7 @@ The reader pages (`#/gallery`, `#/enter`) carry WPR's flag and footer, like the 
 ## Commands
 
 ```sh
-supabase start && supabase test db          # 212 pgTAP tests
+supabase start && supabase test db          # 263 pgTAP tests
 deno test supabase/functions/_shared        # 17 tests: JPEG (real GPS-tagged fixture), Resend sender, entry and posted emails
 deno test share/                            # 14 share-page tests
 deno check supabase/functions/submit-entry/index.ts supabase/functions/entry-posted/index.ts
@@ -100,7 +100,9 @@ A deer taken down after it was shared: its share page stops at once, but Faceboo
 
 Staff fix a typo with **Edit…** in the `#/admin` queue (`edit_entry(entry_id, hunter_name, hometown, story)`): only those three fields change, so award qualification and any winner already picked are untouched. For a hunter 17 and under, the parent chooses on the form whether the board uses the first and last name or the first name only; `submit_entry` publishes accordingly, refuses a youth entry without that answer, and the queue shows the full name as entered. One email address can send at most 10 entries in a rolling day (Resend's free plan sends 100 emails a day, two per entry); the eleventh is told to try tomorrow or email editor@.
 
-Winners and the drawing go through RPCs so the rules hold: `set_award_winner(award_id, entry_id)` (after entries close; must qualify; Readers' Choice only after voting, only to a top vote-getter) and `run_prize_drawing(season_id)` (once; one prize per Prize Partner; one prize per entrant by email; refused while any entry is still waiting for review, since only posted deer get a ticket). Winners stay hidden from the public until `winners_at`.
+**Readers' Choice** (migration 0014) follows the published rules. Staff pick up to 10 **finalists** in `#/admin` > Finalists and winners (`set_finalist(entry_id, boolean)`: posted deer only; the list locks when the first vote lands, though a finalist can be withdrawn at any time and its votes then stop counting; `moderate_entry` refuses to take down a finalist still on the ballot). Finalists are public from the vote on (`finalists`, RLS by phase). On the board during the vote, `ReadersChoice` lists them with a Vote button each: email → `signInWithOtp` (new voters are created, so the Confirm signup template carries the code) → `verifyOtp` → `cast_vote(entry_id, newsletter_opt_in)`, finalists only. **One vote per inbox:** `votes.email_key` is `vote_email_key(email)` (lowercased, +tag dropped, Gmail dots dropped and googlemail.com folded in) with a unique index per season, and `blocked_email_domains` (readable by the ballot, so it refuses throwaway inboxes before sending a code; staff add rows in the SQL editor) is checked again in `cast_vote`. Standings (`readers_choice_standings`, finalists' votes only) are staff-only; the board never shows counts. After the vote, the finalists stay up without buttons until `winners_at`.
+
+Winners and the drawing go through RPCs so the rules hold, all driven from the same staff tab: `set_award_winner(award_id, entry_id)` (after entries close; must qualify; Readers' Choice only after voting, only to a finalist with the top vote count; never an entrant marked ineligible), `run_prize_drawing(season_id)` (once; one prize per Prize Partner; one prize per entrant by email; refused while any entry is still waiting for review, since only posted deer get a ticket; skips ineligible entrants) and `redraw_prize(sponsor_id)` (a winner who didn't claim within the rules' 14 days: the forfeit is recorded in `prize_forfeits`, staff-readable, and the prize is drawn again among entrants holding no prize and no forfeit). **Staff households** share a deer but can't win: `entry_private.prize_eligible`, toggled on the queue card ("Staff household…" / `set_prize_eligible`). Winners stay hidden from the public until `winners_at`. The 2026 season has no gap between the close of entries (end of Dec. 13) and the vote (Dec. 14), so finalists must be picked by 11:59 p.m. Dec. 13; a `voting_open_at` later on Dec. 14 would give staff the morning.
 
 ## Phases
 
@@ -124,9 +126,7 @@ Verified end to end in Chromium and WebKit (Safari's engine), browser in a WordP
 - Friday newsletter block (built; the entry form promises "new Brag Board entries every Friday", first due Oct. 16): `#/admin` > Friday newsletter lists deer approved since a date (default: a week ago), staff pick up to eight, and Copy HTML gives one Noptin Custom HTML block. `web/src/newsletter.ts` renders it to match the wpr-newsletter templates (600px rows, Oswald eyebrow, Merriweather/Source Sans 3, teal rule) inside the same wrapper that repo's `noptin_blocks.py` uses, under Noptin's ~13 KB per-block limit, with `utm_source=newsletter&utm_medium=email&utm_campaign=brag-board-<date>`. Sponsor logos go in only as PNG, JPEG or GIF (email clients drop SVG and WebP); otherwise the name. Next step, if wanted: have wpr-newsletter's build pull the section automatically on Fridays, like its featured-pet block.
 - Counter-card QR codes: link to the WordPress Brag Board page with `?ref=<sponsors.qr_slug>` (e.g. `?ref=example-meats`). Plausible reads `ref` as the traffic source and ignores `src`; the visit lands in the WordPress site's own analytics, since the iframe never sees its parent's query string. (Plausible in the app itself is built; see Analytics above.)
 
-**December:**
-- Readers' Choice vote UI (must ship before Dec. 14: the embed's voting-phase button points to it): `signInWithOtp` → 6-digit code → `cast_vote(entry_id, newsletter_opt_in)`. New voters get the "Confirm signup" email, so that template also needs `{{ .Token }}`. Custom SMTP defaults to 30 auth emails an hour; raise it under Authentication > Rate Limits before voting opens. Test the iframe session in Safari (storage partitioning).
-- Staff UI for `set_award_winner` and `run_prize_drawing`.
+**December (built Oct. 25; see Readers' Choice above):** the ballot on the board, finalists, one vote per inbox, the staff tab for finalists, winners, the drawing and redraws, and prize eligibility. Still to do by hand before Dec. 14: paste `supabase/templates/confirm_signup.html` into Authentication > Email Templates > Confirm signup, raise Authentication > Rate Limits (emails sent) well above the default 30 an hour, and test one vote from a phone inside the WordPress page, in Safari too (storage partitioning). The embed's voting-phase button points to the board. Analytics: `Vote Started`, `Vote Cast` (never which deer).
 
 ## Open decisions (Shereen / Rowan)
 
@@ -134,5 +134,6 @@ Verified end to end in Chromium and WebKit (Safari's engine), browser in a WordP
 - Can one entry win more than one award? Allowed now.
 - Rejected photos stay in storage at unguessable URLs; no cleanup job.
 - Supabase egress. Measured on a real deer photo: full 326 KB, thumbnail 62 KB, so the front-page strip costs about 370 KB per view that scrolls to it (it was about 2 MB before thumbnails). Multiply by monthly front-page views and compare with the project's plan: the free tier's 5 GB won't last; Pro includes 250 GB. Photos are cached for a year, so repeat readers cost nothing.
-- Readers' Choice is one vote per email per season. Daily voting would be a schema change.
+- Readers' Choice is one vote per inbox per season (Gmail spellings and +tags count once). Daily voting would be a schema change.
+- The published rules say "every eligible entry goes into a random drawing"; the drawing gives one ticket per entrant by email, as the board's copy says. One or the other should change before Dec. 21.
 - A custom domain for the board (e.g. a subdomain of wausaupilotandreview.com as the GitHub Pages domain): it gives the staff sign-in an origin of its own, where today every WPR tool on rowanflynnpilot.github.io shares one. Moving means updating the Turnstile hostname, the entry function's `ALLOWED_ORIGIN`, the snippet's origin check and Plausible's site.

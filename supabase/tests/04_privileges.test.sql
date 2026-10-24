@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(56);
+select plan(70);
 
 -- These assert the privilege map in both directions, so a missing grant fails CI
 -- as loudly as an extra one.
@@ -19,6 +19,13 @@ select ok(has_table_privilege('authenticated', 'public.entry_private', 'select')
 select ok(has_table_privilege('authenticated', 'public.votes', 'select'), 'authenticated reads votes (RLS: own or staff)');
 select ok(has_table_privilege('authenticated', 'public.entry_edits', 'select'), 'authenticated reads entry_edits (RLS: staff only)');
 select ok(has_table_privilege('authenticated', 'public.readers_choice_standings', 'select'), 'authenticated reads vote standings (RLS on votes: staff only)');
+-- Readers' Choice (migration 0014).
+select ok(has_table_privilege('anon', 'public.finalists', 'select'), 'anon reads finalists (RLS: once voting opens)');
+select ok(has_table_privilege('authenticated', 'public.finalists', 'select'), 'authenticated reads finalists (RLS: once voting opens, or staff)');
+select ok(has_table_privilege('anon', 'public.blocked_email_domains', 'select'), 'anon reads the blocked email domains, so the ballot can say so first');
+select ok(has_table_privilege('authenticated', 'public.blocked_email_domains', 'select'), 'authenticated reads the blocked email domains');
+select ok(has_table_privilege('authenticated', 'public.prize_forfeits', 'select'), 'authenticated reads forfeits (RLS: staff only)');
+select ok(not has_table_privilege('anon', 'public.prize_forfeits', 'select'), 'anon cannot read forfeits');
 
 -- The entry function writes its emails from these, as service_role (migration 0010).
 select ok(has_table_privilege('service_role', 'public.entries', 'select'), 'service role reads entries for the entry emails');
@@ -47,7 +54,8 @@ select is(
   (select array_agg(role || ' ' || tbl order by role, tbl)
    from unnest(array['anon', 'authenticated']) role,
         unnest(array['public.staff', 'public.entry_private', 'public.drawing_winners', 'public.newsletter_optins',
-                     'public.sponsors', 'public.awards', 'public.wi_counties']) tbl
+                     'public.sponsors', 'public.awards', 'public.wi_counties',
+                     'public.finalists', 'public.prize_forfeits', 'public.blocked_email_domains']) tbl
    where has_table_privilege(role, tbl, 'insert,update,delete,truncate')),
   null,
   'no API role can write staff, entrant details, the drawing, opt-ins or the catalog directly'
@@ -80,6 +88,15 @@ select ok(not has_function_privilege('authenticated', 'public.posted_notice(uuid
 select ok(has_function_privilege('service_role', 'public.mark_posted_notice(uuid)', 'execute'), 'service role records a posted email');
 select ok(not has_function_privilege('anon', 'public.mark_posted_notice(uuid)', 'execute'), 'anon cannot record a posted email');
 select ok(not has_function_privilege('authenticated', 'public.mark_posted_notice(uuid)', 'execute'), 'authenticated cannot record a posted email');
+-- Readers' Choice and the end of the season (migration 0014): staff checks inside; the email key stays internal.
+select ok(has_function_privilege('authenticated', 'public.set_finalist(uuid, boolean)', 'execute'), 'authenticated can call set_finalist (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.set_finalist(uuid, boolean)', 'execute'), 'anon cannot pick finalists');
+select ok(has_function_privilege('authenticated', 'public.set_prize_eligible(uuid, boolean)', 'execute'), 'authenticated can call set_prize_eligible (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.set_prize_eligible(uuid, boolean)', 'execute'), 'anon cannot change prize eligibility');
+select ok(has_function_privilege('authenticated', 'public.redraw_prize(uuid)', 'execute'), 'authenticated can call redraw_prize (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.redraw_prize(uuid)', 'execute'), 'anon cannot redraw a prize');
+select ok(not has_function_privilege('anon', 'public.vote_email_key(text)', 'execute'), 'anon cannot call vote_email_key');
+select ok(not has_function_privilege('authenticated', 'public.vote_email_key(text)', 'execute'), 'authenticated cannot call vote_email_key');
 
 -- Hygiene.
 select is(
