@@ -125,13 +125,29 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   return canvas;
 }
 
-// The Story image, 1080x1920: the same deer, sized for Facebook and Instagram Stories. Readers'
-// own browsers draw it when they tap Share on the board, from what the board already shows, so it
-// needs no staff and is never stored. Stories lay their own buttons over roughly the top and
-// bottom 230 px, so the flag starts below that and the words end above it.
+// Portrait images, drawn from what the board shows and never stored: the Story image
+// (1080x1920, for Facebook and Instagram Stories, with the top and bottom 230 px or so left clear
+// for Stories' own buttons) and the feed image (1080x1350, Instagram's tallest feed size, which
+// Facebook posts take too; staff make one per deer for the Friday pack). The same drawing, with
+// different room: readers' browsers draw the first from a card's Share, staff the second.
 export const STORY = { width: 1080, height: 1920 };
+export const FEED = { width: 1080, height: 1350 };
 
-export async function drawStoryCard(facts: CardFacts): Promise<Blob> {
+// `top`: where the flag starts. `foot`: the baseline of the last line about the deer. `scale`:
+// the type, against the Story image's sizes.
+type Portrait = { width: number; height: number; top: number; foot: number; scale: number };
+const STORY_LAYOUT: Portrait = { ...STORY, top: 236, foot: 1500, scale: 1 };
+const FEED_LAYOUT: Portrait = { ...FEED, top: 72, foot: 1150, scale: 0.875 };
+
+export function drawStoryCard(facts: CardFacts): Promise<Blob> {
+  return drawPortrait(facts, STORY_LAYOUT);
+}
+
+export function drawFeedCard(facts: CardFacts): Promise<Blob> {
+  return drawPortrait(facts, FEED_LAYOUT);
+}
+
+async function drawPortrait(facts: CardFacts, layout: Portrait): Promise<Blob> {
   const [photo, badge, logo] = await Promise.all([
     loadImage(photoUrl(facts.entry.photo_id, "full")),
     loadImage(`${import.meta.env.BASE_URL}wpr-typewriter-badge.png`),
@@ -143,17 +159,24 @@ export async function drawStoryCard(facts: CardFacts): Promise<Blob> {
     document.fonts.load(`700 40px ${BODY}`),
   ]);
   try {
-    return await toJpeg(paintStory(facts, photo, badge, logo));
+    return await toJpeg(paintPortrait(facts, layout, photo, badge, logo));
   } catch (error) {
     if (!logo || !(error instanceof DOMException && error.name === "SecurityError")) throw error;
-    return toJpeg(paintStory(facts, photo, badge, null));
+    return toJpeg(paintPortrait(facts, layout, photo, badge, null));
   }
 }
 
-function paintStory({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, badge: HTMLImageElement, logo: HTMLImageElement | null) {
-  const { width: W, height: H } = STORY;
+function paintPortrait(
+  { entry, year, presenting }: CardFacts,
+  L: Portrait,
+  photo: HTMLImageElement,
+  badge: HTMLImageElement,
+  logo: HTMLImageElement | null,
+) {
+  const { width: W, height: H, scale: s } = L;
   const M = 96;
   const WIDE = W - 2 * M;
+  const px = (n: number) => Math.round(n * s);
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -166,44 +189,45 @@ function paintStory({ entry, year, presenting }: CardFacts, photo: HTMLImageElem
   ctx.fillRect(0, 0, W, 16);
 
   // The flag over the thick-over-thin rule, as on the share card.
-  let y = 236;
+  let y = L.top;
+  const badgeSize = px(88);
   ctx.save();
   ctx.beginPath();
-  ctx.arc(M + 44, y + 44, 44, 0, 2 * Math.PI);
+  ctx.arc(M + badgeSize / 2, y + badgeSize / 2, badgeSize / 2, 0, 2 * Math.PI);
   ctx.clip();
-  ctx.drawImage(badge, M, y, 88, 88);
+  ctx.drawImage(badge, M, y, badgeSize, badgeSize);
   ctx.restore();
   ctx.fillStyle = COLOR.slate;
-  ctx.font = `700 26px ${BODY}`;
+  ctx.font = `700 ${px(26)}px ${BODY}`;
   ctx.textBaseline = "middle";
-  ctx.letterSpacing = "4px";
-  ctx.fillText("WAUSAU PILOT & REVIEW", M + 112, y + 46);
+  ctx.letterSpacing = `${px(4)}px`;
+  ctx.fillText("WAUSAU PILOT & REVIEW", M + badgeSize + px(24), y + badgeSize / 2 + 2);
   ctx.letterSpacing = "0px";
   ctx.textBaseline = "alphabetic";
-  y += 116;
+  y += badgeSize + px(28);
   ctx.fillStyle = COLOR.ink;
-  ctx.fillRect(M, y, WIDE, 6);
-  ctx.fillRect(M, y + 12, WIDE, 2);
+  ctx.fillRect(M, y, WIDE, px(6));
+  ctx.fillRect(M, y + px(12), WIDE, 2);
 
   // The board's title and who presents it.
-  y += 30;
-  const title = fit(ctx, "Hunting Brag Board", (size) => `700 ${size}px ${DISPLAY}`, 1, 96, 64, WIDE);
+  y += px(30);
+  const title = fit(ctx, "Hunting Brag Board", (size) => `700 ${size}px ${DISPLAY}`, 1, px(96), px(64), WIDE);
   y += title.size;
   ctx.fillText(title.lines[0], M, y);
   ctx.fillStyle = COLOR.bark;
-  const presents = fit(ctx, presenting ? `presented by ${presenting.name}` : `${year} season`, (size) => `500 ${size}px ${DISPLAY}`, 2, 46, 32, WIDE);
+  const presents = fit(ctx, presenting ? `presented by ${presenting.name}` : `${year} season`, (size) => `500 ${size}px ${DISPLAY}`, 2, px(46), px(32), WIDE);
   for (const line of presents.lines) {
     y += Math.round(presents.size * 1.3);
     ctx.fillText(line, M, y);
   }
   if (logo) {
-    y += 24;
-    y += drawContained(ctx, logo, M, y, 320, 90);
+    y += px(24);
+    y += drawContained(ctx, logo, M, y, px(320), px(90));
   }
-  const photoTop = y + 44;
+  const photoTop = y + px(44);
 
   // The deer, from the foot up, then the name; the photo takes the room between.
-  const FOOT = 1500;
+  const FOOT = L.foot;
   const record = [
     { text: `${entry.county} County, ${apDay(entry.harvest_date)}`, color: COLOR.bark, weight: 400, size: 40 },
     { text: `${describeDeer(entry.deer_type, entry.points)}, ${WEAPON_LABELS[entry.weapon].toLowerCase()}`, color: COLOR.ink, weight: 700, size: 44 },
@@ -211,39 +235,39 @@ function paintStory({ entry, year, presenting }: CardFacts, photo: HTMLImageElem
   ];
   let base = FOOT;
   for (const { text, color, weight, size } of record) {
-    const line = fit(ctx, text, (s) => `${weight} ${s}px ${BODY}`, 1, size, size - 12, WIDE);
+    const line = fit(ctx, text, (n) => `${weight} ${n}px ${BODY}`, 1, px(size), px(size - 12), WIDE);
     ctx.fillStyle = color;
     ctx.fillText(line.lines[0], M, base);
-    base -= 60;
+    base -= px(60);
   }
-  base -= 14;
-  const name = fitName(ctx, entry.hunter_name, 230, WIDE, 96, 48);
+  base -= px(14);
+  const name = fitName(ctx, entry.hunter_name, px(230), WIDE, px(96), px(48));
   ctx.fillStyle = COLOR.ink;
   name.lines.forEach((line, i) => {
     ctx.font = `700 ${name.size}px ${DISPLAY}`;
     ctx.fillText(line, M, base - (name.lines.length - 1 - i) * name.leading);
   });
-  const photoBottom = base - (name.lines.length - 1) * name.leading - Math.round(name.size * 0.8) - 44;
+  const photoBottom = base - (name.lines.length - 1) * name.leading - Math.round(name.size * 0.8) - px(44);
 
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(M, photoTop, WIDE, photoBottom - photoTop, 18);
+  ctx.roundRect(M, photoTop, WIDE, photoBottom - photoTop, px(18));
   ctx.clip();
   drawCover(ctx, photo, M, photoTop, WIDE, photoBottom - photoTop);
   ctx.restore();
-  if (entry.first_deer) drawTag(ctx, "First deer", M + 28, photoBottom - 28, 1.6);
+  if (entry.first_deer) drawTag(ctx, "First deer", M + px(28), photoBottom - px(28), 1.6 * s);
 
-  // Where to find it: Stories can't carry a link in the image itself.
+  // Where to find it: an image can't carry a link itself.
   const where = "See the board at wausaupilotandreview.com";
-  ctx.font = `700 34px ${BODY}`;
-  const pill = ctx.measureText(where).width + 72;
+  ctx.font = `700 ${px(34)}px ${BODY}`;
+  const pill = ctx.measureText(where).width + px(72);
   ctx.fillStyle = COLOR.blaze;
   ctx.beginPath();
-  ctx.roundRect((W - pill) / 2, FOOT + 46, pill, 80, 40);
+  ctx.roundRect((W - pill) / 2, FOOT + px(46), pill, px(80), px(40));
   ctx.fill();
   ctx.fillStyle = COLOR.ink;
   ctx.textAlign = "center";
-  ctx.fillText(where, W / 2, FOOT + 98);
+  ctx.fillText(where, W / 2, FOOT + px(98));
   ctx.textAlign = "left";
 
   return canvas;

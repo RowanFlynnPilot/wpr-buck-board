@@ -693,6 +693,56 @@ img {
   min-height: 44px;
 }
 
+/* Friday pack: feed images and a caption from the newsletter picks */
+.social-pack {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.social-pack h3 {
+  font-size: 1.25rem;
+}
+
+.social-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social-images a {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  font-size: 0.875rem;
+}
+
+.social-images img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.social-caption {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
 /* Readers' Choice: the finalists and the ballot ----------------------------- */
 
 .ballot {
