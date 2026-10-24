@@ -1,4 +1,5 @@
-import { apDate, apDay, apLastDay, daysUntil } from "./format";
+import { addDays, apDate, apDay, apLastDay, daysUntil, wausauDay, wausauMidnight } from "./format";
+import { DEMO } from "./sales";
 import type { Board, Season, Sponsor, Award } from "./types";
 
 export function phaseLine(season: Season): string {
@@ -25,6 +26,22 @@ export function gunOpenerLine(season: Season): string | null {
   if (days === 0) return "It's opening day of the gun deer season. Good luck out there.";
   if (days < 0 || days > 7) return null;
   return days === 1 ? "The gun deer opener is tomorrow." : `The gun deer opener is ${days} days away.`;
+}
+
+// The gun opener's weekend, a display window like the countdown above (not a season phase):
+// from the day before the opener through the Monday after, in Wausau. `days` are the opener and
+// the day after, the harvest dates that make a deer an opening-weekend deer. A `?demo` preview
+// shows it whenever entries are open, so a prospect can see the Opening Weekend spot.
+export function openingWeekend(season: Season): { on: boolean; days: [string, string] } {
+  const opener = wausauDay(season.gun_opener_at);
+  const now = Date.now();
+  const during =
+    now >= Date.parse(wausauMidnight(addDays(opener, -1))) && now < Date.parse(wausauMidnight(addDays(opener, 3)));
+  return { on: season.phase === "entries" && (during || DEMO), days: [opener, addDays(opener, 1)] };
+}
+
+export function openingWeekendSponsor(board: Board): Sponsor | undefined {
+  return board.sponsors.find((s) => s.tier === "opening_weekend");
 }
 
 export function presentingSponsor(board: Board): Sponsor | undefined {

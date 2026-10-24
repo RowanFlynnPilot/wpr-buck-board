@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
-import { confirmationEmail, staffNotice, type StoredEntry } from "./entry_emails.ts";
+import { confirmationEmail, postedEmail, type PostedNotice, staffNotice, type StoredEntry } from "./entry_emails.ts";
 
 const ADULT: StoredEntry = {
   hunter_name: "Tom Lovlien",
@@ -106,4 +106,59 @@ Deno.test("names ending in s take an apostrophe alone, and antlerless deer read 
   );
   assertEquals(email.subject, "New Brag Board entry: James Novak Jones’ antlerless deer");
   assertStringIncludes(email.text, "Antlerless deer, rifle.");
+});
+
+const POSTED: PostedNotice = {
+  hunter_name: "Makiyah",
+  hometown: "Mosinee",
+  county: "Marathon",
+  harvest_date: "2026-11-22",
+  weapon: "rifle",
+  deer_type: "buck",
+  points: 10,
+  first_deer: true,
+  age_group: "youth",
+  photo_id: "p2",
+  share_card: "e2/c1.jpg",
+  submitter_name: "Jenna Koskey",
+  email: "parent@example.com",
+  entries_close_at: "2026-12-14T06:00:00Z",
+  voting_open_at: "2026-12-14T06:00:00Z",
+  voting_close_at: "2026-12-19T06:00:00Z",
+  winners_at: "2026-12-21T06:00:00Z",
+};
+
+const POSTED_LINKS = {
+  board: "https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/",
+  share: "https://wausaupilotandreview.com/brag/e2",
+  image: "https://project.supabase.co/storage/v1/object/public/share-cards/e2/c1.jpg",
+  imageIsCard: true,
+};
+
+Deno.test("the posted email tells the entrant once, with the deer's link and a way to share it", () => {
+  const email = postedEmail(POSTED, "e2", POSTED_LINKS);
+  assertEquals(email.to, ["parent@example.com"]);
+  assertEquals(email.subject, "Makiyah’s first deer is on the Hunting Brag Board");
+  assertEquals(email.idempotencyKey, "brag-board-e2-posted");
+  assertStringIncludes(email.text, "Hi Jenna,");
+  assertStringIncludes(email.text, "See it on the board: https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/#entry=e2&from=email");
+  assertStringIncludes(email.text, "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwausaupilotandreview.com%2Fbrag%2Fe2");
+  assertStringIncludes(email.text, "Readers’ Choice Dec. 14–18, and winners are announced Dec. 21.");
+  assertStringIncludes(email.text, "Enter it anytime through Dec. 13. https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/#enter");
+  assertStringIncludes(email.html, `<img src="${POSTED_LINKS.image}" alt="Makiyah’s first deer is on the Hunting Brag Board" width="560"`);
+});
+
+Deno.test("a deer that isn't a first deer is named by its points, and a photo stands in for a missing card", () => {
+  const email = postedEmail({ ...POSTED, hunter_name: "Tom Lovlien", first_deer: false, points: 9 }, "e1", {
+    ...POSTED_LINKS,
+    image: "https://project.supabase.co/storage/v1/object/public/entry-photos/p1/thumb.jpg",
+    imageIsCard: false,
+  });
+  assertEquals(email.subject, "Tom Lovlien’s 9-point buck is on the Hunting Brag Board");
+  assertStringIncludes(email.html, 'width="320"');
+});
+
+Deno.test("a name in the posted email can't become markup", () => {
+  const html = postedEmail({ ...POSTED, hunter_name: "<b>Kid</b>" }, "e2", POSTED_LINKS).html;
+  assert(!html.includes("<b>Kid</b>") && html.includes("&lt;b&gt;Kid&lt;/b&gt;"));
 });

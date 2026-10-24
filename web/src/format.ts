@@ -29,6 +29,11 @@ export function todayInWausau(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: CHICAGO }).format(new Date());
 }
 
+// The Wausau calendar day (YYYY-MM-DD) a timestamp falls on.
+export function wausauDay(timestamp: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: CHICAGO }).format(new Date(timestamp));
+}
+
 // A calendar date (YYYY-MM-DD) moved by whole days.
 export function addDays(date: string, days: number): string {
   const d = new Date(`${date}T12:00:00Z`);

@@ -44,3 +44,8 @@ content_path = "./supabase/templates/magic_link.html"
 # Public endpoint: the anonymous entry form calls it. It uses the service role internally.
 [functions.submit-entry]
 verify_jwt = false
+
+# Staff only: it checks the caller's sign-in and staff row itself (the project's new API keys
+# aren't the legacy JWT secret the gateway would check). Emails the entrant once a deer is posted.
+[functions.entry-posted]
+verify_jwt = false

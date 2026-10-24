@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import type { CardFacts } from "../data";
 import { apDay, describeDeer, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../supabase";
 import type { EntryFields, Sponsor } from "../types";
@@ -15,13 +16,15 @@ interface Props {
   awardSponsor?: Sponsor;
   // Public cards only: a deer waiting for review has no share page.
   share?: boolean;
+  // With `share`: the season and presenting sponsor its Story image names.
+  storyFacts?: Omit<CardFacts, "entry">;
   // The deer a link opened: the full photo, uncropped, with the whole story.
   featured?: boolean;
   // A photo that isn't in storage yet: the entry form preview's own copy.
   photo?: string;
 }
 
-export function EntryCard({ entry, award, awardSponsor, share = false, featured = false, photo }: Props) {
+export function EntryCard({ entry, award, awardSponsor, share = false, storyFacts, featured = false, photo }: Props) {
   const [storyOpen, setStoryOpen] = useState(false);
   const storyId = useId();
   const deer = describeDeer(entry.deer_type, entry.points);
@@ -63,7 +66,7 @@ export function EntryCard({ entry, award, awardSponsor, share = false, featured 
           {storyOpen ? "Show less" : "Read the story"}
         </button>
       )}
-      {share && <ShareButton entry={entry} />}
+      {share && <ShareButton entry={entry} story={storyFacts && { ...storyFacts, entry }} />}
     </article>
   );
 }

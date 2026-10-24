@@ -1,14 +1,33 @@
 // Share one deer. Phones open their own share sheet (inside WordPress the iframe needs
 // allow="web-share"; README). Where there's no sheet, or it's blocked, Share offers Facebook and
-// the link instead. Every option shares the share page, so the preview shows the deer.
+// the link instead. Every link option shares the share page, so the preview shows the deer.
+//
+// On the board, a Story image goes beside it: the deer at 1080x1920, drawn in the reader's own
+// browser (shareCard.ts). A phone that can share files hands it to its share sheet, which offers
+// Facebook and Instagram Stories; anywhere else it downloads.
 import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
+import type { CardFacts } from "../data";
 import { facebookShareUrl, shareTitle, shareUrl } from "../share";
+import { drawStoryCard } from "../shareCard";
 import type { EntryFields } from "../types";
 
-export function ShareButton({ entry }: { entry: EntryFields }) {
+// Whether this browser can hand an image to the share sheet (iOS Safari, Android Chrome).
+const CAN_SHARE_FILES = (() => {
+  try {
+    return navigator.canShare?.({ files: [new File([""], "deer.jpg", { type: "image/jpeg" })] }) ?? false;
+  } catch {
+    return false;
+  }
+})();
+
+type StoryState = "idle" | "making" | "ready" | "failed";
+
+export function ShareButton({ entry, story }: { entry: EntryFields; story?: CardFacts }) {
   const [options, setOptions] = useState(false);
   const [copy, setCopy] = useState<"idle" | "copied" | "blocked">("idle");
+  const [storyState, setStoryState] = useState<StoryState>("idle");
+  const storyFile = useRef<File | null>(null);
   const facebookRef = useRef<HTMLAnchorElement>(null);
   const linkRef = useRef<HTMLInputElement>(null);
   const url = shareUrl(entry.id);
@@ -48,11 +67,66 @@ export function ShareButton({ entry }: { entry: EntryFields }) {
     );
   };
 
+  const sendStory = async (file: File) => {
+    if (CAN_SHARE_FILES) {
+      try {
+        await navigator.share({ files: [file], title: shareTitle(entry) });
+        track("Entry Shared", { method: "story image" });
+        setStoryState("idle");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          setStoryState("idle");
+          return;
+        }
+        // Drawing took longer than the browser lets a tap count: the next tap shares what's drawn.
+        if (error instanceof DOMException && error.name === "NotAllowedError") {
+          setStoryState("ready");
+          return;
+        }
+      }
+    }
+    download(file);
+    track("Entry Shared", { method: "story image" });
+    setStoryState("idle");
+  };
+
+  const shareStory = async () => {
+    if (!story) return;
+    if (storyState === "ready" && storyFile.current) return sendStory(storyFile.current);
+    setStoryState("making");
+    try {
+      const blob = await drawStoryCard(story);
+      storyFile.current = new File([blob], `${slug(entry.hunter_name)}-hunting-brag-board.jpg`, { type: "image/jpeg" });
+      await sendStory(storyFile.current);
+    } catch (error) {
+      console.error("Story image:", error);
+      setStoryState("failed");
+    }
+  };
+
+  const storyButton = story && (
+    <button type="button" className="link-button" onClick={shareStory} disabled={storyState === "making"} aria-live="polite">
+      {storyState === "making"
+        ? "Making the image…"
+        : storyState === "ready"
+          ? "Tap to share the image"
+          : storyState === "failed"
+            ? "The image didn't work. Try again"
+            : CAN_SHARE_FILES
+              ? "Share to your story"
+              : "Story image"}
+    </button>
+  );
+
   if (!options) {
     return (
-      <button type="button" className="link-button share-button" onClick={share}>
-        Share
-      </button>
+      <span className="share-actions">
+        <button type="button" className="link-button share-button" onClick={share}>
+          Share
+        </button>
+        {storyButton}
+      </span>
     );
   }
 
@@ -74,6 +148,28 @@ export function ShareButton({ entry }: { entry: EntryFields }) {
           {copy === "copied" ? "✓ Link copied" : "Copy link"}
         </button>
       )}
+      {storyButton}
     </div>
   );
+}
+
+function slug(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "deer"
+  );
+}
+
+function download(file: File) {
+  const href = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = file.name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 10_000);
 }

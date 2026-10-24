@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(49);
+select plan(56);
 
 -- These assert the privilege map in both directions, so a missing grant fails CI
 -- as loudly as an extra one.
@@ -24,6 +24,8 @@ select ok(has_table_privilege('authenticated', 'public.readers_choice_standings'
 select ok(has_table_privilege('service_role', 'public.entries', 'select'), 'service role reads entries for the entry emails');
 select ok(has_table_privilege('service_role', 'public.seasons', 'select'), 'service role reads seasons for the entry emails');
 select ok(has_table_privilege('service_role', 'public.entry_private', 'select'), 'service role reads entrant details for the entry emails');
+-- The entry-posted function checks its caller is staff (migration 0013).
+select ok(has_table_privilege('service_role', 'public.staff', 'select'), 'service role reads staff to check who calls entry-posted');
 
 -- Private data (negative).
 select ok(not has_table_privilege('anon', 'public.entry_private', 'select'), 'anon cannot read entry_private');
@@ -71,6 +73,13 @@ select ok(has_function_privilege('authenticated', 'public.set_award_winner(uuid,
 select ok(not has_function_privilege('anon', 'public.set_award_winner(uuid, uuid)', 'execute'), 'anon cannot pick winners');
 select ok(has_function_privilege('authenticated', 'public.run_prize_drawing(uuid)', 'execute'), 'authenticated can call run_prize_drawing (staff check inside)');
 select ok(not has_function_privilege('anon', 'public.run_prize_drawing(uuid)', 'execute'), 'anon cannot run the drawing');
+-- "Your deer is on the board" (migration 0013): the entry-posted function only, since it reads the entrant's email.
+select ok(has_function_privilege('service_role', 'public.posted_notice(uuid)', 'execute'), 'service role reads what the posted email needs');
+select ok(not has_function_privilege('anon', 'public.posted_notice(uuid)', 'execute'), 'anon cannot read a posted notice');
+select ok(not has_function_privilege('authenticated', 'public.posted_notice(uuid)', 'execute'), 'authenticated cannot read a posted notice');
+select ok(has_function_privilege('service_role', 'public.mark_posted_notice(uuid)', 'execute'), 'service role records a posted email');
+select ok(not has_function_privilege('anon', 'public.mark_posted_notice(uuid)', 'execute'), 'anon cannot record a posted email');
+select ok(not has_function_privilege('authenticated', 'public.mark_posted_notice(uuid)', 'execute'), 'authenticated cannot record a posted email');
 
 -- Hygiene.
 select is(

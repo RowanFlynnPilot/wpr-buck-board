@@ -18,7 +18,7 @@ jobs:
         with:
           deno-version: v2.x
       - run: deno test supabase/functions/_shared
-      - run: deno check supabase/functions/submit-entry/index.ts
+      - run: deno check supabase/functions/submit-entry/index.ts supabase/functions/entry-posted/index.ts
       - uses: supabase/setup-cli@v1
         with:
           version: 2.118.0
@@ -48,3 +48,4 @@ jobs:
       - run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase db push
       - run: supabase functions deploy submit-entry --project-ref "$SUPABASE_PROJECT_REF"
+      - run: supabase functions deploy entry-posted --project-ref "$SUPABASE_PROJECT_REF"
