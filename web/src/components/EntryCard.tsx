@@ -31,7 +31,7 @@ export function EntryCard({ entry, award, awardSponsor, share = false, storyFact
   const longStory = !featured && entry.story !== null && entry.story.length > LONG_STORY;
 
   return (
-    <article className={featured ? "entry entry-featured" : "entry"}>
+    <article className={featured ? "entry entry-featured" : "entry"} data-reveal>
       <a className="entry-photo" href={photo ?? photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
         <img
           src={photo ?? photoUrl(entry.photo_id, featured ? "full" : "thumb")}

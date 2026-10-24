@@ -18,13 +18,13 @@ export function UpsellCard({ pitch, action, slot }: { pitch: string; action: str
 
   return (
     <div className="upsell">
-      <p className="upsell-eyebrow">Sponsorship available</p>
+      <p className="upsell-eyebrow">Sponsorship available</p> {/* taste-skill-ignore: WPR's open-slot convention */}
       <p className="upsell-pitch">{pitch}</p>
       <a className="button button-ink" href={salesMailto(`Hunting Brag Board: ${slot}`)} onClick={inquire}>
         {action} →
       </a>
       <p className="upsell-email" aria-live="polite">
-        {copied && "✓ Address copied: "}
+        {copied && "Address copied: "}
         {SALES_EMAIL}
       </p>
     </div>

@@ -145,7 +145,7 @@ export function ShareButton({ entry, story }: { entry: EntryFields; story?: Card
         <input ref={linkRef} readOnly aria-label="Link to this deer" value={url} onFocus={(e) => e.currentTarget.select()} />
       ) : (
         <button type="button" className="link-button" onClick={copyLink} aria-live="polite">
-          {copy === "copied" ? "✓ Link copied" : "Copy link"}
+          {copy === "copied" ? "Link copied" : "Copy link"}
         </button>
       )}
       {storyButton}

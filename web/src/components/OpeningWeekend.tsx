@@ -22,8 +22,10 @@ export function OpeningWeekend({
 }) {
   const sponsor = openingWeekendSponsor(board);
   return (
-    <section className="opener" aria-label="Opening weekend">
-      <p className="opener-eyebrow">Opening weekend</p>
+    <section className="opener" aria-labelledby="opener-heading">
+      <h2 id="opener-heading" className="opener-heading">
+        Opening weekend
+      </h2>
       <p className="opener-line">
         {count > 0 ? (
           <>
