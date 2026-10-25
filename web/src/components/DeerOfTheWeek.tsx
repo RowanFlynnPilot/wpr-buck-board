@@ -22,6 +22,12 @@ export function DeerOfTheWeek({
   const sponsor = weeklySponsor(board);
   const last = lastWeeklyFriday(board.season);
   const next = fridayOnOrAfter(todayInWausau());
+  const offer = sponsor && (
+    <div className="weekly-offer">
+      <p className="award-prize">Each week's prize: {sponsor.prize}</p>
+      <SponsorCredit sponsor={sponsor} placement="deer-of-the-week" lead="Deer of the Week presented by" />
+    </div>
+  );
   return (
     <section className={pick ? "weekly weekly-with-pick" : "weekly"} aria-labelledby="weekly-heading" data-reveal>
       <div className="weekly-text">
@@ -32,9 +38,10 @@ export function DeerOfTheWeek({
           Every Friday through {apDay(last)}, our editors pick one deer from the board.
           {!pick && next <= last && ` The first is picked Friday, ${apDay(next)}.`}
         </p>
-        {sponsor && <p className="award-prize">Each week's prize: {sponsor.prize}</p>}
-        {sponsor && <SponsorCredit sponsor={sponsor} placement="deer-of-the-week" lead="Deer of the Week presented by" />}
+        {pick && offer}
       </div>
+      {/* Before the first pick, the prize and its sponsor take the band's other side. */}
+      {!pick && offer}
       {pick && (
         <div className="weekly-pick">
           <EntryCard entry={pick.entry} award={`Deer of the Week, ${apDay(pick.weekOf)}`} share storyFacts={storyFacts} />
