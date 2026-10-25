@@ -3,7 +3,7 @@
 // set them in the front beside its title while it fills up (Gallery's `.front`), or together above
 // the filters during the vote and after (`.lead`). The grid below starts with the second-newest.
 import type { CardFacts } from "../data";
-import { apDay, describeDeer, WEAPON_LABELS } from "../format";
+import { apDay, describeDeer, LONG_NAME, tidyStory, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../storage";
 import type { GalleryEntry } from "../types";
 import { EntryTags } from "./EntryCard";
@@ -35,12 +35,12 @@ export function LeadDeer({
         <h2 id="lead-heading" className="lead-heading">
           Newest on the board
         </h2>
-        <p className="lead-name">{entry.hunter_name}</p>
+        <p className={entry.hunter_name.length > LONG_NAME ? "lead-name lead-name-long" : "lead-name"}>{entry.hunter_name}</p>
         <p className="lead-record">
           {entry.hometown} · {deer}, {WEAPON_LABELS[entry.weapon].toLowerCase()} · {entry.county} County,{" "}
           {apDay(entry.harvest_date)}
         </p>
-        {entry.story && <p className="lead-story">{entry.story}</p>}
+        {entry.story && <p className="lead-story">{tidyStory(entry.story)}</p>}
         {entry.photo_credit && <p className="entry-credit">Photo: {entry.photo_credit}</p>}
         <ShareButton entry={entry} story={{ ...storyFacts, entry }} />
       </section>
