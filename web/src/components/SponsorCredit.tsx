@@ -1,6 +1,6 @@
 import { track } from "../analytics";
 import { sponsorHref, type Placement } from "../sales";
-import { logoUrl } from "../supabase";
+import { logoUrl } from "../storage";
 import type { Sponsor } from "../types";
 
 // `lead` is null where the heading beside it already names the sponsor.

@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import type { CardFacts } from "../data";
 import { apDay, describeDeer, WEAPON_LABELS } from "../format";
-import { photoUrl } from "../supabase";
+import { photoUrl } from "../storage";
 import type { EntryFields, Sponsor } from "../types";
 import { ShareButton } from "./ShareButton";
 import { SponsorCredit } from "./SponsorCredit";

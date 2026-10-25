@@ -9,7 +9,6 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import type { CardFacts } from "../data";
 import { facebookShareUrl, shareTitle, shareUrl } from "../share";
-import { drawStoryCard } from "../shareCard";
 import type { EntryFields } from "../types";
 
 // Whether this browser can hand an image to the share sheet (iOS Safari, Android Chrome).
@@ -96,6 +95,8 @@ export function ShareButton({ entry, story }: { entry: EntryFields; story?: Card
     if (storyState === "ready" && storyFile.current) return sendStory(storyFile.current);
     setStoryState("making");
     try {
+      // The painter is only needed here, so it's fetched on the first tap rather than with the page.
+      const { drawStoryCard } = await import("../shareCard");
       const blob = await drawStoryCard(story);
       storyFile.current = new File([blob], `${slug(entry.hunter_name)}-hunting-brag-board.jpg`, { type: "image/jpeg" });
       await sendStory(storyFile.current);

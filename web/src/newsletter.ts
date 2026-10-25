@@ -6,7 +6,7 @@
 import { apDay, apNumber, describeDeer, WEAPON_LABELS } from "./format";
 import { phaseLine } from "./phase";
 import { sponsorHref } from "./sales";
-import { logoUrl, photoUrl } from "./supabase";
+import { logoUrl, photoUrl } from "./storage";
 import type { EntryFields, Season, Sponsor } from "./types";
 
 // Noptin silently blanks a single raw-HTML block over about 13 KB.

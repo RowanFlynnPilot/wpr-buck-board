@@ -393,6 +393,38 @@ img {
   list-style: none;
 }
 
+/* Before the first deer: the Park Service's buck, wide, with what it is under it. */
+.strip-empty {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.strip-empty img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  object-position: 45% 35%;
+  border-radius: 4px;
+}
+
+.strip-empty figcaption {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.strip-empty figcaption strong {
+  font-family: var(--display);
+  font-size: 1.125rem;
+}
+
+.strip-empty-credit {
+  color: var(--bark);
+  font-size: 0.8125rem;
+}
+
 .strip-photos li:first-child {
   grid-column: span 2;
   grid-row: span 2;

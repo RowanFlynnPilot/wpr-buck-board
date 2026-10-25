@@ -3,11 +3,15 @@ import { track } from "../analytics";
 
 // A view that throws while rendering shows a plain line instead of an empty frame on
 // WPR's pages. App keys it by route, so moving to another view starts fresh.
-export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
+// A view's file that won't load, in Chrome, Firefox or Safari's words: a page left open across a
+// deploy. A reload fetches the new build.
+const STALE = /dynamically imported module|Importing a module script failed|error loading dynamically/i;
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; stale: boolean }> {
+  state = { failed: false, stale: false };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { failed: true, stale: STALE.test(String(error instanceof Error ? error.message : error)) };
   }
 
   componentDidCatch(error: unknown) {
@@ -17,6 +21,16 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
 
   render() {
     if (!this.state.failed) return this.props.children;
+    if (this.state.stale) {
+      return (
+        <p className="status">
+          The Brag Board was just updated.{" "}
+          <button type="button" className="link-button" onClick={() => window.location.reload()}>
+            Reload it
+          </button>
+        </p>
+      );
+    }
     return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
   }
 }

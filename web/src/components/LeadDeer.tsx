@@ -4,7 +4,7 @@
 // the filters during the vote and after (`.lead`). The grid below starts with the second-newest.
 import type { CardFacts } from "../data";
 import { apDay, describeDeer, WEAPON_LABELS } from "../format";
-import { photoUrl } from "../supabase";
+import { photoUrl } from "../storage";
 import type { GalleryEntry } from "../types";
 import { EntryTags } from "./EntryCard";
 import { ShareButton } from "./ShareButton";

@@ -16,15 +16,4 @@ try {
   // Storage can be blocked; there is then nothing to clear.
 }
 
-// Storage layout (written by the submit-entry function): entry-photos/<photo_id>/{full,thumb}.jpg
-export function photoUrl(photoId: string, size: "full" | "thumb"): string {
-  return supabase.storage.from("entry-photos").getPublicUrl(`${photoId}/${size}.jpg`).data.publicUrl;
-}
-
-export function shareCardUrl(name: string): string {
-  return supabase.storage.from("share-cards").getPublicUrl(name).data.publicUrl;
-}
-
-export function logoUrl(path: string): string {
-  return supabase.storage.from("sponsor-logos").getPublicUrl(path).data.publicUrl;
-}
+// Public file addresses (photos, share cards, logos) are in storage.ts, which doesn't need the client.

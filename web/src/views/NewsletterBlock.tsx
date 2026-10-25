@@ -17,7 +17,7 @@ import {
 import { MAX_DEER, NOPTIN_BLOCK_LIMIT, newsletterRows, wrapForNoptin } from "../newsletter";
 import { lastWeeklyFriday, presentingSponsor, weeklySponsor } from "../phase";
 import { drawFeedCard } from "../shareCard";
-import { photoUrl } from "../supabase";
+import { photoUrl } from "../storage";
 import type { Board, PostedEntry, Sponsor, WeeklyPick } from "../types";
 import { useLoad } from "../useLoad";
 
