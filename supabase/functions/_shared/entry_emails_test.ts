@@ -126,6 +126,15 @@ const POSTED: PostedNotice = {
   voting_open_at: "2026-12-14T06:00:00Z",
   voting_close_at: "2026-12-19T06:00:00Z",
   winners_at: "2026-12-21T06:00:00Z",
+  thank_you: null,
+};
+
+const THANK_YOU = {
+  sponsor: "Example Outfitters",
+  offer: "10% off one purchase",
+  website_url: "https://example.com/shop",
+  how_to_redeem: "Give the code at the register by Dec. 31.",
+  code: "BRAG26",
 };
 
 const POSTED_LINKS = {
@@ -156,6 +165,35 @@ Deno.test("a deer that isn't a first deer is named by its points, and a photo st
   });
   assertEquals(email.subject, "Tom Lovlien’s 9-point buck is on the Hunting Brag Board");
   assertStringIncludes(email.html, 'width="320"');
+});
+
+Deno.test("the confirmation says a thank-you comes with the posted email, when a sponsor gives one", () => {
+  const sponsors = [{ name: "Example Outfitters", prize: "10% off one purchase", tier: "thank_you" }];
+  const email = confirmationEmail({ ...ADULT, seasons: { ...ADULT.seasons, sponsors } }, "e1");
+  assertStringIncludes(email.text, "we’ll email you its link, and a thank-you from Example Outfitters: 10% off one purchase.");
+  assert(!confirmationEmail(ADULT, "e1").text.includes("thank-you"), "nothing promised without a sponsor");
+});
+
+Deno.test("the posted email carries the thank-you: the offer, how to redeem it and the code, the sponsor linked and tagged", () => {
+  const email = postedEmail({ ...POSTED, thank_you: THANK_YOU }, "e2", POSTED_LINKS);
+  assertStringIncludes(
+    email.text,
+    "A thank-you from Example Outfitters: 10% off one purchase. Give the code at the register by Dec. 31. Your code: BRAG26",
+  );
+  assertStringIncludes(
+    email.html,
+    "https://example.com/shop?utm_source=wausaupilotandreview&amp;utm_medium=email&amp;utm_campaign=brag-board&amp;utm_content=posted-email",
+  );
+  assertStringIncludes(email.html, ">BRAG26</strong>");
+  assert(!postedEmail(POSTED, "e2", POSTED_LINKS).text.includes("thank-you"), "nothing without a thank-you sponsor");
+});
+
+Deno.test("a thank-you without redemption details says to show the email, and a bad sponsor address goes unlinked", () => {
+  const thanks = { ...THANK_YOU, how_to_redeem: null, code: null, website_url: "not a url" };
+  const email = postedEmail({ ...POSTED, thank_you: thanks }, "e2", POSTED_LINKS);
+  assertStringIncludes(email.text, "A thank-you from Example Outfitters: 10% off one purchase. Show this email at Example Outfitters to redeem it.");
+  assert(!email.text.includes("Your code"));
+  assertStringIncludes(email.html, "<strong>A thank-you from Example Outfitters:</strong>");
 });
 
 Deno.test("a name in the posted email can't become markup", () => {

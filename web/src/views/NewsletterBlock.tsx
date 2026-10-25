@@ -2,14 +2,23 @@
 // "new Brag Board entries every Friday"). Pick the deer, check the preview, copy the HTML,
 // paste it into a Custom HTML block in the Noptin campaign before it sends.
 import { useState } from "react";
-import { countEntries, loadCatalog, loadPostedSince, loadSeason } from "../data";
+import { countEntries, loadCatalog, loadPostedSince, loadSeason, loadWeeklyPicks, setWeeklyPick } from "../data";
 import { env } from "../env";
-import { addDays, apDate, apDay, describeDeer, todayInWausau, wausauMidnight } from "../format";
+import {
+  addDays,
+  apDate,
+  apDay,
+  describeDeer,
+  fridayOnOrAfter,
+  possessive,
+  todayInWausau,
+  wausauMidnight,
+} from "../format";
 import { MAX_DEER, NOPTIN_BLOCK_LIMIT, newsletterRows, wrapForNoptin } from "../newsletter";
-import { presentingSponsor } from "../phase";
+import { lastWeeklyFriday, presentingSponsor, weeklySponsor } from "../phase";
 import { drawFeedCard } from "../shareCard";
 import { photoUrl } from "../supabase";
-import type { Board, PostedEntry } from "../types";
+import type { Board, PostedEntry, Sponsor, WeeklyPick } from "../types";
 import { useLoad } from "../useLoad";
 
 // Three rows of two unless an editor picks more.
@@ -21,8 +30,12 @@ const PREVIEW_FONTS =
 
 async function loadBoard() {
   const season = await loadSeason();
-  const [catalog, onBoard] = await Promise.all([loadCatalog(season.id), countEntries(season.id)]);
-  return { board: { season, ...catalog }, onBoard };
+  const [catalog, onBoard, weekly] = await Promise.all([
+    loadCatalog(season.id),
+    countEntries(season.id),
+    loadWeeklyPicks(season.id),
+  ]);
+  return { board: { season, ...catalog }, onBoard, weekly };
 }
 
 export function NewsletterBlock() {
@@ -49,6 +62,7 @@ export function NewsletterBlock() {
         key={since}
         board={page.data.board}
         onBoard={page.data.onBoard}
+        weekly={page.data.weekly}
         since={since}
         thisWeek={since === weekAgo}
         edition={today}
@@ -57,15 +71,33 @@ export function NewsletterBlock() {
   );
 }
 
+// The note an editor sends the Deer of the Week's entrant, from their own mail program.
+function winnerMailto(entry: PostedEntry, friday: string, sponsor: Sponsor | undefined): string {
+  const first = entry.entry_private.submitter_name.trim().split(/\s+/)[0];
+  const deer = entry.first_deer ? "first deer" : describeDeer(entry.deer_type, entry.points).toLowerCase();
+  const subject = `${possessive(entry.hunter_name)} ${deer} is the Brag Board's Deer of the Week`;
+  const prize =
+    sponsor && !sponsor.demo
+      ? `This week's prize: ${sponsor.prize}, from ${sponsor.name}. Reply to this email and we'll tell you how to collect it.\n\n`
+      : "";
+  const body =
+    `Hi ${first},\n\n${possessive(entry.hunter_name)} ${deer} is the Hunting Brag Board's Deer of the Week for ` +
+    `Friday, ${apDay(friday)}. It leads this week's Brag Board in our Friday newsletter.\n\n${prize}` +
+    `Congratulations, and thanks for sharing it with our readers.\n\nWausau Pilot & Review`;
+  return `mailto:${entry.entry_private.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 function Picks({
   board,
   onBoard,
+  weekly,
   since,
   thisWeek,
   edition,
 }: {
   board: Board;
   onBoard: number;
+  weekly: WeeklyPick[];
   since: string;
   thisWeek: boolean;
   edition: string;
@@ -74,6 +106,13 @@ function Picks({
   const posted = useLoad(() => loadPostedSince(board.season.id, wausauMidnight(since)));
   const [chosen, setChosen] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
+  // Deer of the Week for the Friday this newsletter goes out, saved as soon as it's picked. It
+  // runs while entries are open, so the picker shows only for a Friday that can take one.
+  const friday = fridayOnOrAfter(edition);
+  const weeklyOpen = board.season.phase === "entries" && friday <= lastWeeklyFriday(board.season);
+  const [weeklyId, setWeeklyId] = useState(weekly.find((w) => w.week_of === friday)?.entry_id ?? null);
+  const [weeklySaving, setWeeklySaving] = useState(false);
+  const [weeklyError, setWeeklyError] = useState<string | null>(null);
 
   if (posted.status === "loading") return <p className="status">Loading deer…</p>;
   if (posted.status === "failed") return <p className="status">Couldn't load entries: {posted.error.message}</p>;
@@ -85,10 +124,27 @@ function Picks({
     setChosen(picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]);
   };
 
+  const sponsor = weeklySponsor(board);
+  const weeklyEntry = posted.data.find((e) => e.id === weeklyId);
+  const chooseWeekly = async (id: string | null) => {
+    setWeeklySaving(true);
+    setWeeklyError(null);
+    setCopied(false);
+    try {
+      await setWeeklyPick(friday, id);
+      setWeeklyId(id);
+    } catch (err) {
+      setWeeklyError((err as Error).message);
+    } finally {
+      setWeeklySaving(false);
+    }
+  };
+
   const html = wrapForNoptin(
     newsletterRows({
       season: board.season,
       presenting: presentingSponsor(board),
+      weekly: weeklyEntry && { entry: weeklyEntry, sponsor },
       picks: posted.data.filter((e) => picked.includes(e.id)),
       posted: posted.data.length,
       onBoard,
@@ -109,6 +165,39 @@ function Picks({
 
   return (
     <>
+      {weeklyOpen && (
+        <div className="weekly-picker">
+          <label>
+            Deer of the Week for Friday, {apDay(friday)}
+            <select value={weeklyId ?? ""} disabled={weeklySaving} onChange={(e) => chooseWeekly(e.target.value || null)}>
+              <option value="">
+                {weeklyId && !weeklyEntry ? "Picked: a deer posted before this list starts" : "No pick yet"}
+              </option>
+              {posted.data.map((entry) => (
+                <option key={entry.id} value={entry.id} disabled={!entry.entry_private.prize_eligible}>
+                  {entry.hunter_name}, {describeDeer(entry.deer_type, entry.points).toLowerCase()}
+                  {!entry.entry_private.prize_eligible && " (staff household: can't win)"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="hint">
+            Saved as soon as you pick it. It leads this section, wears a tag on the board, and goes public on Friday.
+            {sponsor && !sponsor.demo && ` This week's prize: ${sponsor.prize}, from ${sponsor.name}.`}
+          </p>
+          {weeklyEntry && (
+            <a className="button" href={winnerMailto(weeklyEntry, friday, sponsor)}>
+              Email {weeklyEntry.entry_private.submitter_name.trim().split(/\s+/)[0]} the news
+            </a>
+          )}
+          {weeklyError && (
+            <p className="error" role="alert">
+              {weeklyError}
+            </p>
+          )}
+        </div>
+      )}
+
       <ul className="newsletter-picks">
         {posted.data.map((entry) => {
           const on = picked.includes(entry.id);

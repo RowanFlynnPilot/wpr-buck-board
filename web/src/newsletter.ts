@@ -23,6 +23,8 @@ export interface NewsletterSection {
   season: Season;
   presenting: Sponsor | undefined;
   picks: EntryFields[]; // the deer to show, newest first
+  // This Friday's Deer of the Week, which leads the section, and who presents it.
+  weekly?: { entry: EntryFields; sponsor: Sponsor | undefined };
   posted: number; // deer posted in the window; picks may be fewer
   onBoard: number; // every deer on the board
   since: string | null; // YYYY-MM-DD the window starts, or null for "this week"
@@ -55,13 +57,39 @@ function deerCell(entry: EntryFields, href: string, side: "left" | "right"): str
 }
 
 // Logos in email: PNG, JPEG or GIF only (Gmail drops SVG, Outlook drops WebP). Otherwise, the name.
-function presentedByRow(sponsor: Sponsor): string {
+function sponsorMark(sponsor: Sponsor): string {
   const href = sponsorHref(sponsor, "newsletter");
   const emailSafe = /\.(png|jpe?g|gif)$/i.test(sponsor.logo_path);
   const mark = emailSafe
     ? `<img src="${esc(logoUrl(sponsor.logo_path))}" alt="${esc(sponsor.name)}" height="32" style="height:32px; width:auto; border:0; vertical-align:middle;">`
     : `<strong style="color:#1a1a1a;">${esc(sponsor.name)}</strong>`;
-  const linked = href ? `<a href="${esc(href)}" style="text-decoration:none;">${mark}</a>` : mark;
+  return href ? `<a href="${esc(href)}" style="text-decoration:none;">${mark}</a>` : mark;
+}
+
+// The Deer of the Week leads the section: one deer across the column, its story, its prize.
+function weeklyRows(weekly: NonNullable<NewsletterSection["weekly"]>, href: string): string {
+  const { entry, sponsor } = weekly;
+  const deer = describeDeer(entry.deer_type, entry.points);
+  const story = entry.story && entry.story.length > 280 ? `${entry.story.slice(0, 277).trimEnd()}…` : entry.story;
+  return `
+        <tr>
+          <td class="px" style="padding:16px 32px 0;">
+            <p style="margin:0 0 8px; font-family:${OSWALD}; font-size:13px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:${TEAL};">Deer of the Week</p>
+            <a href="${esc(href)}" style="text-decoration:none;"><img src="${esc(photoUrl(entry.photo_id, "thumb"))}" alt="${esc(`${entry.hunter_name}'s ${deer.toLowerCase()}`)}" width="536" style="display:block; width:100%; max-width:536px; height:auto; border:0; border-radius:6px;"></a>
+            <p style="margin:10px 0 0; font-family:${SERIF}; font-size:20px; line-height:1.3; font-weight:700; color:#1a1a1a;">${esc(entry.hunter_name)}</p>
+            <p style="margin:3px 0 0; font-family:${SANS}; font-size:14px; line-height:1.45; color:#555555;">${esc(deer)}, ${WEAPON_LABELS[entry.weapon].toLowerCase()}<br>${esc(entry.hometown)} &middot; ${esc(entry.county)} County, ${apDay(entry.harvest_date)}</p>${
+              story ? `
+            <p style="margin:8px 0 0; font-family:${SANS}; font-size:15px; line-height:1.5; color:#333333;">${esc(story)}</p>` : ""
+            }${
+              sponsor ? `
+            <p style="margin:8px 0 0; font-family:${SANS}; font-size:13px; line-height:1.5; color:#555555;">This week's prize: ${esc(sponsor.prize)}, from ${sponsorMark(sponsor)}</p>` : ""
+            }
+          </td>
+        </tr>`;
+}
+
+function presentedByRow(sponsor: Sponsor): string {
+  const linked = sponsorMark(sponsor);
   return `
         <tr>
           <td class="px" style="padding:8px 32px 0; font-family:${SANS}; font-size:13px; color:#555555;">Presented by ${linked}</td>
@@ -70,12 +98,15 @@ function presentedByRow(sponsor: Sponsor): string {
 
 // The section's rows, for the newsletter's 600px content table.
 export function newsletterRows(section: NewsletterSection): string {
-  const { picks, posted, edition } = section;
+  const { posted, edition, weekly } = section;
+  // The Deer of the Week leads, so the grid leaves it out.
+  const picks = weekly ? section.picks.filter((p) => p.id !== weekly.entry.id) : section.picks;
+  const shown = picks.length + (weekly ? 1 : 0);
   const board = withUtm(section.galleryUrl, edition);
   const when = section.since ? `Since ${apDay(section.since)},` : "This week,";
   const intro = [
     `${when} ${apNumber(posted)} new deer went up on the Brag Board.`,
-    picks.length < posted ? `Here are ${apNumber(picks.length)} of them.` : "",
+    shown < posted ? `Here are ${apNumber(shown)} of them.` : "",
     phaseLine(section.season),
   ]
     .filter(Boolean)
@@ -103,7 +134,7 @@ export function newsletterRows(section: NewsletterSection): string {
         </tr>${section.presenting ? presentedByRow(section.presenting) : ""}
         <tr>
           <td class="px body" style="padding:8px 32px 0; font-family:${SANS}; font-size:15px; line-height:1.5; color:#333333;">${esc(intro)}</td>
-        </tr>
+        </tr>${weekly ? weeklyRows(weekly, board) : ""}
         <tr>
           <td class="px" style="padding:14px 32px 0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse;">

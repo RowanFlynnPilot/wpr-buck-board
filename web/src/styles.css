@@ -622,10 +622,17 @@ img {
   font-size: 0.8125rem;
 }
 
-.entry-tag {
+/* Tags on a deer's photo: Deer of the Week, First deer. */
+.entry-tags {
   position: absolute;
   left: 0.5rem;
   bottom: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.entry-tag {
   padding: 0.15rem 0.55rem;
   border-radius: 3px;
   background: var(--blaze);
@@ -997,6 +1004,81 @@ img {
 
 .opener-first {
   max-width: 320px;
+}
+
+.entry-tag-week {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* The thank-you every entrant whose deer is posted gets: on the board under the title, and on the
+   form beside the sponsor's logo. */
+.masthead-thanks {
+  max-width: 62ch;
+}
+
+.enter-thanks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  padding: 0.75rem 1rem;
+  border-top: 3px solid var(--teal-deep);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.enter-thanks > p:first-child {
+  flex: 1 1 20rem;
+  margin: 0;
+}
+
+/* Deer of the Week: what it is and who presents it, beside the latest pick. */
+.weekly {
+  display: grid;
+  gap: 1rem 2rem;
+  padding: 1rem 1rem 1.25rem;
+  border-top: 4px solid var(--teal-deep);
+  border-radius: 4px;
+  background: #fff;
+}
+
+@media (min-width: 720px) {
+  /* The words sit at the card's middle, so a tall photo leaves no hole under them. */
+  .weekly-with-pick {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+    align-items: center;
+  }
+}
+
+.weekly-text {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.weekly-heading {
+  font-size: 1.5rem;
+}
+
+.weekly-line {
+  max-width: 56ch;
+}
+
+/* Staff: this Friday's Deer of the Week, in the newsletter tab. */
+.weekly-picker {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  padding: 0.75rem 1rem;
+  border-top: 3px solid var(--teal-deep);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.weekly-picker label {
+  width: 100%;
+  max-width: 34rem;
 }
 
 .share-options a,

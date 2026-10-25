@@ -2,8 +2,8 @@
 // Prize Partner drawing. The whole page before entries open; the foot of it after.
 // Until entries close, an award or drawing with no sponsor yet tells readers its prize is to be
 // announced, and the section ends with one card for businesses: one ask, not one per award.
-import { apDate } from "../format";
-import { awardSponsor, presentingSponsor } from "../phase";
+import { apDate, apDay } from "../format";
+import { awardSponsor, lastWeeklyFriday, presentingSponsor, thankYouSponsor, weeklySponsor } from "../phase";
 import { DEMO } from "../sales";
 import type { Board } from "../types";
 import { SponsorCredit } from "./SponsorCredit";
@@ -16,6 +16,10 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
     .filter((s) => s.tier === "prize_partner")
     .sort((a, b) => a.name.localeCompare(b.name));
   const openAward = board.awards.some((award) => award.kind !== "readers_choice" && !awardSponsor(board, award));
+  // Both run while entries are open; afterward the awards and the drawing are what's left to win.
+  const running = season.phase === "upcoming" || season.phase === "entries";
+  const weekly = running ? weeklySponsor(board) : undefined;
+  const thankYou = running ? thankYouSponsor(board) : undefined;
 
   return (
     <section className="prizes" data-reveal>
@@ -73,6 +77,34 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
         </div>
       )}
 
+      {weekly && (
+        <div>
+          <h2>Deer of the Week</h2>
+          <p className="prizes-intro">
+            Every Friday through {apDay(lastWeeklyFriday(season))}, our editors pick one deer from the board.
+          </p>
+          <ul className="drawing-list">
+            <li>
+              <p className="award-prize">Each week: {weekly.prize}</p>
+              <SponsorCredit sponsor={weekly} placement="awards-list" lead="From" />
+            </li>
+          </ul>
+        </div>
+      )}
+
+      {thankYou && (
+        <div>
+          <h2>A thank-you for every entrant</h2>
+          <p className="prizes-intro">Everyone whose deer goes on the board gets it, by email, when the deer is posted.</p>
+          <ul className="drawing-list">
+            <li>
+              <p className="award-prize">{thankYou.prize}</p>
+              <SponsorCredit sponsor={thankYou} placement="awards-list" lead="From" />
+            </li>
+          </ul>
+        </div>
+      )}
+
       {/* Prize Partners have no limit, so there's always something to offer while entries are open. */}
       {selling && (
         <div className="prizes-sponsor">
@@ -82,7 +114,11 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
                 ? "Put your business on the Brag Board: in its title all season, on an award, or on a prize in the drawing."
                 : openAward
                   ? "Put your business on an award, or add a prize to the drawing."
-                  : "Add a prize to the drawing and reach every hunter who enters."
+                  : !thankYouSponsor(board)
+                    ? "Give every entrant a thank-you from your business, or add a prize to the drawing."
+                    : !weeklySponsor(board)
+                      ? "Present Deer of the Week, or add a prize to the drawing."
+                      : "Add a prize to the drawing and reach every hunter who enters."
             }
             action="Sponsor the Brag Board"
             slot="awards and prizes"

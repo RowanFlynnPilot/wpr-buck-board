@@ -41,6 +41,17 @@ export function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// The Friday on or after a calendar date (YYYY-MM-DD): the day a Deer of the Week is announced.
+export function fridayOnOrAfter(date: string): string {
+  const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+  return addDays(date, (5 - weekday + 7) % 7);
+}
+
+// AP: a singular name ending in s takes only an apostrophe.
+export function possessive(name: string): string {
+  return /s$/i.test(name) ? `${name}’` : `${name}’s`;
+}
+
 // The moment a Wausau calendar day begins, as an ISO timestamp (CST or CDT, whichever applies).
 export function wausauMidnight(date: string): string {
   const cstMidnight = new Date(`${date}T06:00:00Z`);

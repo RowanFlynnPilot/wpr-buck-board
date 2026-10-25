@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(70);
+select plan(79);
 
 -- These assert the privilege map in both directions, so a missing grant fails CI
 -- as loudly as an extra one.
@@ -26,6 +26,11 @@ select ok(has_table_privilege('anon', 'public.blocked_email_domains', 'select'),
 select ok(has_table_privilege('authenticated', 'public.blocked_email_domains', 'select'), 'authenticated reads the blocked email domains');
 select ok(has_table_privilege('authenticated', 'public.prize_forfeits', 'select'), 'authenticated reads forfeits (RLS: staff only)');
 select ok(not has_table_privilege('anon', 'public.prize_forfeits', 'select'), 'anon cannot read forfeits');
+-- Deer of the Week and the thank-you offer (migration 0016).
+select ok(has_table_privilege('anon', 'public.weekly_picks', 'select'), 'anon reads Deer of the Week picks (RLS: from their Friday)');
+select ok(has_table_privilege('authenticated', 'public.weekly_picks', 'select'), 'authenticated reads Deer of the Week picks (RLS: from their Friday, or staff)');
+select ok(not has_table_privilege('anon', 'public.thank_you_offers', 'select'), 'anon cannot read the thank-you''s redemption details');
+select ok(not has_table_privilege('authenticated', 'public.thank_you_offers', 'select'), 'authenticated cannot read the thank-you''s redemption details');
 
 -- The entry function writes its emails from these, as service_role (migration 0010).
 select ok(has_table_privilege('service_role', 'public.entries', 'select'), 'service role reads entries for the entry emails');
@@ -33,6 +38,8 @@ select ok(has_table_privilege('service_role', 'public.seasons', 'select'), 'serv
 select ok(has_table_privilege('service_role', 'public.entry_private', 'select'), 'service role reads entrant details for the entry emails');
 -- The entry-posted function checks its caller is staff (migration 0013).
 select ok(has_table_privilege('service_role', 'public.staff', 'select'), 'service role reads staff to check who calls entry-posted');
+-- The confirmation email names the thank-you sponsor (migration 0016).
+select ok(has_table_privilege('service_role', 'public.sponsors', 'select'), 'service role reads sponsors for the confirmation email');
 
 -- Private data (negative).
 select ok(not has_table_privilege('anon', 'public.entry_private', 'select'), 'anon cannot read entry_private');
@@ -55,7 +62,8 @@ select is(
    from unnest(array['anon', 'authenticated']) role,
         unnest(array['public.staff', 'public.entry_private', 'public.drawing_winners', 'public.newsletter_optins',
                      'public.sponsors', 'public.awards', 'public.wi_counties',
-                     'public.finalists', 'public.prize_forfeits', 'public.blocked_email_domains']) tbl
+                     'public.finalists', 'public.prize_forfeits', 'public.blocked_email_domains',
+                     'public.weekly_picks', 'public.thank_you_offers']) tbl
    where has_table_privilege(role, tbl, 'insert,update,delete,truncate')),
   null,
   'no API role can write staff, entrant details, the drawing, opt-ins or the catalog directly'
@@ -97,6 +105,10 @@ select ok(has_function_privilege('authenticated', 'public.redraw_prize(uuid)', '
 select ok(not has_function_privilege('anon', 'public.redraw_prize(uuid)', 'execute'), 'anon cannot redraw a prize');
 select ok(not has_function_privilege('anon', 'public.vote_email_key(text)', 'execute'), 'anon cannot call vote_email_key');
 select ok(not has_function_privilege('authenticated', 'public.vote_email_key(text)', 'execute'), 'authenticated cannot call vote_email_key');
+select ok(has_function_privilege('authenticated', 'public.set_weekly_pick(date, uuid)', 'execute'), 'authenticated can call set_weekly_pick (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.set_weekly_pick(date, uuid)', 'execute'), 'anon cannot pick Deer of the Week');
+select ok(not has_function_privilege('anon', 'public.thank_you_offers_tier()', 'execute'), 'anon cannot call the thank-you trigger');
+select ok(not has_function_privilege('authenticated', 'public.thank_you_offers_tier()', 'execute'), 'authenticated cannot call the thank-you trigger');
 
 -- Hygiene.
 select is(
