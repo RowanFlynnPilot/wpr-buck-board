@@ -7,13 +7,17 @@
 import { useId } from "react";
 import { COUNTIES, COUNTY_MAP_SIZE } from "../counties";
 import { apNumber } from "../format";
-import type { GalleryEntry } from "../types";
+import type { DnrTally, GalleryEntry } from "../types";
 
 const MIN_COUNTIES = 3;
 const R_MAX = 26;
 const R_MIN = 7;
 
-export function CountyMap({ entries }: { entries: GalleryEntry[] }) {
+// The DNR's own count, staff-entered from its release, for scale: the board is the deer readers
+// chose to share; the DNR registers every one.
+const DNR_PERIOD = { opening_weekend: "over opening weekend", gun_season: "over the nine-day gun season" };
+
+export function CountyMap({ entries, dnr }: { entries: GalleryEntry[]; dnr?: DnrTally | null }) {
   const id = useId();
   const counts = new Map<string, number>();
   for (const entry of entries) counts.set(entry.county, (counts.get(entry.county) ?? 0) + 1);
@@ -37,6 +41,16 @@ export function CountyMap({ entries }: { entries: GalleryEntry[] }) {
       <p className="county-map-line">
         <strong>{summary}</strong> so far. {ranked[0][0]} County leads with {apNumber(ranked[0][1])}.
       </p>
+      {dnr && (
+        <p className="county-map-line county-map-dnr">
+          Across Wisconsin, hunters registered {dnr.statewide.toLocaleString("en-US")} deer {DNR_PERIOD[dnr.period]}
+          {dnr.marathon !== null && <>, {dnr.marathon.toLocaleString("en-US")} of them in Marathon County</>}, by{" "}
+          <a href={dnr.source_url} target="_blank" rel="noopener noreferrer">
+            the DNR’s preliminary count
+          </a>
+          .
+        </p>
+      )}
       <div className="county-map-figure">
         {/* 40 extra units on the right: room for the legend beside the state's northeastern tip. */}
         <svg viewBox={`0 0 ${width + 40} ${height}`} role="img" aria-label={`Map of Wisconsin: ${summary}. Most: ${leaders}.`}>

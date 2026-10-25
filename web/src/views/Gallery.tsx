@@ -11,7 +11,7 @@ import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { ReadersChoice } from "../components/ReadersChoice";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { loadAwardWinners, loadCatalog, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../data";
+import { loadAwardWinners, loadCatalog, loadDnrTally, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../data";
 import { env } from "../env";
 import { scrollIntoView } from "../host";
 import {
@@ -33,14 +33,15 @@ const PAGE_SIZE = 24;
 async function loadGalleryPage() {
   const season = await loadSeason();
   const voting = season.phase === "voting" || season.phase === "tallying";
-  const [catalog, entries, winners, finalists, weekly] = await Promise.all([
+  const [catalog, entries, winners, finalists, weekly, dnr] = await Promise.all([
     loadCatalog(season.id),
     loadGallery(season.id),
     season.phase === "winners" ? loadAwardWinners(season.id) : Promise.resolve([]),
     voting ? loadFinalists(season.id) : Promise.resolve([]),
     season.phase === "upcoming" ? Promise.resolve([]) : loadWeeklyPicks(season.id),
+    season.phase === "upcoming" ? Promise.resolve(null) : loadDnrTally(season.id),
   ]);
-  return { board: { season, ...catalog }, entries, winners, finalists, weekly };
+  return { board: { season, ...catalog }, entries, winners, finalists, weekly, dnr };
 }
 
 export function Gallery() {
@@ -63,7 +64,7 @@ export function Gallery() {
   if (page.status === "loading") return <p className="status">Loading the Brag Board…</p>;
   if (page.status === "failed") return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
 
-  const { board, entries, winners, finalists, weekly } = page.data;
+  const { board, entries, winners, finalists, weekly, dnr } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
   const linkedId = LINKED_ENTRY?.id;
@@ -253,7 +254,7 @@ export function Gallery() {
             </button>
           )}
 
-          <CountyMap entries={entries} />
+          <CountyMap entries={entries} dnr={dnr} />
 
           <AwardsAndPrizes board={board} />
         </>

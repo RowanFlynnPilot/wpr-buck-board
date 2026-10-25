@@ -98,6 +98,15 @@ export interface PostedEntry extends EntryFields {
   entry_private: { moderated_at: string; email: string; submitter_name: string; prize_eligible: boolean };
 }
 
+// The DNR's preliminary registrations, copied in by staff from its release.
+export interface DnrTally {
+  period: "opening_weekend" | "gun_season";
+  released_on: string;
+  statewide: number;
+  marathon: number | null;
+  source_url: string;
+}
+
 // A Deer of the Week: the Friday it's announced and the deer. Public from that Friday on.
 export interface WeeklyPick {
   week_of: string;
