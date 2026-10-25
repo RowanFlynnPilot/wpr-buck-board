@@ -232,6 +232,9 @@ export interface PostedNotice {
   } | null;
 }
 
+const DNR_CERTIFICATE = "https://dnr.wisconsin.gov/topic/hunt/firstcert.html";
+const DNR_DONATION = "https://dnr.wisconsin.gov/topic/hunt/donation.html";
+
 // "Dec. 14–18", or "Nov. 30 to Dec. 4" across a month.
 function apRange(start: string, exclusiveEnd: string): string {
   const [first, last] = [apDate(start), apLastDay(exclusiveEnd)];
@@ -257,6 +260,15 @@ export function postedEmail(
     `${apRange(notice.voting_open_at, notice.voting_close_at)}, and winners are announced ${apDate(notice.winners_at)}.`;
   const another = `Got another deer? Enter it anytime through ${apLastDay(notice.entries_close_at)}.`;
   const story = "On a phone, tap Share under the deer on the board for an image sized for Facebook and Instagram Stories.";
+  // Two things the DNR offers every hunter: a free certificate for a first deer, and a free way to
+  // give venison to a food pantry.
+  const certificate = notice.first_deer
+    ? `A first deer deserves a certificate: the Wisconsin DNR makes a free one from your photo at ${DNR_CERTIFICATE}`
+    : null;
+  const donation =
+    `More venison than freezer space? Donating a deer to a food pantry is free through the DNR’s Deer Donation ` +
+    `Program. Participating processors are listed at ${DNR_DONATION} (deer from counties that require CWD testing ` +
+    `need a test first).`;
   const link = (href: string, text: string, bold = false) =>
     `<a href="${escape(href)}" style="color:#2c6a62${bold ? ";font-weight:bold" : ""}">${escape(text)}</a>`;
   // Every entrant whose deer is posted gets the thank-you sponsor's offer, here and only here.
@@ -286,7 +298,9 @@ export function postedEmail(
       ...thanksText,
       story,
       season,
+      ...(certificate ? [certificate] : []),
       `${another} ${enter}`,
+      donation,
       "Questions? Just reply to this email.",
       "Wausau Pilot & Review\nwausaupilotandreview.com",
     ].join("\n\n"),
@@ -299,7 +313,12 @@ export function postedEmail(
         ...thanksHtml,
         escape(story),
         escape(season),
+        ...(notice.first_deer
+          ? [`A first deer deserves a certificate: the Wisconsin DNR makes a free one from your photo. ${link(DNR_CERTIFICATE, "Get the certificate")}`]
+          : []),
         `${escape(another)} ${link(enter, "Enter your deer")}`,
+        `More venison than freezer space? Donating a deer to a food pantry is free through the DNR’s ${link(DNR_DONATION, "Deer Donation Program")}, ` +
+        "at participating processors (deer from counties that require CWD testing need a test first).",
         "Questions? Just reply to this email.",
         `Wausau Pilot &amp; Review<br>${link("https://wausaupilotandreview.com", "wausaupilotandreview.com")}`,
       ],
