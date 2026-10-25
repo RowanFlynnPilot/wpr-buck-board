@@ -1,6 +1,6 @@
 // Dedicated page: every approved entry, filterable by the award each one qualifies for. A link
 // to one deer (a share, or a photo on the front-page strip) opens it above the rest.
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { CountyMap } from "../components/CountyMap";
@@ -9,9 +9,8 @@ import { EmptyLead } from "../components/EmptyLead";
 import { LeadDeer } from "../components/LeadDeer";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
-import { ReadersChoice } from "../components/ReadersChoice";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { loadAwardWinners, loadCatalog, loadDnrTally, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../data";
+import { loadAwardWinners, loadCatalog, loadDnrTally, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../reads";
 import { env } from "../env";
 import { scrollIntoView } from "../host";
 import {
@@ -29,6 +28,9 @@ import { useLoad } from "../useLoad";
 import { useReveal } from "../useReveal";
 
 const PAGE_SIZE = 24;
+
+// The ballot signs readers in, so it brings the Supabase client; it's fetched only for the vote.
+const ReadersChoice = lazy(() => import("../components/ReadersChoice").then((m) => ({ default: m.ReadersChoice })));
 
 async function loadGalleryPage() {
   const season = await loadSeason();
@@ -172,12 +174,14 @@ export function Gallery() {
       )}
 
       {finalists.length > 0 && (
-        <ReadersChoice
-          season={season}
-          finalists={entries.filter((e) => finalists.includes(e.id))}
-          presenting={presenting}
-          storyFacts={storyFacts}
-        />
+        <Suspense fallback={<p className="status">Loading the ballot…</p>}>
+          <ReadersChoice
+            season={season}
+            finalists={entries.filter((e) => finalists.includes(e.id))}
+            presenting={presenting}
+            storyFacts={storyFacts}
+          />
+        </Suspense>
       )}
 
       {weekend.on && (

@@ -2,12 +2,14 @@
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { countEntries, countHarvested, loadAwardWinners, loadCatalog, loadFinalistEntries, loadGallery, loadSeason } from "../data";
+import { countEntries, countHarvested, loadAwardWinners, loadCatalog, loadFinalistEntries, loadGallery, loadSeason } from "../reads";
 import { env } from "../env";
 import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor, thankYouSponsor } from "../phase";
 import { entryPageUrl } from "../share";
-import { photoUrl } from "../supabase";
+import { photoUrl } from "../storage";
 import { useLoad } from "../useLoad";
+
+const BUCK = `${import.meta.env.BASE_URL}whitetail-buck-nps`;
 
 async function loadEmbed() {
   const season = await loadSeason();
@@ -50,9 +52,9 @@ export function Embed() {
   const thankYou = season.phase === "entries" ? thankYouSponsor(board) : undefined;
 
   return (
-    <section className="strip">
+    <section className="strip" aria-labelledby="strip-heading">
       <div className="strip-head">
-        <h2 className="strip-title">
+        <h2 id="strip-heading" className="strip-title">
           <a href={env.galleryPageUrl} target="_top">
             Hunting Brag Board
           </a>
@@ -89,6 +91,33 @@ export function Embed() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Before the first deer, a picture of the thing itself, as on the board, so WPR's front page
+          shows a deer and not just type: the Park Service's buck, at 800px unless the screen wants more. */}
+      {latest.length === 0 && picks.length === 0 && (season.phase === "upcoming" || season.phase === "entries") && (
+        <figure className="strip-empty">
+          <img
+            src={`${BUCK}-800.jpg`}
+            srcSet={`${BUCK}-800.jpg 800w, ${BUCK}.jpg 1600w`}
+            sizes="(max-width: 860px) 100vw, 820px"
+            width={800}
+            height={534}
+            alt="A whitetail buck bedded in autumn bracken, antlers up beside a tree trunk"
+            fetchPriority="high"
+            decoding="async"
+          />
+          <figcaption>
+            <strong>
+              {season.phase === "entries"
+                ? "Nothing on the board yet. Yours could be the first."
+                : "The season's first deer goes up here."}
+            </strong>
+            <span className="strip-empty-credit">
+              A whitetail buck in autumn bracken. Photo: David Restivo, National Park Service
+            </span>
+          </figcaption>
+        </figure>
       )}
 
       {picks.length > 0 && (

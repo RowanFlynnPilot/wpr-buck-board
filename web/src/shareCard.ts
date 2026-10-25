@@ -6,7 +6,7 @@
 // the canvas can still be exported.
 import { loadCardFacts, saveShareCard, type CardFacts } from "./data";
 import { apDay, describeDeer, WEAPON_LABELS } from "./format";
-import { logoUrl, photoUrl } from "./supabase";
+import { logoUrl, photoUrl } from "./storage";
 
 export const CARD = { width: 1200, height: 630 };
 

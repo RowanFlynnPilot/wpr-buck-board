@@ -1,23 +1,27 @@
 import { FunctionsFetchError, FunctionsHttpError, type PostgrestError } from "@supabase/supabase-js";
 import type { PreparedPhoto } from "./photo";
-import { withDemoSponsors } from "./sales";
+import { ENTRY_COLUMNS, readAsSignedIn } from "./reads";
 import { supabase } from "./supabase";
-import type {
-  Award,
-  AwardWinner,
-  Board,
-  DnrTally,
-  DrawnPrize,
-  EntryFields,
-  EntryStatus,
-  GalleryEntry,
-  ModerationEntry,
-  PostedEntry,
-  Season,
-  Sponsor,
-  Standing,
-  WeeklyPick,
-} from "./types";
+import type { DrawnPrize, EntryFields, EntryStatus, ModerationEntry, PostedEntry, Sponsor, Standing } from "./types";
+
+// The board's reads live in reads.ts, without the client. Where this module is loaded (the staff
+// page, the entry form, the vote), they carry the signed-in session's token, which the client keeps
+// fresh, so staff and voters read as themselves.
+readAsSignedIn(async () => (await supabase.auth.getSession()).data.session?.access_token ?? null);
+export {
+  countEntries,
+  countHarvested,
+  loadAwardWinners,
+  loadBlockedDomains,
+  loadCatalog,
+  loadCounties,
+  loadDnrTally,
+  loadFinalistEntries,
+  loadFinalists,
+  loadGallery,
+  loadSeason,
+  loadWeeklyPicks,
+} from "./reads";
 
 type Result = { data: unknown; error: PostgrestError | null };
 
@@ -27,105 +31,12 @@ async function rows<T>(query: PromiseLike<Result>): Promise<T> {
   return data as T;
 }
 
-const ENTRY_COLUMNS =
-  "id, hunter_name, hometown, county, harvest_date, weapon, deer_type, points, first_deer, age_group, story, photo_id, photo_credit, created_at";
 // Staff reads of `entries` take the award kinds from the same function the gallery view uses.
 const QUEUE_COLUMNS = `${ENTRY_COLUMNS}, award_kinds`;
 
-export async function loadSeason(): Promise<Season> {
-  return rows<Season>(supabase.from("current_season").select("*").single());
-}
-
-// Awards and sponsors for a season. Views fetch this alongside their own data so the
-// front-page embed costs two round trips, not three.
-export async function loadCatalog(seasonId: string): Promise<Pick<Board, "awards" | "sponsors">> {
-  const [awards, sponsors] = await Promise.all([
-    rows<Award[]>(
-      supabase.from("awards").select("id, kind, label, description, sponsor_id").eq("season_id", seasonId).order("kind"),
-    ),
-    rows<Sponsor[]>(
-      supabase.from("sponsors").select("id, name, tier, logo_path, website_url, prize, qr_slug").eq("season_id", seasonId),
-    ),
-  ]);
-  return withDemoSponsors({ awards, sponsors });
-}
-
-export async function loadGallery(seasonId: string, limit?: number): Promise<GalleryEntry[]> {
-  const query = supabase
-    .from("gallery_entries")
-    .select(`${ENTRY_COLUMNS}, award_kinds`)
-    .eq("season_id", seasonId)
-    .order("created_at", { ascending: false });
-  return rows<GalleryEntry[]>(limit === undefined ? query : query.limit(limit));
-}
-
-export async function countEntries(seasonId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from("gallery_entries")
-    .select("id", { count: "exact", head: true })
-    .eq("season_id", seasonId);
-  if (error) throw new Error(error.message);
-  if (count === null) throw new Error("Entry count was not returned.");
-  return count;
-}
-
-// Deer on the board taken between two calendar days, inclusive (the opening-weekend count).
-export async function countHarvested(seasonId: string, from: string, to: string): Promise<number> {
-  const { count, error } = await supabase
-    .from("gallery_entries")
-    .select("id", { count: "exact", head: true })
-    .eq("season_id", seasonId)
-    .gte("harvest_date", from)
-    .lte("harvest_date", to);
-  if (error) throw new Error(error.message);
-  return count ?? 0;
-}
-
-export async function loadAwardWinners(seasonId: string): Promise<AwardWinner[]> {
-  return rows<AwardWinner[]>(supabase.from("award_winners").select("award_id, entry_id").eq("season_id", seasonId));
-}
-
-// Readers' Choice (migration 0014). Finalists are public from the vote on; before that, staff only.
-export async function loadFinalists(seasonId: string): Promise<string[]> {
-  const list = await rows<{ entry_id: string }[]>(supabase.from("finalists").select("entry_id").eq("season_id", seasonId));
-  return list.map((f) => f.entry_id);
-}
-
-export async function loadFinalistEntries(seasonId: string): Promise<GalleryEntry[]> {
-  const ids = await loadFinalists(seasonId);
-  if (ids.length === 0) return [];
-  return rows<GalleryEntry[]>(
-    supabase
-      .from("gallery_entries")
-      .select(`${ENTRY_COLUMNS}, award_kinds`)
-      .eq("season_id", seasonId)
-      .in("id", ids)
-      .order("created_at", { ascending: false }),
-  );
-}
-
+// Readers' Choice (migration 0014): staff pick finalists; a signed-in reader votes.
 export async function setFinalist(entryId: string, on: boolean): Promise<void> {
   await rows<null>(supabase.rpc("set_finalist", { p_entry_id: entryId, p_finalist: on }));
-}
-
-// The DNR's latest count this season (the gun season's, once it's in), or null before the first.
-export async function loadDnrTally(seasonId: string): Promise<DnrTally | null> {
-  const tallies = await rows<DnrTally[]>(
-    supabase
-      .from("dnr_tallies")
-      .select("period, released_on, statewide, marathon, source_url")
-      .eq("season_id", seasonId)
-      .order("released_on", { ascending: false })
-      .limit(1),
-  );
-  return tallies[0] ?? null;
-}
-
-// Newest first. Readers get each pick from its Friday on; staff also see one queued for Friday.
-export async function loadWeeklyPicks(seasonId: string): Promise<WeeklyPick[]> {
-  return rows<WeeklyPick[]>(
-    supabase.from("weekly_picks").select("week_of, entry_id").eq("season_id", seasonId).order("week_of", { ascending: false }),
-  );
 }
 
 // A null entry clears that Friday's pick.
@@ -152,11 +63,6 @@ export async function castVote(entryId: string, newsletter: boolean): Promise<vo
   await rows<null>(supabase.rpc("cast_vote", { p_entry_id: entryId, p_newsletter_opt_in: newsletter }));
 }
 
-export async function loadBlockedDomains(): Promise<string[]> {
-  const list = await rows<{ domain: string }[]>(supabase.from("blocked_email_domains").select("domain"));
-  return list.map((d) => d.domain);
-}
-
 export async function setAwardWinner(awardId: string, entryId: string): Promise<void> {
   await rows<null>(supabase.rpc("set_award_winner", { p_award_id: awardId, p_entry_id: entryId }));
 }
@@ -175,11 +81,6 @@ export async function runDrawing(seasonId: string): Promise<void> {
 
 export async function redrawPrize(sponsorId: string): Promise<void> {
   await rows<null>(supabase.rpc("redraw_prize", { p_sponsor_id: sponsorId }));
-}
-
-export async function loadCounties(): Promise<string[]> {
-  const counties = await rows<{ name: string }[]>(supabase.from("wi_counties").select("name").order("name"));
-  return counties.map((c) => c.name);
 }
 
 export async function loadModerationQueue(seasonId: string, status: EntryStatus): Promise<ModerationEntry[]> {

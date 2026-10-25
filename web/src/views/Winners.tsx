@@ -19,7 +19,7 @@ import {
   setFinalist,
 } from "../data";
 import { apDate, apLastDay, describeDeer } from "../format";
-import { photoUrl } from "../supabase";
+import { photoUrl } from "../storage";
 import type { Award, ModerationEntry, Season, Sponsor } from "../types";
 import { useLoad } from "../useLoad";
 
