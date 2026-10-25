@@ -13,7 +13,7 @@ import { Turnstile } from "../components/Turnstile";
 import { loadCatalog, loadCounties, loadSeason, submitEntry, type EntrySubmission } from "../data";
 import { env } from "../env";
 import { AGE_LABELS, WEAPON_LABELS, apDate, apDay, apLastDay, todayInWausau } from "../format";
-import { scrollToTop } from "../host";
+import { embedded, scrollToTop } from "../host";
 import { phaseLine, presentingSponsor } from "../phase";
 import { preparePhoto, type PreparedPhoto } from "../photo";
 import { DEMO } from "../sales";
@@ -462,8 +462,10 @@ export function Enter() {
 
         <fieldset data-reveal>
           <legend>The photo</legend>
-          {/* On a phone the guidelines fold away here; on a wide screen they stand beside the form. */}
-          <details className="guidelines-fold">
+          {/* On a phone the guidelines fold away here. On a wide screen they stand beside the form, sticky,
+              so they're in reach here too, except inside the WordPress page: the frame is as tall as the
+              form and never scrolls itself, so nothing in it can stick, and the fold stays here as well. */}
+          <details className={embedded ? "guidelines-fold guidelines-fold-framed" : "guidelines-fold"}>
             <summary>Photo guidelines</summary>
             <Guidelines />
           </details>
@@ -614,8 +616,8 @@ export function Enter() {
         </button>
       </form>
 
-      {/* Beside the questions on a wide screen, in reach at every step; on a phone the guidelines
-          fold into the photo section instead and this is hidden. */}
+      {/* Beside the questions on a wide screen, and sticky on the board's own page so it stays in reach;
+          on a phone the guidelines fold into the photo section instead and this is hidden. */}
       <aside className="enter-rail" aria-label="Photo guidelines and what happens next" data-reveal>
         <p className="group-label">Photo guidelines</p>
         <Guidelines />
