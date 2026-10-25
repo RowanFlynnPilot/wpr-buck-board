@@ -17,7 +17,7 @@ interface TurnstileApi {
       sitekey: string;
       action: string;
       theme: "light";
-      size: "flexible";
+      size: "flexible" | "compact";
       callback: (token: string) => void;
       "expired-callback": () => void;
       "error-callback": () => void;
@@ -54,11 +54,14 @@ export function Turnstile({ onToken, onError }: { onToken: (token: string | null
     loadTurnstile().then(
       (turnstile) => {
         if (!mounted || !container.current) return;
+        // "flexible" fills the line but won't go under 300px; where the form is narrower than that
+        // (a small phone inside WordPress's margins, or large text), the compact widget fits.
+        const size = container.current.clientWidth < 300 ? "compact" : "flexible";
         widgetId = turnstile.render(container.current, {
           sitekey: env.turnstileSiteKey,
           action: "submit-entry",
           theme: "light",
-          size: "flexible",
+          size,
           callback: (token) => onToken(token),
           "expired-callback": () => onToken(null),
           "error-callback": () => {

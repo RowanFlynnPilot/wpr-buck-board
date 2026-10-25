@@ -19,12 +19,37 @@
   box-sizing: border-box;
 }
 
+/* On a phone: no gray flash over a tapped link or button (each has its own press feedback), and
+   no text inflation when the phone turns sideways. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
   font: 1rem/1.55 var(--body);
   -webkit-font-smoothing: antialiased;
+  /* A word too long for its line (a pasted link, a name at display size) breaks rather than
+     running off the page. */
+  overflow-wrap: break-word;
+}
+
+/* Controls answer a tap at once (no wait to see if it's a double tap), and a long press on one
+   doesn't select its label. Text and photos stay selectable. */
+button,
+.button,
+.link-button {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+a {
+  touch-action: manipulation;
 }
 
 h1,
@@ -39,6 +64,8 @@ h3 {
 h1 {
   font-size: clamp(2rem, 6vw, 3.25rem);
   letter-spacing: -0.01em;
+  /* At very large text sizes "Hunting" alone can outgrow a phone; it hyphenates instead. */
+  hyphens: auto;
 }
 
 h2 {
@@ -233,9 +260,11 @@ img {
   cursor: pointer;
 }
 
-.button:hover {
-  background: var(--ink);
-  color: var(--paper);
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
 }
 
 .button-blaze {
@@ -244,9 +273,11 @@ img {
   font-weight: 700;
 }
 
-.button-blaze:hover {
-  border-color: var(--ink);
-  background: var(--ink);
+@media (hover: hover) and (pointer: fine) {
+  .button-blaze:hover {
+    border-color: var(--ink);
+    background: var(--ink);
+  }
 }
 
 .button:disabled {
@@ -268,6 +299,8 @@ img {
 
 .sponsor-credit {
   display: flex;
+  /* At large text sizes the logo drops under its label rather than running off a phone. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   color: var(--bark);
@@ -332,9 +365,11 @@ img {
   font-size: 0.875rem;
 }
 
-.button-ink:hover {
-  border-color: var(--teal-deep);
-  background: var(--teal-deep);
+@media (hover: hover) and (pointer: fine) {
+  .button-ink:hover {
+    border-color: var(--teal-deep);
+    background: var(--teal-deep);
+  }
 }
 
 .upsell .upsell-email {
@@ -459,7 +494,7 @@ img {
 
 .strip-winners {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
   gap: var(--gap);
 }
 
@@ -467,6 +502,8 @@ img {
 
 .gallery {
   display: grid;
+  /* One column that never grows past the page, whatever a section holds. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -543,7 +580,7 @@ img {
 
 .entry-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 2rem var(--gap);
 }
 
@@ -580,7 +617,7 @@ img {
 .award-list,
 .drawing-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   gap: 1.75rem var(--gap);
   margin: 0.5rem 0 0;
   padding: 0;
@@ -710,6 +747,8 @@ img {
   margin-top: 0.4rem;
   font-size: 0.9375rem;
   white-space: pre-line;
+  /* A pasted link has no spaces; it breaks where it must rather than widening the card. */
+  overflow-wrap: anywhere;
 }
 
 .entry-story-closed {
@@ -838,7 +877,7 @@ img {
 
 .social-images {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
   gap: 0.75rem;
   margin: 0;
   padding: 0;
@@ -973,7 +1012,7 @@ img {
 
 .finalist-picks {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   gap: 0.5rem;
   margin: 0;
   padding: 0;
@@ -1246,6 +1285,12 @@ img {
   }
 }
 
+/* The form's parts may be narrower than their widest control; the controls then shrink to fit. */
+.enter > *,
+.enter form > * {
+  min-width: 0;
+}
+
 .enter header,
 .enter form,
 .admin form {
@@ -1260,6 +1305,8 @@ img {
 fieldset {
   display: grid;
   gap: 1rem;
+  /* Browsers give a fieldset a minimum of its widest content; at large text sizes that runs off a phone. */
+  min-width: 0;
   margin: 0;
   padding: 1.25rem 0 0;
   border: 0;
@@ -1284,6 +1331,9 @@ input,
 select,
 textarea {
   width: 100%;
+  /* A select is as wide as its longest option unless told otherwise; at large text sizes that
+     outgrows a phone. */
+  min-width: 0;
   padding: 0.7rem 0.8rem;
   border: 1px solid var(--bark);
   border-radius: 6px;
@@ -1504,7 +1554,7 @@ textarea {
 
 .newsletter-picks {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   gap: 0.5rem;
   margin: 0;
   padding: 0;
@@ -1654,6 +1704,7 @@ h1[tabindex="-1"]:focus {
 
 .lead-text {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
   align-content: start;
 }
@@ -1670,6 +1721,14 @@ h1[tabindex="-1"]:focus {
   font-size: clamp(2.5rem, 5vw, 4.5rem);
   line-height: 0.98;
   letter-spacing: -0.02em;
+  /* At display size even a common name can be wider than a phone; break it rather than the page. */
+  overflow-wrap: anywhere;
+}
+
+/* A long name (two hunters on one entry, say) a step down, so it reads as a name, not a wall. */
+.lead-name-long {
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  line-height: 1.02;
 }
 
 .lead-record {
@@ -1680,6 +1739,7 @@ h1[tabindex="-1"]:focus {
   max-width: 44ch;
   font-size: 1.125rem;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 /* The cards tuck their photo credit up under the picture; beside or below a large picture it
@@ -1699,8 +1759,14 @@ h1[tabindex="-1"]:focus {
    first screen, and the picture should paint as soon as it can. */
 .front {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "head" "photo" "text";
   gap: 1.25rem;
+}
+
+/* The front's parts may be narrower than their longest word; the words then wrap or break. */
+.front > * {
+  min-width: 0;
 }
 
 .front > .masthead {
@@ -1774,9 +1840,17 @@ h1[tabindex="-1"]:focus {
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.entry-photo:hover img,
-.lead-photo:hover img {
-  transform: scale(1.03);
+@media (hover: hover) and (pointer: fine) {
+  .entry-photo:hover img,
+  .lead-photo:hover img {
+    transform: scale(1.03);
+  }
+}
+
+/* A photo answers a tap, now that the browser's flash is gone. */
+.entry-photo:active,
+.lead-photo:active {
+  opacity: 0.85;
 }
 
 .button,

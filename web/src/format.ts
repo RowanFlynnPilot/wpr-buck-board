@@ -47,6 +47,15 @@ export function fridayOnOrAfter(date: string): string {
   return addDays(date, (5 - weekday + 7) % 7);
 }
 
+// A story as the board shows it: runs of blank lines collapse to one, so a card's three-line
+// preview isn't spent on space. What the entrant typed is stored as is.
+export function tidyStory(story: string): string {
+  return story.replace(/\n[ \t]*(?:\n[ \t]*)+\n/g, "\n\n").trim();
+}
+
+// Names longer than this are set a step down at display size (two hunters on one entry, say).
+export const LONG_NAME = 28;
+
 // AP: a singular name ending in s takes only an apostrophe.
 export function possessive(name: string): string {
   return /s$/i.test(name) ? `${name}’` : `${name}’s`;

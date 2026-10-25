@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import type { CardFacts } from "../data";
-import { apDay, describeDeer, WEAPON_LABELS } from "../format";
+import { apDay, describeDeer, tidyStory, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../storage";
 import type { EntryFields, Sponsor } from "../types";
 import { ShareButton } from "./ShareButton";
@@ -30,7 +30,8 @@ export function EntryCard({ entry, award, awardSponsor, share = false, storyFact
   const [storyOpen, setStoryOpen] = useState(false);
   const storyId = useId();
   const deer = describeDeer(entry.deer_type, entry.points);
-  const longStory = !featured && entry.story !== null && entry.story.length > LONG_STORY;
+  const story = entry.story && tidyStory(entry.story);
+  const longStory = !featured && story !== null && story.length > LONG_STORY;
 
   return (
     <article className={featured ? "entry entry-featured" : "entry"} data-reveal>
@@ -52,9 +53,9 @@ export function EntryCard({ entry, award, awardSponsor, share = false, storyFact
         <br />
         {entry.county} County, {apDay(entry.harvest_date)}
       </p>
-      {entry.story && (
+      {story && (
         <p id={storyId} className={longStory && !storyOpen ? "entry-story entry-story-closed" : "entry-story"}>
-          {entry.story}
+          {story}
         </p>
       )}
       {longStory && (
