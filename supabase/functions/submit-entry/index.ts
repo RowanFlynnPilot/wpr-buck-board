@@ -92,7 +92,7 @@ async function sendEntryEmails(entryId: string, newsletter: boolean): Promise<vo
       .from("entries")
       .select(
         "hunter_name, hometown, county, harvest_date, weapon, deer_type, points, first_deer, age_group, story, " +
-          "photo_credit, photo_id, seasons(entries_close_at, winners_at), " +
+          "photo_credit, photo_id, seasons(entries_close_at, winners_at, sponsors(name, prize, tier)), " +
           "entry_private(submitter_name, email, phone, guardian_relationship, hunter_full_name)",
       )
       .eq("id", entryId)

@@ -6,7 +6,7 @@ export type Weapon = "bow" | "crossbow" | "rifle" | "shotgun" | "muzzleloader" |
 export type DeerType = "buck" | "antlerless";
 export type AgeGroup = "youth" | "adult" | "veteran";
 export type EntryStatus = "pending" | "approved" | "rejected";
-export type SponsorTier = "presenting" | "award" | "prize_partner" | "opening_weekend";
+export type SponsorTier = "presenting" | "award" | "prize_partner" | "opening_weekend" | "thank_you" | "deer_of_the_week";
 export type AwardKind =
   | "first_deer"
   | "youth"
@@ -95,7 +95,13 @@ export interface ModerationEntry extends EntryFields {
 
 // An approved entry and when it went up. Staff only: moderated_at lives in entry_private.
 export interface PostedEntry extends EntryFields {
-  entry_private: { moderated_at: string };
+  entry_private: { moderated_at: string; email: string; submitter_name: string; prize_eligible: boolean };
+}
+
+// A Deer of the Week: the Friday it's announced and the deer. Public from that Friday on.
+export interface WeeklyPick {
+  week_of: string;
+  entry_id: string;
 }
 
 export interface AwardWinner {

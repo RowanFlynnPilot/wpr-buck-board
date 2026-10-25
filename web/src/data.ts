@@ -15,6 +15,7 @@ import type {
   Season,
   Sponsor,
   Standing,
+  WeeklyPick,
 } from "./types";
 
 type Result = { data: unknown; error: PostgrestError | null };
@@ -106,6 +107,18 @@ export async function setFinalist(entryId: string, on: boolean): Promise<void> {
   await rows<null>(supabase.rpc("set_finalist", { p_entry_id: entryId, p_finalist: on }));
 }
 
+// Newest first. Readers get each pick from its Friday on; staff also see one queued for Friday.
+export async function loadWeeklyPicks(seasonId: string): Promise<WeeklyPick[]> {
+  return rows<WeeklyPick[]>(
+    supabase.from("weekly_picks").select("week_of, entry_id").eq("season_id", seasonId).order("week_of", { ascending: false }),
+  );
+}
+
+// A null entry clears that Friday's pick.
+export async function setWeeklyPick(weekOf: string, entryId: string | null): Promise<void> {
+  await rows<null>(supabase.rpc("set_weekly_pick", { p_week_of: weekOf, p_entry_id: entryId }));
+}
+
 export async function setPrizeEligible(entryId: string, eligible: boolean): Promise<void> {
   await rows<null>(supabase.rpc("set_prize_eligible", { p_entry_id: entryId, p_eligible: eligible }));
 }
@@ -174,7 +187,7 @@ export async function loadPostedSince(seasonId: string, since: string): Promise<
   return rows<PostedEntry[]>(
     supabase
       .from("entries")
-      .select(`${ENTRY_COLUMNS}, entry_private!inner(moderated_at)`)
+      .select(`${ENTRY_COLUMNS}, entry_private!inner(moderated_at, email, submitter_name, prize_eligible)`)
       .eq("season_id", seasonId)
       .eq("status", "approved")
       .gte("entry_private.moderated_at", since)

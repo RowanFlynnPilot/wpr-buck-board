@@ -44,6 +44,23 @@ export function openingWeekendSponsor(board: Board): Sponsor | undefined {
   return board.sponsors.find((s) => s.tier === "opening_weekend");
 }
 
+// Every entrant whose deer goes on the board gets this sponsor's offer, by email when it's posted.
+export function thankYouSponsor(board: Board): Sponsor | undefined {
+  return board.sponsors.find((s) => s.tier === "thank_you");
+}
+
+export function weeklySponsor(board: Board): Sponsor | undefined {
+  return board.sponsors.find((s) => s.tier === "deer_of_the_week");
+}
+
+// Deer of the Week runs on Fridays while entries are open, so the last is the last Friday before
+// entries close (set_weekly_pick refuses any later one).
+export function lastWeeklyFriday(season: Season): string {
+  const lastDay = wausauDay(new Date(Date.parse(season.entries_close_at) - 1).toISOString());
+  const weekday = new Date(`${lastDay}T12:00:00Z`).getUTCDay();
+  return addDays(lastDay, -((weekday - 5 + 7) % 7));
+}
+
 export function presentingSponsor(board: Board): Sponsor | undefined {
   return board.sponsors.find((s) => s.tier === "presenting");
 }

@@ -17,7 +17,8 @@ export interface StoredEntry {
   age_group: "youth" | "adult" | "veteran";
   story: string | null;
   photo_credit: string | null;
-  seasons: { entries_close_at: string; winners_at: string };
+  // The season's sponsors, for the thank-you every entrant gets once a deer is posted.
+  seasons: { entries_close_at: string; winners_at: string; sponsors?: { name: string; prize: string; tier: string }[] };
   entry_private: {
     submitter_name: string;
     email: string;
@@ -79,6 +80,21 @@ function record(entry: StoredEntry): string[] {
   ];
 }
 
+// A sponsor's own link, tagged like the board's so the visit shows up in its analytics as ours.
+function sponsorLink(url: string | null, placement: string): string | null {
+  if (!url) return null;
+  try {
+    const tagged = new URL(url);
+    tagged.searchParams.set("utm_source", "wausaupilotandreview");
+    tagged.searchParams.set("utm_medium", "email");
+    tagged.searchParams.set("utm_campaign", "brag-board");
+    tagged.searchParams.set("utm_content", placement);
+    return tagged.toString();
+  } catch {
+    return null;
+  }
+}
+
 // One simple, readable layout for every email: paragraphs, with an optional photo up top (linked
 // when it has somewhere to go).
 function page(paragraphs: string[], photo?: { src: string; alt: string; width?: number; href?: string }): string {
@@ -107,6 +123,11 @@ export function confirmationEmail(entry: StoredEntry, id: string): Email {
     "Questions, or need to change something? Just reply to this email.",
   ];
   const youthNote = youth ? [`${entry.hunter_name} is the name we’ll publish, as you chose.`] : [];
+  // The thank-you itself comes with the posted email, so a deer that isn't posted doesn't earn it.
+  const thankYou = entry.seasons.sponsors?.find((s) => s.tier === "thank_you");
+  const thankYouNote = thankYou
+    ? [`When your deer goes on the board, we’ll email you its link, and a thank-you from ${thankYou.name}: ${thankYou.prize}.`]
+    : [];
 
   return {
     to: [contact.email],
@@ -117,6 +138,7 @@ export function confirmationEmail(entry: StoredEntry, id: string): Email {
       "Thanks for entering the Hunting Brag Board! Here’s what we received:",
       lines.join("\n"),
       ...youthNote,
+      ...thankYouNote,
       ...closing,
       "Wausau Pilot & Review\nwausaupilotandreview.com",
     ].join("\n\n"),
@@ -125,6 +147,7 @@ export function confirmationEmail(entry: StoredEntry, id: string): Email {
       "Thanks for entering the Hunting Brag Board! Here’s what we received:",
       lines.map(escape).join("<br>"),
       ...youthNote.map(escape),
+      ...thankYouNote.map(escape),
       ...closing.map(escape),
       `Wausau Pilot &amp; Review<br><a href="https://wausaupilotandreview.com" style="color:#2c6a62">wausaupilotandreview.com</a>`,
     ]),
@@ -199,6 +222,14 @@ export interface PostedNotice {
   voting_open_at: string;
   voting_close_at: string;
   winners_at: string;
+  // The thank-you sponsor's offer (migration 0016); redemption details null until staff add them.
+  thank_you: {
+    sponsor: string;
+    offer: string;
+    website_url: string | null;
+    how_to_redeem: string | null;
+    code: string | null;
+  } | null;
 }
 
 // "Dec. 14–18", or "Nov. 30 to Dec. 4" across a month.
@@ -228,6 +259,20 @@ export function postedEmail(
   const story = "On a phone, tap Share under the deer on the board for an image sized for Facebook and Instagram Stories.";
   const link = (href: string, text: string, bold = false) =>
     `<a href="${escape(href)}" style="color:#2c6a62${bold ? ";font-weight:bold" : ""}">${escape(text)}</a>`;
+  // Every entrant whose deer is posted gets the thank-you sponsor's offer, here and only here.
+  const thanks = notice.thank_you;
+  const redeem = thanks && (thanks.how_to_redeem ?? `Show this email at ${thanks.sponsor} to redeem it.`);
+  const thanksText = thanks
+    ? [`A thank-you from ${thanks.sponsor}: ${thanks.offer}. ${redeem}${thanks.code ? ` Your code: ${thanks.code}` : ""}`]
+    : [];
+  const thanksSponsor = thanks && sponsorLink(thanks.website_url, "posted-email");
+  const thanksHtml = thanks
+    ? [
+      `<strong>A thank-you from ${thanksSponsor ? link(thanksSponsor, thanks.sponsor, true) : escape(thanks.sponsor)}:</strong> ` +
+      `${escape(thanks.offer)}. ${escape(redeem ?? "")}` +
+      (thanks.code ? ` Your code: <strong style="font-size:18px;letter-spacing:1px">${escape(thanks.code)}</strong>` : ""),
+    ]
+    : [];
 
   return {
     to: [notice.email],
@@ -238,6 +283,7 @@ export function postedEmail(
       `Good news: ${headline}.`,
       `See it on the board: ${onBoard}`,
       `Share it on Facebook: ${facebook}\nOr send this link: ${links.share}`,
+      ...thanksText,
       story,
       season,
       `${another} ${enter}`,
@@ -250,6 +296,7 @@ export function postedEmail(
         `Good news: ${escape(headline)}.`,
         link(onBoard, "See it on the board", true),
         `Share it with friends and family: ${link(facebook, "share on Facebook")}, or send this link: ${link(links.share, links.share)}`,
+        ...thanksHtml,
         escape(story),
         escape(season),
         `${escape(another)} ${link(enter, "Enter your deer")}`,

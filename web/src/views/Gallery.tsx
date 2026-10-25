@@ -4,16 +4,25 @@ import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { CountyMap } from "../components/CountyMap";
+import { DeerOfTheWeek } from "../components/DeerOfTheWeek";
 import { EmptyLead } from "../components/EmptyLead";
 import { LeadDeer } from "../components/LeadDeer";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { ReadersChoice } from "../components/ReadersChoice";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { loadAwardWinners, loadCatalog, loadFinalists, loadGallery, loadSeason } from "../data";
+import { loadAwardWinners, loadCatalog, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../data";
 import { env } from "../env";
 import { scrollIntoView } from "../host";
-import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor } from "../phase";
+import {
+  awardSponsor,
+  gunOpenerLine,
+  openingWeekend,
+  phaseLine,
+  presentingSponsor,
+  thankYouSponsor,
+  weeklySponsor,
+} from "../phase";
 import { LINKED_ENTRY } from "../share";
 import type { AwardKind } from "../types";
 import { useLoad } from "../useLoad";
@@ -24,13 +33,14 @@ const PAGE_SIZE = 24;
 async function loadGalleryPage() {
   const season = await loadSeason();
   const voting = season.phase === "voting" || season.phase === "tallying";
-  const [catalog, entries, winners, finalists] = await Promise.all([
+  const [catalog, entries, winners, finalists, weekly] = await Promise.all([
     loadCatalog(season.id),
     loadGallery(season.id),
     season.phase === "winners" ? loadAwardWinners(season.id) : Promise.resolve([]),
     voting ? loadFinalists(season.id) : Promise.resolve([]),
+    season.phase === "upcoming" ? Promise.resolve([]) : loadWeeklyPicks(season.id),
   ]);
-  return { board: { season, ...catalog }, entries, winners, finalists };
+  return { board: { season, ...catalog }, entries, winners, finalists, weekly };
 }
 
 export function Gallery() {
@@ -53,7 +63,7 @@ export function Gallery() {
   if (page.status === "loading") return <p className="status">Loading the Brag Board…</p>;
   if (page.status === "failed") return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
 
-  const { board, entries, winners, finalists } = page.data;
+  const { board, entries, winners, finalists, weekly } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
   const linkedId = LINKED_ENTRY?.id;
@@ -76,6 +86,10 @@ export function Gallery() {
   const front = filling && (newest !== undefined || empty);
   const lead = front || !filter ? newest : undefined;
   const rest = lead && !filter ? visible.slice(1) : visible;
+  const thankYou = thankYouSponsor(board);
+  // Every Deer of the Week wears a tag all season; the latest leads its band after the front.
+  const weekOf = (id: string) => weekly.find((w) => w.entry_id === id)?.week_of;
+  const latestWeekly = weekly[0] && entries.find((e) => e.id === weekly[0].entry_id);
   // What a deer's Story image names: the season and the presenting sponsor.
   const storyFacts = { year: season.year, presenting };
   const weekend = openingWeekend(season);
@@ -105,13 +119,23 @@ export function Gallery() {
             {season.phase !== "upcoming" && entries.length > 0 && <strong>{entries.length} deer on the board. </strong>}
             {phaseLine(season)} {gunOpenerLine(season)}
           </p>
+          {thankYou && (season.phase === "upcoming" || season.phase === "entries") && (
+            <p className="masthead-thanks">
+              Every entrant whose deer goes on the board gets <strong>{thankYou.prize}</strong>, from {thankYou.name}.
+            </p>
+          )}
           {season.phase === "entries" && (
             <a className="button button-blaze" href={env.enterPageUrl} target="_top">
               Enter your deer
             </a>
           )}
         </header>
-        {front && (newest ? <LeadDeer entry={newest} storyFacts={storyFacts} /> : <EmptyLead season={season} />)}
+        {front &&
+          (newest ? (
+            <LeadDeer entry={newest} storyFacts={storyFacts} weekOf={weekOf(newest.id)} />
+          ) : (
+            <EmptyLead season={season} />
+          ))}
       </div>
 
       {LINKED_ENTRY &&
@@ -124,6 +148,7 @@ export function Gallery() {
               share
               storyFacts={storyFacts}
               featured
+              weekOf={weekOf(linked.id)}
             />
           </section>
         ) : (
@@ -158,13 +183,21 @@ export function Gallery() {
         <OpeningWeekend board={board} count={openerDeer.length} first={firstOpenerBuck} storyFacts={storyFacts} />
       )}
 
+      {season.phase === "entries" && (latestWeekly || weeklySponsor(board)) && (
+        <DeerOfTheWeek
+          board={board}
+          pick={latestWeekly && { entry: latestWeekly, weekOf: weekly[0].week_of }}
+          storyFacts={storyFacts}
+        />
+      )}
+
       {season.phase === "upcoming" ? (
         <AwardsAndPrizes board={board} />
       ) : (
         <>
           {lead && !front && (
             <div className="lead" data-reveal>
-              <LeadDeer entry={lead} storyFacts={storyFacts} />
+              <LeadDeer entry={lead} storyFacts={storyFacts} weekOf={weekOf(lead.id)} />
             </div>
           )}
 
@@ -209,7 +242,7 @@ export function Gallery() {
           ) : (
             <div className="entry-grid">
               {rest.slice(0, shown).map((entry) => (
-                <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} />
+                <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} weekOf={weekOf(entry.id)} />
               ))}
             </div>
           )}
