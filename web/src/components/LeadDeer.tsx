@@ -6,9 +6,18 @@ import type { CardFacts } from "../data";
 import { apDay, describeDeer, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../supabase";
 import type { GalleryEntry } from "../types";
+import { EntryTags } from "./EntryCard";
 import { ShareButton } from "./ShareButton";
 
-export function LeadDeer({ entry, storyFacts }: { entry: GalleryEntry; storyFacts: Omit<CardFacts, "entry"> }) {
+export function LeadDeer({
+  entry,
+  storyFacts,
+  weekOf,
+}: {
+  entry: GalleryEntry;
+  storyFacts: Omit<CardFacts, "entry">;
+  weekOf?: string;
+}) {
   const deer = describeDeer(entry.deer_type, entry.points);
   return (
     <>
@@ -20,7 +29,7 @@ export function LeadDeer({ entry, storyFacts }: { entry: GalleryEntry; storyFact
           fetchPriority="high"
           decoding="async"
         />
-        {entry.first_deer && <span className="entry-tag">First deer</span>}
+        <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
       </a>
       <section className="lead-text" aria-labelledby="lead-heading">
         <h2 id="lead-heading" className="lead-heading">

@@ -17,7 +17,9 @@ export type Placement =
   | "prize-drawing"
   | "winner-card"
   | "newsletter"
-  | "opening-weekend";
+  | "opening-weekend"
+  | "thank-you"
+  | "deer-of-the-week";
 
 // Tagged so the visit shows up in the sponsor's own analytics as coming from us.
 export function sponsorHref(sponsor: Sponsor, placement: Placement): string | null {
@@ -68,5 +70,7 @@ export function withDemoSponsors(catalog: Pick<Board, "awards" | "sponsors">): P
   });
   add("demo-prize-partner", "prize_partner");
   if (!sponsors.some((s) => s.tier === "opening_weekend")) add("demo-opening-weekend", "opening_weekend");
+  if (!sponsors.some((s) => s.tier === "thank_you")) add("demo-thank-you", "thank_you");
+  if (!sponsors.some((s) => s.tier === "deer_of_the_week")) add("demo-deer-of-the-week", "deer_of_the_week");
   return { awards, sponsors };
 }

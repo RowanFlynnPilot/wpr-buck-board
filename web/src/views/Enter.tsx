@@ -14,7 +14,7 @@ import { loadCatalog, loadCounties, loadSeason, submitEntry, type EntrySubmissio
 import { env } from "../env";
 import { AGE_LABELS, WEAPON_LABELS, apDate, apDay, apLastDay, todayInWausau } from "../format";
 import { embedded, scrollToTop } from "../host";
-import { phaseLine, presentingSponsor } from "../phase";
+import { phaseLine, presentingSponsor, thankYouSponsor } from "../phase";
 import { preparePhoto, type PreparedPhoto } from "../photo";
 import { DEMO } from "../sales";
 import type { AgeGroup, DeerType, EntryFields, Weapon } from "../types";
@@ -132,6 +132,7 @@ export function Enter() {
   const { board, counties } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
+  const thankYou = thankYouSponsor(board);
   const youth = entry.age_group === "youth";
   const lastDay = apLastDay(season.entries_close_at);
 
@@ -223,6 +224,7 @@ export function Enter() {
           {!DEMO && "We'll email you a confirmation. "}Our staff reviews every entry before it goes on the board, and we
           feature new deer in our Friday newsletter. Winners will be announced {apDate(season.winners_at)} and contacted
           by email. Got another deer this season? Enter again anytime through {lastDay}.
+          {thankYou && ` When your deer is posted, we'll email you its link and your thank-you from ${thankYou.name}.`}
         </p>
         {DEMO && photo && (
           <>
@@ -259,6 +261,15 @@ export function Enter() {
           to be featured on Wausau Pilot & Review and win prizes from local businesses. Entry is free, hunters of all ages
           are welcome, and bow and gun hunters alike can enter. Entries close at 11:59 p.m. {lastDay}.
         </p>
+        {thankYou && (
+          <div className="enter-thanks">
+            <p>
+              Every entrant whose deer goes on the board gets <strong>{thankYou.prize}</strong>, from {thankYou.name}. It
+              comes by email when your deer is posted.
+            </p>
+            <SponsorCredit sponsor={thankYou} placement="thank-you" lead={null} />
+          </div>
+        )}
         {IN_APP_TIP && <p className="inapp-note">{IN_APP_TIP}</p>}
       </header>
 

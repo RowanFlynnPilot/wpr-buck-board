@@ -4,7 +4,7 @@ import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { countEntries, countHarvested, loadAwardWinners, loadCatalog, loadFinalistEntries, loadGallery, loadSeason } from "../data";
 import { env } from "../env";
-import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor } from "../phase";
+import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor, thankYouSponsor } from "../phase";
 import { entryPageUrl } from "../share";
 import { photoUrl } from "../supabase";
 import { useLoad } from "../useLoad";
@@ -47,6 +47,7 @@ export function Embed() {
   const { season } = board;
   const presenting = presentingSponsor(board);
   const gunLine = gunOpenerLine(season);
+  const thankYou = season.phase === "entries" ? thankYouSponsor(board) : undefined;
 
   return (
     <section className="strip">
@@ -72,6 +73,7 @@ export function Embed() {
           <strong>Show off your deer. It's free to enter, and hunters of all ages are welcome. </strong>
         )}
         {phaseLine(season)} {gunLine}
+        {thankYou && ` Every entrant whose deer goes on the board gets ${thankYou.prize}, from ${thankYou.name}.`}
       </p>
 
       {opener !== null && <OpeningWeekend board={board} count={opener} />}
