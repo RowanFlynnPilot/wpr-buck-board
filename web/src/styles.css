@@ -727,6 +727,10 @@ img {
   color: var(--bark);
 }
 
+.county-map-dnr {
+  margin-top: -0.4rem;
+}
+
 .county-map-line strong {
   color: var(--ink);
 }

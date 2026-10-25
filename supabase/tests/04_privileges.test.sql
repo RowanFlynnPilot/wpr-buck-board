@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(79);
+select plan(81);
 
 -- These assert the privilege map in both directions, so a missing grant fails CI
 -- as loudly as an extra one.
@@ -26,6 +26,9 @@ select ok(has_table_privilege('anon', 'public.blocked_email_domains', 'select'),
 select ok(has_table_privilege('authenticated', 'public.blocked_email_domains', 'select'), 'authenticated reads the blocked email domains');
 select ok(has_table_privilege('authenticated', 'public.prize_forfeits', 'select'), 'authenticated reads forfeits (RLS: staff only)');
 select ok(not has_table_privilege('anon', 'public.prize_forfeits', 'select'), 'anon cannot read forfeits');
+-- The DNR's published count (migration 0017).
+select ok(has_table_privilege('anon', 'public.dnr_tallies', 'select'), 'anon reads the DNR''s count');
+select ok(has_table_privilege('authenticated', 'public.dnr_tallies', 'select'), 'authenticated reads the DNR''s count');
 -- Deer of the Week and the thank-you offer (migration 0016).
 select ok(has_table_privilege('anon', 'public.weekly_picks', 'select'), 'anon reads Deer of the Week picks (RLS: from their Friday)');
 select ok(has_table_privilege('authenticated', 'public.weekly_picks', 'select'), 'authenticated reads Deer of the Week picks (RLS: from their Friday, or staff)');
@@ -63,7 +66,7 @@ select is(
         unnest(array['public.staff', 'public.entry_private', 'public.drawing_winners', 'public.newsletter_optins',
                      'public.sponsors', 'public.awards', 'public.wi_counties',
                      'public.finalists', 'public.prize_forfeits', 'public.blocked_email_domains',
-                     'public.weekly_picks', 'public.thank_you_offers']) tbl
+                     'public.weekly_picks', 'public.thank_you_offers', 'public.dnr_tallies']) tbl
    where has_table_privilege(role, tbl, 'insert,update,delete,truncate')),
   null,
   'no API role can write staff, entrant details, the drawing, opt-ins or the catalog directly'

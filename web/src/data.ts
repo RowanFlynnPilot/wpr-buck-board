@@ -6,6 +6,7 @@ import type {
   Award,
   AwardWinner,
   Board,
+  DnrTally,
   DrawnPrize,
   EntryFields,
   EntryStatus,
@@ -105,6 +106,19 @@ export async function loadFinalistEntries(seasonId: string): Promise<GalleryEntr
 
 export async function setFinalist(entryId: string, on: boolean): Promise<void> {
   await rows<null>(supabase.rpc("set_finalist", { p_entry_id: entryId, p_finalist: on }));
+}
+
+// The DNR's latest count this season (the gun season's, once it's in), or null before the first.
+export async function loadDnrTally(seasonId: string): Promise<DnrTally | null> {
+  const tallies = await rows<DnrTally[]>(
+    supabase
+      .from("dnr_tallies")
+      .select("period, released_on, statewide, marathon, source_url")
+      .eq("season_id", seasonId)
+      .order("released_on", { ascending: false })
+      .limit(1),
+  );
+  return tallies[0] ?? null;
 }
 
 // Newest first. Readers get each pick from its Friday on; staff also see one queued for Friday.

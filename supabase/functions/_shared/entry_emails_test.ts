@@ -196,6 +196,21 @@ Deno.test("a thank-you without redemption details says to show the email, and a 
   assertStringIncludes(email.html, "<strong>A thank-you from Example Outfitters:</strong>");
 });
 
+Deno.test("a first deer's email points to the DNR's free first-harvest certificate; any other deer's doesn't", () => {
+  const first = postedEmail(POSTED, "e2", POSTED_LINKS);
+  assertStringIncludes(first.text, "the Wisconsin DNR makes a free one from your photo at https://dnr.wisconsin.gov/topic/hunt/firstcert.html");
+  assertStringIncludes(first.html, 'href="https://dnr.wisconsin.gov/topic/hunt/firstcert.html"');
+  const other = postedEmail({ ...POSTED, first_deer: false, points: 9 }, "e2", POSTED_LINKS);
+  assert(!other.text.includes("certificate"));
+});
+
+Deno.test("every posted email mentions the Deer Donation Program, CWD testing included", () => {
+  const email = postedEmail({ ...POSTED, first_deer: false }, "e2", POSTED_LINKS);
+  assertStringIncludes(email.text, "Donating a deer to a food pantry is free through the DNR’s Deer Donation Program.");
+  assertStringIncludes(email.text, "https://dnr.wisconsin.gov/topic/hunt/donation.html (deer from counties that require CWD testing need a test first).");
+  assertStringIncludes(email.html, 'href="https://dnr.wisconsin.gov/topic/hunt/donation.html"');
+});
+
 Deno.test("a name in the posted email can't become markup", () => {
   const html = postedEmail({ ...POSTED, hunter_name: "<b>Kid</b>" }, "e2", POSTED_LINKS).html;
   assert(!html.includes("<b>Kid</b>") && html.includes("&lt;b&gt;Kid&lt;/b&gt;"));
