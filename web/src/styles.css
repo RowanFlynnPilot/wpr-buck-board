@@ -1055,10 +1055,21 @@ img {
   }
 }
 
-.weekly-text {
+.weekly-text,
+.weekly-offer {
   display: grid;
   gap: 0.5rem;
   align-content: start;
+  justify-items: start;
+}
+
+/* Before the first pick: what it is on one side, the prize and its sponsor on the other, so the
+   band isn't all on the left. */
+@media (min-width: 720px) {
+  .weekly:not(.weekly-with-pick) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
 }
 
 .weekly-heading {
@@ -1662,6 +1673,14 @@ h1[tabindex="-1"]:focus {
 
 .front > .masthead {
   grid-area: head;
+}
+
+/* The title in five columns: one step smaller than elsewhere, so "Hunting Brag Board" holds one
+   line and "presented by …" the next, rather than breaking the name across two. */
+@media (min-width: 900px) {
+  .front > .masthead h1 {
+    font-size: clamp(2rem, 3.6vw, 2.875rem);
+  }
 }
 
 .front > .lead-photo {
