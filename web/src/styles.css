@@ -1518,6 +1518,20 @@ textarea {
 }
 
 /* Staff tools: tabs, so they read differently from the status pills under them. */
+/* On a touchscreen a text button and a staff tab are at least a thumb tall (44px), so "Edit…",
+   "Staff household…", "Read the story" and the like aren't a 22px target; the words don't move. */
+@media (pointer: coarse) {
+  .link-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .tools button {
+    min-height: 44px;
+  }
+}
+
 .tools {
   display: flex;
   flex-wrap: wrap;
