@@ -1,20 +1,19 @@
 // What entrants can win: each award with its prize and presenting sponsor, and the
 // Prize Partner drawing. The whole page before entries open; the foot of it after.
-// Until entries close, an award or drawing with no sponsor yet tells readers its prize is to be
-// announced, and the section ends with one card for businesses: one ask, not one per award.
-import { apDate, apDay } from "../format";
+// An award with no sponsor is an honor, shown without a prize line. Until entries close,
+// Readers' Choice or a drawing with no prize yet tells readers its prize is to be announced,
+// and the section ends with one card for businesses: one ask, not one per award.
+import { apDate, apDay, apNumber } from "../format";
 import { awardSponsor, lastWeeklyFriday, presentingSponsor, thankYouSponsor, weeklySponsor } from "../phase";
 import { DEMO } from "../sales";
-import type { Board } from "../types";
+import type { Board, Sponsor } from "../types";
 import { SponsorCredit } from "./SponsorCredit";
 import { UpsellCard } from "./UpsellCard";
 
 export function AwardsAndPrizes({ board }: { board: Board }) {
   const { season } = board;
   const selling = !DEMO && (season.phase === "upcoming" || season.phase === "entries");
-  const drawing = board.sponsors
-    .filter((s) => s.tier === "prize_partner")
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const drawing = drawingPrizes(board.sponsors);
   const openAward = board.awards.some((award) => award.kind !== "readers_choice" && !awardSponsor(board, award));
   // Both run while entries are open; afterward the awards and the drawing are what's left to win.
   const running = season.phase === "upcoming" || season.phase === "entries";
@@ -31,7 +30,7 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
         <ul className="award-list">
           {board.awards.map((award) => {
             // Readers' Choice falls back to the presenting sponsor, so its prize is unannounced
-            // only while that slot is unsold.
+            // only while that slot is unsold. Any other award without a sponsor is an honor.
             const sponsor = awardSponsor(board, award);
             return (
               <li key={award.id}>
@@ -43,11 +42,7 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
                     <SponsorCredit sponsor={sponsor} placement="awards-list" />
                   </>
                 ) : (
-                  selling && (
-                    <p className="award-prize-tba">
-                      {award.kind === "readers_choice" ? "Grand prize to be announced" : "Prize to be announced"}
-                    </p>
-                  )
+                  selling && award.kind === "readers_choice" && <p className="award-prize-tba">Grand prize to be announced</p>
                 )}
               </li>
             );
@@ -64,9 +59,10 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
           </p>
           {drawing.length > 0 ? (
             <ul className="drawing-list">
-              {drawing.map((sponsor) => (
+              {drawing.map(({ sponsor, count }) => (
                 <li key={sponsor.id}>
                   <p className="award-prize">{sponsor.prize}</p>
+                  {count > 1 && <p className="drawing-count">{apNumber(count).replace(/^./, (c) => c.toUpperCase())} winners</p>}
                   <SponsorCredit sponsor={sponsor} placement="prize-drawing" lead="From" />
                 </li>
               ))}
@@ -127,4 +123,17 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
       )}
     </section>
   );
+}
+
+// The drawing's prizes, by giver. A business giving several of one prize (six sets of tickets)
+// has a Prize Partner row for each, so each is drawn and redrawn on its own; the board lists it
+// once, with how many winners it has.
+function drawingPrizes(sponsors: Sponsor[]): { sponsor: Sponsor; count: number }[] {
+  const prizes: { sponsor: Sponsor; count: number }[] = [];
+  for (const sponsor of sponsors.filter((s) => s.tier === "prize_partner").sort((a, b) => a.name.localeCompare(b.name))) {
+    const same = prizes.find((p) => p.sponsor.name === sponsor.name && p.sponsor.prize === sponsor.prize);
+    if (same) same.count += 1;
+    else prizes.push({ sponsor, count: 1 });
+  }
+  return prizes;
 }

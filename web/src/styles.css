@@ -313,6 +313,15 @@ img {
   object-fit: contain;
 }
 
+/* A sponsor without a logo yet: its name, set like a wordmark. */
+.sponsor-name {
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 /* `?demo` stand-in for an unsold slot's logo. */
 .sponsor-logo-demo {
   display: inline-grid;
@@ -647,7 +656,12 @@ img {
   font-weight: 700;
 }
 
-/* An award or drawing with no sponsor yet: a fact for readers, not a sales pitch. */
+/* A drawing prize given several times. */
+.drawing-count {
+  color: var(--bark);
+}
+
+/* Readers' Choice or the drawing with no prize yet: a fact for readers, not a sales pitch. */
 .award-list .award-prize-tba,
 .award-prize-tba {
   color: var(--bark);
@@ -725,6 +739,10 @@ img {
 .entry .sponsor-logo {
   max-height: 32px;
   max-width: 120px;
+}
+
+.entry .sponsor-name {
+  font-size: 0.9375rem;
 }
 
 .entry .sponsor-logo-demo {

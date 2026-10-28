@@ -13,10 +13,14 @@ export function SponsorCredit({
   placement: Placement;
   lead?: string | null;
 }) {
+  // Without a logo, the name: set in type for a sponsor whose logo hasn't come (or a prize giver
+  // who sent none), boxed for a `?demo` placeholder.
   const logo = sponsor.demo ? (
     <span className="sponsor-logo-demo">{sponsor.name}</span>
-  ) : (
+  ) : sponsor.logo_path ? (
     <img src={logoUrl(sponsor.logo_path)} alt={sponsor.name} className="sponsor-logo" />
+  ) : (
+    <span className="sponsor-name">{sponsor.name}</span>
   );
   const href = sponsorHref(sponsor, placement);
   return (

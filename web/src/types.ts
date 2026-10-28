@@ -33,7 +33,8 @@ export interface Sponsor {
   id: string;
   name: string;
   tier: SponsorTier;
-  logo_path: string;
+  // Null until the logo arrives, or for a prize giver without one: the name stands in.
+  logo_path: string | null;
   website_url: string | null;
   prize: string;
   qr_slug: string;
