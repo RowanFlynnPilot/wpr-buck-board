@@ -287,8 +287,8 @@ function Drawing({
       ) : drawn.length === 0 ? (
         <>
           <p className="hint">
-            One prize per Prize Partner, one ticket per entrant (by email), drawn at random from everyone with a deer on
-            the board, skipping staff households. It runs once, after entries close {apLastDay(season.entries_close_at)}{" "}
+            Each prize goes to a different entrant: one ticket per entrant (by email), drawn at random from everyone
+            with a deer on the board, skipping staff households. It runs once, after entries close {apLastDay(season.entries_close_at)}{" "}
             and every entry is posted or declined.
           </p>
           <button type="button" className="button" disabled={!closed || busy === "draw"} onClick={() => run(() => runDrawing(season.id), "draw")}>

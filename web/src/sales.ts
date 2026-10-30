@@ -52,7 +52,7 @@ export function withDemoSponsors(catalog: Pick<Board, "awards" | "sponsors">): P
       id,
       name: "Your business here",
       tier,
-      logo_path: "",
+      logo_path: null,
       website_url: null,
       prize: "[Your prize here]",
       qr_slug: id,

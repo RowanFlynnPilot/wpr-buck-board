@@ -31,7 +31,7 @@ export async function drawShareCard(facts: CardFacts): Promise<Blob> {
     loadImage(photoUrl(facts.entry.photo_id, "full")),
     loadImage(`${import.meta.env.BASE_URL}wpr-typewriter-badge.png`),
     // A card without the logo still names the sponsor.
-    facts.presenting ? loadImage(logoUrl(facts.presenting.logo_path)).catch(() => null) : null,
+    facts.presenting?.logo_path ? loadImage(logoUrl(facts.presenting.logo_path)).catch(() => null) : null,
     document.fonts.load(`700 50px ${DISPLAY}`),
     document.fonts.load(`500 27px ${DISPLAY}`),
     document.fonts.load(`400 24px ${BODY}`),
@@ -151,8 +151,8 @@ async function drawPortrait(facts: CardFacts, layout: Portrait): Promise<Blob> {
   const [photo, badge, logo] = await Promise.all([
     loadImage(photoUrl(facts.entry.photo_id, "full")),
     loadImage(`${import.meta.env.BASE_URL}wpr-typewriter-badge.png`),
-    // A `?demo` placeholder has no logo; its name stands in.
-    facts.presenting && !facts.presenting.demo ? loadImage(logoUrl(facts.presenting.logo_path)).catch(() => null) : null,
+    // A card without the logo (a `?demo` placeholder has none) still names the sponsor.
+    facts.presenting?.logo_path ? loadImage(logoUrl(facts.presenting.logo_path)).catch(() => null) : null,
     document.fonts.load(`700 96px ${DISPLAY}`),
     document.fonts.load(`500 46px ${DISPLAY}`),
     document.fonts.load(`400 40px ${BODY}`),

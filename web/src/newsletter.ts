@@ -59,9 +59,9 @@ function deerCell(entry: EntryFields, href: string, side: "left" | "right"): str
 // Logos in email: PNG, JPEG or GIF only (Gmail drops SVG, Outlook drops WebP). Otherwise, the name.
 function sponsorMark(sponsor: Sponsor): string {
   const href = sponsorHref(sponsor, "newsletter");
-  const emailSafe = /\.(png|jpe?g|gif)$/i.test(sponsor.logo_path);
-  const mark = emailSafe
-    ? `<img src="${esc(logoUrl(sponsor.logo_path))}" alt="${esc(sponsor.name)}" height="32" style="height:32px; width:auto; border:0; vertical-align:middle;">`
+  const logo = sponsor.logo_path && /\.(png|jpe?g|gif)$/i.test(sponsor.logo_path) ? sponsor.logo_path : null;
+  const mark = logo
+    ? `<img src="${esc(logoUrl(logo))}" alt="${esc(sponsor.name)}" height="32" style="height:32px; width:auto; border:0; vertical-align:middle;">`
     : `<strong style="color:#1a1a1a;">${esc(sponsor.name)}</strong>`;
   return href ? `<a href="${esc(href)}" style="text-decoration:none;">${mark}</a>` : mark;
 }
