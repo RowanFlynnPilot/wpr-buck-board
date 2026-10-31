@@ -1,9 +1,13 @@
 // Front-page strip. One embed for the whole season: what it shows follows the calendar.
+// WPR's front page holds only its iframe, at a set height (README "WordPress embed"), so in a
+// frame the strip fills that height exactly: the words take what they need and the pictures
+// the rest, as many as fit the width.
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { countEntries, countHarvested, loadAwardWinners, loadCatalog, loadFinalistEntries, loadGallery, loadSeason } from "../reads";
 import { env } from "../env";
+import { embedded } from "../host";
 import { awardSponsor, gunOpenerLine, openingWeekend, phaseLine, presentingSponsor, thankYouSponsor } from "../phase";
 import { entryPageUrl } from "../share";
 import { photoUrl } from "../storage";
@@ -50,9 +54,17 @@ export function Embed() {
   const presenting = presentingSponsor(board);
   const gunLine = gunOpenerLine(season);
   const thankYou = season.phase === "entries" ? thankYouSponsor(board) : undefined;
+  // In a frame, winners are pictures like the deer before them, the grand prize first; on its
+  // own, the strip has the room for each winner's card.
+  const tiles =
+    embedded && picks.length > 0
+      ? [...picks]
+          .sort((a, b) => Number(b.award.kind === "readers_choice") - Number(a.award.kind === "readers_choice"))
+          .map(({ award, entry }) => ({ entry, caption: `${award.label}: ${entry.hunter_name}` }))
+      : latest.map((entry) => ({ entry, caption: entry.hunter_name }));
 
   return (
-    <section className="strip" aria-labelledby="strip-heading">
+    <section className={embedded ? "strip strip-framed" : "strip"} aria-labelledby="strip-heading">
       <div className="strip-head">
         <h2 id="strip-heading" className="strip-title">
           <a href={env.galleryPageUrl} target="_top">
@@ -80,13 +92,13 @@ export function Embed() {
 
       {opener !== null && <OpeningWeekend board={board} count={opener} />}
 
-      {latest.length > 0 && (
+      {tiles.length > 0 && (
         <ul className="strip-photos">
-          {latest.map((entry) => (
+          {tiles.map(({ entry, caption }) => (
             <li key={entry.id}>
               <a href={entryPageUrl(entry.id, "front-page")} target="_top">
                 <img src={photoUrl(entry.photo_id, "thumb")} alt={`${entry.hunter_name}'s deer`} loading="lazy" />
-                <span>{entry.hunter_name}</span>
+                <span>{caption}</span>
               </a>
             </li>
           ))}
@@ -120,7 +132,7 @@ export function Embed() {
         </figure>
       )}
 
-      {picks.length > 0 && (
+      {picks.length > 0 && !embedded && (
         <div className="strip-winners">
           {picks.map(({ award, entry }) => (
             <EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} />

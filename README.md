@@ -69,12 +69,13 @@ Brag Board page, at the very top, above the rules:
 
 With it, every Brag Board frame on a page is sized to the board, with no inner scrollbar, and the page scrolls to the form after Enter. On the Brag Board page it also opens the form at `#enter` and a deer at `#entry=<id>`, where share links, the front-page strip's photos and the posted email land; without it those links open the board at the top. The frames are found by their address, so nothing in the page changes. If the firewall refuses to save that too, ask the host to check its ModSecurity log for the save and allow the rule.
 
-**Front page: not yet.** The strip's height changes with the column (about 540–1,090px with deer, measured Oct. 31), so no fixed frame fits it. It goes on once `embed.js` is installed, which sizes it, or once the strip has a fixed-frame layout like the fish fry's compact embed:
+Front page, where the strip should sit:
 
 ```html
-<iframe src="https://rowanflynnpilot.github.io/wpr-buck-board/#/embed" title="Hunting Brag Board" style="width:100%;height:600px;border:0;display:block" loading="lazy" allow="clipboard-write; web-share"></iframe>
+<iframe src="https://rowanflynnpilot.github.io/wpr-buck-board/#/embed" title="Hunting Brag Board" style="width:100%;height:max(540px,calc(880px - 60vw));border:0;display:block" loading="lazy" allow="clipboard-write; web-share"></iframe>
 ```
 
-`loading="lazy"`: the strip, its fonts and seven photos load only as a reader scrolls near it, so a `#/embed` pageview in Plausible means the strip was seen.
+- In a frame the strip fills the frame's height exactly: the words take what they need and the pictures the rest, the newest deer large and the others in as many columns as the width holds (the newest and two more on a phone, all seven from about 560px). The height is 540px on a wide screen and grows on narrow ones, where the words wrap onto more lines (about 650px on a phone). With very large text the strip scrolls inside the frame rather than clipping.
+- `loading="lazy"`: the strip, its fonts and photos load only as a reader scrolls near it, so a `#/embed` pageview in Plausible means the strip was seen.
 
 For sales pitches, `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/gallery` (or `#/embed`) fills every unsold slot with "Your business here" under a ribbon that explains the preview. Readers never see it. `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/enter` is the entry form to try out, on a phone too: it works as it will for readers but sends nothing, and ends on the deer as it would look on the board.
