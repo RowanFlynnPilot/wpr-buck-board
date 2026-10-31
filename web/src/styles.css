@@ -507,6 +507,64 @@ img {
   gap: var(--gap);
 }
 
+/* In a frame of a set height (WPR's front page holds only the iframe), the strip fills the frame:
+   the words take what they need and the pictures the rest. The newest deer stays large, two rows
+   tall, and the others fill as many columns as the width holds; on a phone that's the newest and
+   two more. With too little room (very large text) the frame scrolls rather than clipping words. */
+.strip-framed {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 6px); /* the blaze band above */
+  box-sizing: border-box;
+}
+
+.strip-framed .strip-photos,
+.strip-framed .strip-empty {
+  flex: 1 1 0;
+  min-height: 150px;
+}
+
+.strip-framed .strip-photos {
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: 0;
+  overflow: hidden;
+}
+
+.strip-framed .strip-photos li,
+.strip-framed .strip-photos a {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.strip-framed .strip-photos a {
+  flex: 1;
+}
+
+.strip-framed .strip-photos img {
+  flex: 1 1 0;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.strip-framed .strip-photos span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.strip-framed .strip-empty {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.strip-framed .strip-empty img {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
 /* Gallery ------------------------------------------------------------------ */
 
 .gallery {
