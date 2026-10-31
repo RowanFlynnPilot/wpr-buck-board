@@ -2179,31 +2179,40 @@ h1[tabindex="-1"]:focus {
   color: var(--paper);
 }
 
-/* Words on the dark panel: cream, the quieter lines at 72 to 86 percent (all above 7:1). */
-.front h1,
-.front .lead-name,
-.front a:not(.button),
-.front .link-button,
-.front .sponsor-name {
+/* During the vote and after, when the ballot and the winners lead and there's no front, the title
+   keeps its dark panel on its own (and so does a board a shared link opened). */
+.board-title {
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  border-radius: 6px;
+  background: var(--ink);
   color: var(--paper);
 }
 
-.front .title-sponsor,
-.front .masthead-season,
+/* Words on the dark panel: cream, the quieter lines at 72 to 86 percent (all above 7:1). */
+:is(.front, .board-title) h1,
+.front .lead-name,
+:is(.front, .board-title) a:not(.button),
+.front .link-button,
+:is(.front, .board-title) .sponsor-name {
+  color: var(--paper);
+}
+
+:is(.front, .board-title) .title-sponsor,
+:is(.front, .board-title) .masthead-season,
 .front .lead-heading,
 .front .entry-credit {
   color: rgba(246, 242, 233, 0.72);
 }
 
-.front .masthead-line,
-.front .masthead-thanks,
+:is(.front, .board-title) .masthead-line,
+:is(.front, .board-title) .masthead-thanks,
 .front .lead-record,
 .front .lead-story {
   color: rgba(246, 242, 233, 0.86);
 }
 
 /* The count, like a scoreboard. */
-.front .masthead-line > strong:first-child {
+:is(.front, .board-title) .masthead-line > strong:first-child {
   display: block;
   color: var(--blaze);
   font-family: var(--display);
@@ -2211,12 +2220,12 @@ h1[tabindex="-1"]:focus {
   line-height: 1.15;
 }
 
-.front .masthead-thanks strong {
+:is(.front, .board-title) .masthead-thanks strong {
   color: var(--paper);
 }
 
 /* A sponsor's logo on a white card, so a dark logo still reads on the panel. */
-.front .sponsor-logo {
+:is(.front, .board-title) .sponsor-logo {
   max-height: 56px;
   padding: 5px;
   border-radius: 4px;
