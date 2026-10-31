@@ -14,6 +14,7 @@ import { loadAwardWinners, loadCatalog, loadDnrTally, loadFinalists, loadGallery
 import { scrollIntoView, viewLink } from "../host";
 import {
   awardSponsor,
+  grandPrizeFirst,
   gunOpenerLine,
   openingWeekend,
   phaseLine,
@@ -161,11 +162,21 @@ export function Gallery() {
         <section className="winners" aria-labelledby="winners-heading">
           <h2 id="winners-heading">{season.year} winners</h2>
           <div className="entry-grid">
-            {board.awards.flatMap((award) => {
+            {grandPrizeFirst(board.awards).flatMap((award) => {
               const winner = winners.find((w) => w.award_id === award.id);
               const entry = winner && entries.find((e) => e.id === winner.entry_id);
               return entry
-                ? [<EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} share storyFacts={storyFacts} />]
+                ? [
+                    <EntryCard
+                      key={award.id}
+                      entry={entry}
+                      award={award.label}
+                      awardSponsor={awardSponsor(board, award)}
+                      ribbon={award.kind === "readers_choice" ? "grand" : "award"}
+                      share
+                      storyFacts={storyFacts}
+                    />,
+                  ]
                 : [];
             })}
           </div>

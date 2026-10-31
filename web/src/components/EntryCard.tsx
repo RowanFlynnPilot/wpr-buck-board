@@ -3,6 +3,7 @@ import type { CardFacts } from "../data";
 import { apDay, describeDeer, tidyStory, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../storage";
 import type { EntryFields, Sponsor } from "../types";
+import { Rosette } from "./Rosette";
 import { ShareButton } from "./ShareButton";
 import { SponsorCredit } from "./SponsorCredit";
 
@@ -14,6 +15,8 @@ interface Props {
   // Set on winner cards.
   award?: string;
   awardSponsor?: Sponsor;
+  // An award winner's print wears its rosette, the grand prize's in blaze.
+  ribbon?: "award" | "grand";
   // Public cards only: a deer waiting for review has no share page.
   share?: boolean;
   // With `share`: the season and presenting sponsor its Story image names.
@@ -26,7 +29,7 @@ interface Props {
   weekOf?: string;
 }
 
-export function EntryCard({ entry, award, awardSponsor, share = false, storyFacts, featured = false, photo, weekOf }: Props) {
+export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, storyFacts, featured = false, photo, weekOf }: Props) {
   const [storyOpen, setStoryOpen] = useState(false);
   const storyId = useId();
   const deer = describeDeer(entry.deer_type, entry.points);
@@ -35,6 +38,7 @@ export function EntryCard({ entry, award, awardSponsor, share = false, storyFact
 
   return (
     <article className={featured ? "entry entry-featured" : "entry"} data-reveal>
+      {ribbon && <Rosette grand={ribbon === "grand"} className="entry-ribbon" />}
       <a className="entry-photo" href={photo ?? photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
         <img
           src={photo ?? photoUrl(entry.photo_id, featured ? "full" : "thumb")}

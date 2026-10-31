@@ -135,7 +135,13 @@ export function Embed() {
       {picks.length > 0 && !embedded && (
         <div className="strip-winners">
           {picks.map(({ award, entry }) => (
-            <EntryCard key={award.id} entry={entry} award={award.label} awardSponsor={awardSponsor(board, award)} />
+            <EntryCard
+              key={award.id}
+              entry={entry}
+              award={award.label}
+              awardSponsor={awardSponsor(board, award)}
+              ribbon={award.kind === "readers_choice" ? "grand" : "award"}
+            />
           ))}
         </div>
       )}

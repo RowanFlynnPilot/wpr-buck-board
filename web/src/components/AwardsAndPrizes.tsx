@@ -1,11 +1,13 @@
 // What entrants can win: each award with its prize and presenting sponsor, and the
 // Prize Partner drawing. The whole page before entries open; the foot of it after.
+// Each award wears a rosette, and Readers' Choice, the grand prize, leads in a card of its own.
 // An award with no sponsor is an honor, shown without a prize line. Until entries close,
 // Readers' Choice or a drawing with no prize yet tells readers its prize is to be announced,
 // and the section ends with one card for businesses: one ask, not one per award.
 import { apDate, apDay, apNumber } from "../format";
-import { awardSponsor, lastWeeklyFriday, presentingSponsor, thankYouSponsor, weeklySponsor } from "../phase";
+import { awardSponsor, grandPrizeFirst, lastWeeklyFriday, presentingSponsor, thankYouSponsor, weeklySponsor } from "../phase";
 import { DEMO } from "../sales";
+import { Rosette } from "./Rosette";
 import type { Board, Sponsor } from "../types";
 import { SponsorCredit } from "./SponsorCredit";
 import { UpsellCard } from "./UpsellCard";
@@ -14,6 +16,7 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
   const { season } = board;
   const selling = !DEMO && (season.phase === "upcoming" || season.phase === "entries");
   const drawing = drawingPrizes(board.sponsors);
+  const awards = grandPrizeFirst(board.awards);
   const openAward = board.awards.some((award) => award.kind !== "readers_choice" && !awardSponsor(board, award));
   // Both run while entries are open; afterward the awards and the drawing are what's left to win.
   const running = season.phase === "upcoming" || season.phase === "entries";
@@ -28,22 +31,28 @@ export function AwardsAndPrizes({ board }: { board: Board }) {
           Every deer is considered for each award it qualifies for, so there's no category to pick when you enter.
         </p>
         <ul className="award-list">
-          {board.awards.map((award) => {
+          {awards.map((award) => {
             // Readers' Choice falls back to the presenting sponsor, so its prize is unannounced
             // only while that slot is unsold. Any other award without a sponsor is an honor.
             const sponsor = awardSponsor(board, award);
+            const grand = award.kind === "readers_choice";
             return (
-              <li key={award.id}>
-                <h3>{award.label}</h3>
-                <p>{award.description}</p>
-                {sponsor ? (
-                  <>
-                    <p className="award-prize">Prize: {sponsor.prize}</p>
-                    <SponsorCredit sponsor={sponsor} placement="awards-list" />
-                  </>
-                ) : (
-                  selling && award.kind === "readers_choice" && <p className="award-prize-tba">Grand prize to be announced</p>
-                )}
+              <li key={award.id} className={grand ? "award-grand" : undefined}>
+                <Rosette grand={grand} />
+                <div className="award-body">
+                  <h3>{award.label}</h3>
+                  <p>{award.description}</p>
+                  {sponsor ? (
+                    <>
+                      <p className="award-prize">
+                        {grand ? "Grand prize" : "Prize"}: {sponsor.prize}
+                      </p>
+                      <SponsorCredit sponsor={sponsor} placement="awards-list" />
+                    </>
+                  ) : (
+                    selling && grand && <p className="award-prize-tba">Grand prize to be announced</p>
+                  )}
+                </div>
               </li>
             );
           })}
