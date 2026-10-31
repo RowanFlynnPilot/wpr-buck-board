@@ -65,6 +65,11 @@ export function presentingSponsor(board: Board): Sponsor | undefined {
   return board.sponsors.find((s) => s.tier === "presenting");
 }
 
+// The awards with the grand prize, Readers' Choice, first: it leads the list and the winners.
+export function grandPrizeFirst(awards: Award[]): Award[] {
+  return [...awards].sort((a, b) => Number(b.kind === "readers_choice") - Number(a.kind === "readers_choice"));
+}
+
 // Readers' Choice belongs to the presenting sponsor, so a missed attach step in the SQL
 // editor still credits them rather than leaving the grand prize without a sponsor.
 export function awardSponsor(board: Board, award: Award): Sponsor | undefined {

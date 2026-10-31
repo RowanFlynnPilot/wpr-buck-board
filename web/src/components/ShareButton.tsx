@@ -5,6 +5,9 @@
 // On the board, a Story image goes beside it: the deer at 1080x1920, drawn in the reader's own
 // browser (shareCard.ts). A phone that can share files hands it to its share sheet, which offers
 // Facebook and Instagram Stories; anywhere else it downloads.
+//
+// A quiet pair of small pills on each print, not underlined links: the deer is the card, these are
+// its controls. Each is 32px tall to the eye and a thumb (44px) to a tap.
 import { useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import type { CardFacts } from "../data";
@@ -21,6 +24,24 @@ const CAN_SHARE_FILES = (() => {
 })();
 
 type StoryState = "idle" | "making" | "ready" | "failed";
+
+// The share sheet's own glyph (a box with an arrow out of it), and a phone screen with a plus.
+function ShareIcon() {
+  return (
+    <svg className="chip-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M8 10V1.75M5 4.5l3-3 3 3M4 7.5H3.25v7h9.5v-7H12" />
+    </svg>
+  );
+}
+
+function StoryIcon() {
+  return (
+    <svg className="chip-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <rect x="4" y="1.25" width="8" height="13.5" rx="1.75" />
+      <path d="M8 5.5v5M5.5 8h5" />
+    </svg>
+  );
+}
 
 export function ShareButton({ entry, story }: { entry: EntryFields; story?: CardFacts }) {
   const [options, setOptions] = useState(false);
@@ -107,7 +128,8 @@ export function ShareButton({ entry, story }: { entry: EntryFields; story?: Card
   };
 
   const storyButton = story && (
-    <button type="button" className="link-button" onClick={shareStory} disabled={storyState === "making"} aria-live="polite">
+    <button type="button" className="chip" onClick={shareStory} disabled={storyState === "making"} aria-live="polite">
+      <StoryIcon />
       {storyState === "making"
         ? "Making the image…"
         : storyState === "ready"
@@ -123,7 +145,8 @@ export function ShareButton({ entry, story }: { entry: EntryFields; story?: Card
   if (!options) {
     return (
       <span className="share-actions">
-        <button type="button" className="link-button share-button" onClick={share}>
+        <button type="button" className="chip share-button" onClick={share}>
+          <ShareIcon />
           Share
         </button>
         {storyButton}
@@ -135,6 +158,7 @@ export function ShareButton({ entry, story }: { entry: EntryFields; story?: Card
     <div className="share-options">
       <a
         ref={facebookRef}
+        className="chip"
         href={facebookShareUrl(entry.id)}
         target="_blank"
         rel="noopener noreferrer"
@@ -145,7 +169,7 @@ export function ShareButton({ entry, story }: { entry: EntryFields; story?: Card
       {copy === "blocked" ? (
         <input ref={linkRef} readOnly aria-label="Link to this deer" value={url} onFocus={(e) => e.currentTarget.select()} />
       ) : (
-        <button type="button" className="link-button" onClick={copyLink} aria-live="polite">
+        <button type="button" className="chip" onClick={copyLink} aria-live="polite">
           {copy === "copied" ? "Link copied" : "Copy link"}
         </button>
       )}
