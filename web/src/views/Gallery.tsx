@@ -11,8 +11,7 @@ import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { loadAwardWinners, loadCatalog, loadDnrTally, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../reads";
-import { env } from "../env";
-import { scrollIntoView } from "../host";
+import { scrollIntoView, viewLink } from "../host";
 import {
   awardSponsor,
   gunOpenerLine,
@@ -128,7 +127,7 @@ export function Gallery() {
             </p>
           )}
           {season.phase === "entries" && (
-            <a className="button button-blaze" href={env.enterPageUrl} target="_top">
+            <a className="button button-blaze" {...viewLink("enter")}>
               Enter your deer
             </a>
           )}
@@ -235,7 +234,7 @@ export function Gallery() {
               {season.phase === "entries" ? (
                 <>
                   No deer here yet.{" "}
-                  <a href={env.enterPageUrl} target="_top">
+                  <a {...viewLink("enter")}>
                     Enter yours
                   </a>{" "}
                   and it could be the first.

@@ -13,7 +13,7 @@ import { Turnstile } from "../components/Turnstile";
 import { loadCatalog, loadCounties, loadSeason, submitEntry, type EntrySubmission } from "../data";
 import { env } from "../env";
 import { AGE_LABELS, WEAPON_LABELS, apDate, apDay, apLastDay, todayInWausau } from "../format";
-import { embedded, scrollToTop } from "../host";
+import { embedded, scrollToTop, viewLink } from "../host";
 import { phaseLine, presentingSponsor, thankYouSponsor } from "../phase";
 import { preparePhoto, type PreparedPhoto } from "../photo";
 import { DEMO } from "../sales";
@@ -205,7 +205,7 @@ export function Enter() {
         <h1>Enter your deer</h1>
         <p>{phaseLine(season)}</p>
         <div className="actions">
-          <a className="button" href={env.galleryPageUrl} target="_top">
+          <a className="button" {...viewLink("gallery")}>
             See the board
           </a>
         </div>
@@ -237,8 +237,7 @@ export function Enter() {
           </>
         )}
         <div className="actions">
-          {/* The preview stays in the preview; the WordPress page may not exist yet. */}
-          <a className="button" href={DEMO ? "?demo#/gallery" : env.galleryPageUrl} target={DEMO ? undefined : "_top"}>
+          <a className="button" {...viewLink("gallery")}>
             See the board
           </a>
           <button type="button" className="button" onClick={startOver}>
