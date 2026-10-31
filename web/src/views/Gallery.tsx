@@ -27,6 +27,9 @@ import type { AwardKind } from "../types";
 import { useLoad } from "../useLoad";
 import { useReveal } from "../useReveal";
 
+// Set once the board has shown the deer a link opened (see linkedEntry below).
+let linkedShown = false;
+
 const PAGE_SIZE = 24;
 
 // The ballot signs readers in, so it brings the Supabase client; it's fetched only for the vote.
@@ -52,13 +55,20 @@ export function Gallery() {
   const [shown, setShown] = useState(PAGE_SIZE);
   const ready = page.status === "ready";
   const linkedRef = useRef<HTMLElement>(null);
+  // The deer a link opened leads the board's first showing only: back on the board after the form
+  // (views switch inside the frame, without a reload) the reader gets the front, and the link isn't
+  // counted twice.
+  const [linkedEntry] = useState(() => (linkedShown ? null : LINKED_ENTRY));
+  useEffect(() => {
+    linkedShown = true;
+  }, []);
 
   // On a phone the title fills the first screen, so take the reader down to the deer they tapped.
   useEffect(() => {
-    if (!ready || !LINKED_ENTRY) return;
-    track("Entry Opened", { from: LINKED_ENTRY.from });
+    if (!ready || !linkedEntry) return;
+    track("Entry Opened", { from: linkedEntry.from });
     if (linkedRef.current) void scrollIntoView(linkedRef.current);
-  }, [ready]);
+  }, [ready, linkedEntry]);
 
   // Cards and sections rise into view as the reader scrolls; re-armed whenever the list changes.
   useReveal([ready, filter, shown]);
@@ -69,7 +79,7 @@ export function Gallery() {
   const { board, entries, winners, finalists, weekly, dnr } = page.data;
   const { season } = board;
   const presenting = presentingSponsor(board);
-  const linkedId = LINKED_ENTRY?.id;
+  const linkedId = linkedEntry?.id;
   const linked = linkedId ? entries.find((e) => e.id === linkedId) : undefined;
   const linkedWin = linked ? winners.find((w) => w.entry_id === linked.id) : undefined;
   const linkedAward = linkedWin ? board.awards.find((a) => a.id === linkedWin.award_id) : undefined;
@@ -83,9 +93,9 @@ export function Gallery() {
   // vote and after, the ballot and the winners lead, and the newest deer waits above the filters,
   // dropped for a filter. Not when a link opened a deer: that deer leads instead.
   const filling = season.phase === "upcoming" || season.phase === "entries" || season.phase === "judging";
-  const newest = !LINKED_ENTRY && season.phase !== "upcoming" ? entries[0] : undefined;
+  const newest = !linkedEntry && season.phase !== "upcoming" ? entries[0] : undefined;
   // Before the first deer, and before entries open, a picture of the thing itself holds the front.
-  const empty = entries.length === 0 && !LINKED_ENTRY && (season.phase === "upcoming" || season.phase === "entries");
+  const empty = entries.length === 0 && !linkedEntry && (season.phase === "upcoming" || season.phase === "entries");
   const front = filling && (newest !== undefined || empty);
   const lead = front || !filter ? newest : undefined;
   const rest = lead && !filter ? visible.slice(1) : visible;
@@ -141,7 +151,7 @@ export function Gallery() {
           ))}
       </div>
 
-      {LINKED_ENTRY &&
+      {linkedEntry &&
         (linked ? (
           <section ref={linkedRef} className="linked-entry" aria-label="The deer from your link">
             <EntryCard

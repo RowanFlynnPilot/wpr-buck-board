@@ -67,7 +67,7 @@ Brag Board page, at the very top, above the rules:
 <script src="https://rowanflynnpilot.github.io/wpr-buck-board/embed.js" defer data-no-optimize="1"></script>
 ```
 
-With it, every Brag Board frame on a page is sized to the board, with no inner scrollbar, and the page scrolls to the form after Enter. On the Brag Board page it also opens the form at `#enter` and a deer at `#entry=<id>`, where share links, the front-page strip's photos and the posted email land; without it those links open the board at the top. The frames are found by their address, so nothing in the page changes. If the firewall refuses to save that too, ask the host to check its ModSecurity log for the save and allow the rule.
+With it, the board's frame is sized to the board, with no inner scrollbar, and the page scrolls to the form after Enter. On the Brag Board page it also opens the form at `#enter` and a deer at `#entry=<id>`, where share links, the front-page strip's photos and the posted email land; without it those links open the board at the top. No other anchor moves the board, so a half-filled form survives a click on `#comments`. The front-page strip fills the height its own iframe sets and is left at it, and a `?demo` frame stays as pasted. The frames are found by their address, so nothing in the page changes. If the firewall refuses to save that too, ask the host to check its ModSecurity log for the save and allow the rule.
 
 Front page, where the strip should sit:
 
