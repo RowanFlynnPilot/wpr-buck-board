@@ -1,5 +1,7 @@
-/* Hunting Brag Board. WPR's cream, ink and teal, with blaze orange spent in two places:
-   the band across the top of every view and the button that enters a deer. */
+/* Hunting Brag Board. WPR's cream, ink and teal, with blaze orange spent on the band across the
+   top of every view, the button that enters a deer and the count. The board is the counter wall
+   at a bait shop or deer processor: deer go up as prints (white border, a strip of tape, a slight
+   tilt) on a kraft-paper wall, under a dark panel with the title and the newest print. */
 
 :root {
   --paper: #f6f2e9;
@@ -9,6 +11,8 @@
   --blaze: #f26a1b; /* ink text on blaze is 5:1 */
   --bark: #6e6353;
   --line: #dcd3c1;
+  --kraft: #e6dac3; /* the wall */
+  --print: #fffdf8; /* a photo print's border */
   --slate: #32373c; /* WPR's masthead rule and tagline */
   --display: "Fraunces", Georgia, serif;
   --body: "Public Sans", system-ui, sans-serif;
@@ -36,6 +40,13 @@ body {
   /* A word too long for its line (a pasted link, a name at display size) breaks rather than
      running off the page. */
   overflow-wrap: break-word;
+}
+
+/* The board's wall, edge to edge, standalone or in its frame. Bark text darkens a step on it so
+   small print stays above 4.5:1 (5.5:1 on the kraft). */
+body:has(main.gallery) {
+  --bark: #5c5244;
+  background: var(--kraft);
 }
 
 /* Controls answer a tap at once (no wait to see if it's a double tap), and a long press on one
@@ -393,6 +404,29 @@ img {
   display: grid;
   gap: 0.75rem;
   padding: 1rem var(--gap) 1.25rem;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.strip .title-sponsor,
+.strip-empty-credit {
+  color: rgba(246, 242, 233, 0.72);
+}
+
+.strip .sponsor-logo {
+  padding: 4px;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.strip .sponsor-name,
+.strip-empty figcaption strong {
+  color: var(--paper);
+}
+
+.strip .button:not(.button-blaze) {
+  border-color: var(--paper);
+  color: var(--paper);
 }
 
 .strip-head {
@@ -408,22 +442,27 @@ img {
 }
 
 .strip-title a {
-  color: var(--ink);
+  color: var(--paper);
   text-decoration: none;
 }
 
+.strip-count {
+  color: rgba(246, 242, 233, 0.86);
+}
+
 .strip-count strong {
+  color: var(--blaze);
   font-family: var(--display);
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 .strip-line {
-  color: var(--bark);
+  color: rgba(246, 242, 233, 0.8);
   max-width: 60ch;
 }
 
 .strip-line strong {
-  color: var(--ink);
+  color: var(--paper);
 }
 
 /* The newest deer large, the next six beside it in two rows of three: a picture page, not a
@@ -431,10 +470,32 @@ img {
 .strip-photos {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 14px;
   margin: 0;
-  padding: 0;
+  /* Room for the tape and the tilted corners. */
+  padding: 10px 6px 4px;
   list-style: none;
+}
+
+/* Each deer a print: white border, its name on the print, tape, a slight tilt. */
+.strip-photos li {
+  position: relative;
+  padding: 6px 6px 4px;
+  border-radius: 2px;
+  background: var(--print);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+  rotate: -1deg;
+}
+
+.strip-photos li:nth-child(even) {
+  rotate: 0.9deg;
+}
+
+.strip-photos li::before {
+  top: -7px;
+  width: 44px;
+  height: 14px;
+  margin-left: -22px;
 }
 
 /* Before the first deer: the Park Service's buck, wide, with what it is under it. */
@@ -449,9 +510,12 @@ img {
   width: 100%;
   height: auto;
   aspect-ratio: 2 / 1;
+  padding: 6px;
   object-fit: cover;
   object-position: 45% 35%;
-  border-radius: 4px;
+  border-radius: 2px;
+  background: var(--print);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
 }
 
 .strip-empty figcaption {
@@ -497,7 +561,6 @@ img {
   object-fit: cover;
   /* A phone's portrait photo: keep the hunter's head, not the middle. */
   object-position: 50% 30%;
-  border-radius: 4px;
   margin-bottom: 0.25rem;
 }
 
@@ -525,11 +588,45 @@ img {
 }
 
 .strip-framed .strip-photos {
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   grid-auto-flow: column;
   grid-auto-columns: 0;
   overflow: hidden;
+  container-type: inline-size;
+}
+
+/* Only the prints the columns hold (n columns of 72px and 14px gaps, at 86n - 14px, hold the
+   newest, two rows tall, and two more per column after the second), so a print's border never
+   shows as a sliver. */
+@container (max-width: 243px) {
+  .strip-framed .strip-photos li:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+@container (min-width: 244px) and (max-width: 329px) {
+  .strip-framed .strip-photos li:nth-child(n + 4) {
+    display: none;
+  }
+}
+
+@container (min-width: 330px) and (max-width: 415px) {
+  .strip-framed .strip-photos li:nth-child(n + 6) {
+    display: none;
+  }
+}
+
+@container (min-width: 416px) and (max-width: 501px) {
+  .strip-framed .strip-photos li:nth-child(n + 8) {
+    display: none;
+  }
+}
+
+@container (min-width: 502px) and (max-width: 587px) {
+  .strip-framed .strip-photos li:nth-child(n + 10) {
+    display: none;
+  }
 }
 
 .strip-framed .strip-photos li,
@@ -563,6 +660,7 @@ img {
 .strip-framed .strip-empty img {
   height: 100%;
   aspect-ratio: auto;
+  rotate: -0.6deg;
 }
 
 /* Gallery ------------------------------------------------------------------ */
@@ -648,7 +746,8 @@ img {
 .entry-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
-  gap: 2rem var(--gap);
+  gap: 2.25rem 1.5rem;
+  padding-top: 0.5rem;
 }
 
 .more {
@@ -737,9 +836,18 @@ img {
 /* Entry card: the photo is the card. ----------------------------------------- */
 
 .entry {
+  position: relative;
   display: grid;
+  color: var(--ink);
   align-content: start;
+  align-self: start;
   gap: 0.2rem;
+  padding: 10px 10px 14px;
+  border-radius: 2px;
+  background: var(--print);
+  box-shadow:
+    0 1px 2px rgba(30, 38, 34, 0.18),
+    0 10px 18px -12px rgba(30, 38, 34, 0.45);
 }
 
 .entry-photo {
@@ -752,8 +860,52 @@ img {
   width: 100%;
   object-fit: cover;
   object-position: 50% 30%;
-  border-radius: 4px;
   background: var(--line);
+}
+
+/* A strip of tape across the top of every print. */
+.entry::before,
+.lead-photo::before,
+.strip-photos li::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -9px;
+  left: 50%;
+  width: 72px;
+  height: 20px;
+  margin-left: -36px;
+  background: rgba(240, 232, 214, 0.85);
+  box-shadow: 0 1px 1px rgba(30, 38, 34, 0.12);
+  rotate: -3deg;
+}
+
+/* Pinned up by hand: each print a little off true, the tape too (the rotate property, so the
+   entrance's transform still rises). */
+.entry-grid > .entry:nth-child(4n + 1) {
+  rotate: -1deg;
+}
+
+.entry-grid > .entry:nth-child(4n + 2) {
+  rotate: 0.7deg;
+}
+
+.entry-grid > .entry:nth-child(4n + 2)::before {
+  margin-left: -20px;
+  rotate: 4deg;
+}
+
+.entry-grid > .entry:nth-child(4n + 3) {
+  rotate: -0.4deg;
+}
+
+.entry-grid > .entry:nth-child(4n + 3)::before {
+  margin-left: -50px;
+  rotate: -6deg;
+}
+
+.entry-grid > .entry:nth-child(4n + 4) {
+  rotate: 1.1deg;
 }
 
 /* Who took the photo, set small under it like a newspaper credit. */
@@ -809,7 +961,7 @@ img {
 }
 
 .entry-name {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1.375rem;
 }
 
@@ -1137,6 +1289,7 @@ img {
   border-top: 4px solid var(--blaze);
   border-radius: 4px;
   background: #fff;
+  color: var(--ink);
 }
 
 .opener-heading {
@@ -1765,13 +1918,18 @@ h1[tabindex="-1"]:focus {
   position: relative;
   display: block;
   margin: 0;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--line);
+  padding: 12px 12px 16px;
+  border-radius: 2px;
+  background: var(--print);
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.25),
+    0 18px 30px -18px rgba(0, 0, 0, 0.6);
+  rotate: -1.2deg;
 }
 
 .lead-photo img {
   display: block;
+  background: var(--line);
   width: 100%;
   /* The empty board gives its picture width and height attributes; the width rules, the height follows. */
   height: auto;
@@ -1852,6 +2010,54 @@ h1[tabindex="-1"]:focus {
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "head" "photo" "text";
   gap: 1.25rem;
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Words on the dark panel: cream, the quieter lines at 72 to 86 percent (all above 7:1). */
+.front h1,
+.front .lead-name,
+.front a:not(.button),
+.front .link-button,
+.front .sponsor-name {
+  color: var(--paper);
+}
+
+.front .title-sponsor,
+.front .masthead-season,
+.front .lead-heading,
+.front .entry-credit {
+  color: rgba(246, 242, 233, 0.72);
+}
+
+.front .masthead-line,
+.front .masthead-thanks,
+.front .lead-record,
+.front .lead-story {
+  color: rgba(246, 242, 233, 0.86);
+}
+
+/* The count, like a scoreboard. */
+.front .masthead-line > strong:first-child {
+  display: block;
+  color: var(--blaze);
+  font-family: var(--display);
+  font-size: 1.6em;
+  line-height: 1.15;
+}
+
+.front .masthead-thanks strong {
+  color: var(--paper);
+}
+
+/* A sponsor's logo on a white card, so a dark logo still reads on the panel. */
+.front .sponsor-logo {
+  max-height: 56px;
+  padding: 5px;
+  border-radius: 4px;
+  background: #fff;
 }
 
 /* The front's parts may be narrower than their longest word; the words then wrap or break. */
@@ -1863,11 +2069,11 @@ h1[tabindex="-1"]:focus {
   grid-area: head;
 }
 
-/* The title in five columns: one step smaller than elsewhere, so "Hunting Brag Board" holds one
-   line and "presented by …" the next, rather than breaking the name across two. */
+/* The title in five columns of the dark panel: one step smaller than elsewhere, so "Hunting Brag
+   Board" holds one line and "presented by …" the next, rather than breaking the name across two. */
 @media (min-width: 900px) {
   .front > .masthead h1 {
-    font-size: clamp(2rem, 3.6vw, 2.875rem);
+    font-size: clamp(1.875rem, 3.1vw, 2.5rem);
   }
 }
 
@@ -1903,8 +2109,8 @@ h1[tabindex="-1"]:focus {
   }
 }
 
-/* Motion: parts rise into view once as they're scrolled to; pictures lift under the pointer;
-   buttons press. Transform and opacity only; nothing moves for a reader who asked for less. */
+/* Motion: parts rise into view once as they're scrolled to; prints straighten under the pointer;
+   buttons press. Transform, rotate and opacity only; nothing moves for a reader who asked for less. */
 
 [data-reveal="pending"] {
   opacity: 0;
@@ -1922,18 +2128,19 @@ h1[tabindex="-1"]:focus {
 
 .entry-photo {
   overflow: hidden;
-  border-radius: 4px;
 }
 
-.entry-photo img,
-.lead-photo img {
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+.entry,
+.lead-photo,
+.strip-photos li {
+  transition: rotate 0.25s ease-out;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .entry-photo:hover img,
-  .lead-photo:hover img {
-    transform: scale(1.03);
+  .entry:hover,
+  .lead-photo:hover,
+  .strip-photos li:hover {
+    rotate: 0deg;
   }
 }
 
@@ -1963,8 +2170,9 @@ h1[tabindex="-1"]:focus {
     transition: none !important;
   }
 
-  .entry-photo img,
-  .lead-photo img,
+  .entry,
+  .lead-photo,
+  .strip-photos li,
   .button,
   .filters button {
     transition: none;
