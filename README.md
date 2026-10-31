@@ -47,63 +47,34 @@ The share Worker runs locally with `npx wrangler dev` in `share/`, given the thr
 
 ## WordPress embed
 
-The board lives on one WordPress page, Shereen's [Hunting Brag Board page](https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/), in a single frame that shows the board or, at `#enter`, the entry form; her rules tell readers to fill out the form "on this page." The front page carries the strip. Paste the same snippet in a Custom HTML block on each, changing only `data-view` and `data-height` on its first line:
+The board lives on one WordPress page, Shereen's [Hunting Brag Board page](https://wausaupilotandreview.com/wausau-pilot-hunting-brag-board/), in a single frame that shows the board or the entry form; her rules tell readers to fill out the form "on this page." The front page carries the strip.
 
-- Brag Board page: `data-view="gallery" data-height="600"` (as below). Its address is `VITE_GALLERY_PAGE_URL`, and the same address with `#enter` is `VITE_ENTER_PAGE_URL`.
-- Front page: `data-view="embed" data-height="400"`.
+**The pages hold only an iframe, no script.** WPR's server firewall refuses a page save that has script in it (on Oct. 31 the first snippet, which built the frame in script, never reached the page), and WordPress strips script from accounts without full HTML rights anyway. WPR's other tools on the site are iframe-only for the same reason. Paste into a **Custom HTML** block (not a Paragraph or Code block), from a plain-text source, since "smart" quotes break the attributes. Then purge the page in LiteSpeed (admin bar > LiteSpeed Cache > Purge this page).
 
-The height is only the starting size (the app resizes the frame), so match it to the page and it won't jump as it loads. Keep all of the snippet:
-
-- **The script builds the frame.** WPR's cache plugin, LiteSpeed, rewrites every iframe written into a page's HTML for its own lazy loading: `src` becomes `about:blank` and the real address moves to `data-src` (seen on the live Brag Board page, Oct. 9). A frame written into the page would then never route, and every "Enter your deer" and share link would leave the reader on the board. LiteSpeed leaves a frame the script creates alone, and the app's address is written into the script rather than read from the page. `data-no-optimize="1"` asks LiteSpeed to leave the script as written; if it defers the script anyway, the snippet still works.
-- `loading="lazy"`: on the front page the strip, its script, fonts and seven photos load only as a reader scrolls near it, and a `#/embed` pageview in Plausible then means the strip was actually seen.
-- `allow="clipboard-write; web-share"`: the "Sponsor the Brag Board" button copies the sales address for readers whose computer has no mail app, and a deer's Share button opens a phone's own share sheet (without it, Share falls back to Facebook and Copy link).
-- `route()`, on the Brag Board page only (the front page always shows the strip):
-  - `#enter` shows the entry form. Every "Enter your deer" link points there. On the board it swaps the frame without reloading the page; from the front page, the newsletter or a counter card it opens straight to the form.
-  - `#entry=<id>`, where share links and front-page strip photos land, opens that deer at the top of the board.
-  - Anything else shows the board.
-
-After pasting, purge the page in LiteSpeed (and Cloudflare, if it caches the page), then check `/wausau-pilot-hunting-brag-board/#enter` opens the form and `#entry=` plus a posted deer's id opens that deer.
+Brag Board page, at the very top, above the rules:
 
 ```html
-<div id="wpr-buck-board" data-view="gallery" data-height="600"></div>
-<script data-no-optimize="1">
-  (function () {
-    var app = "https://rowanflynnpilot.github.io/wpr-buck-board/";
-    var box = document.getElementById("wpr-buck-board");
-    var board = box.getAttribute("data-view") === "gallery";
-    var frame = document.createElement("iframe");
-    frame.title = "Hunting Brag Board";
-    frame.setAttribute("loading", "lazy");
-    frame.setAttribute("allow", "clipboard-write; web-share");
-    frame.style.cssText = "width:100%;border:0;display:block";
-    frame.height = box.getAttribute("data-height");
-    function target() {
-      if (!board) return app + "#/" + box.getAttribute("data-view");
-      var deer = /^#(entry=[0-9a-f-]{36}(&from=[a-z-]+)?)$/i.exec(location.hash);
-      var view = location.hash === "#enter" ? "#/enter" : "#/gallery";
-      return deer ? app + "?" + deer[1] + view : app + view;
-    }
-    function route() {
-      var src = target();
-      if (frame.src !== src) frame.src = src;
-      if (board && location.hash === "#enter") frame.scrollIntoView({ block: "start" });
-    }
-    frame.src = target();
-    box.appendChild(frame);
-    window.addEventListener("hashchange", route);
-    // Once the rest of the page has loaded, so there's room to scroll the form to the top.
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", route);
-    else route();
-    window.addEventListener("message", function (event) {
-      if (event.origin !== "https://rowanflynnpilot.github.io" || event.source !== frame.contentWindow) return;
-      if (event.data.height) frame.style.height = event.data.height + "px";
-      if (event.data.scrollToTop) frame.scrollIntoView({ block: "start" });
-      if (typeof event.data.scrollTo === "number") {
-        window.scrollTo(0, frame.getBoundingClientRect().top + window.scrollY + event.data.scrollTo);
-      }
-    });
-  })();
-</script>
+<iframe src="https://rowanflynnpilot.github.io/wpr-buck-board/#/gallery" title="Hunting Brag Board" style="width:100%;height:88vh;min-height:640px;border:0;display:block" allow="clipboard-write; web-share" data-no-lazy="1"></iframe>
 ```
+
+- The frame is most of a screen tall and the board scrolls inside it. Its Enter your deer and See the board buttons switch views inside the frame, so the board needs nothing else from the page.
+- `allow="clipboard-write; web-share"`: the "Sponsor the Brag Board" button copies the sales address for readers with no mail app, and a deer's Share button opens a phone's own share sheet (without it, Share falls back to Facebook and Copy link).
+- `data-no-lazy="1"` keeps LiteSpeed from swapping the address for `about:blank` until the reader scrolls (it does that to every other iframe on the site); the board is the page's main content.
+
+**Optional, site-wide: `embed.js`.** One line in the site's header or footer code (a header/footer code plugin such as WPCode, or wherever the site keeps other third-party scripts), added once by an administrator:
+
+```html
+<script src="https://rowanflynnpilot.github.io/wpr-buck-board/embed.js" defer data-no-optimize="1"></script>
+```
+
+With it, every Brag Board frame on a page is sized to the board, with no inner scrollbar, and the page scrolls to the form after Enter. On the Brag Board page it also opens the form at `#enter` and a deer at `#entry=<id>`, where share links, the front-page strip's photos and the posted email land; without it those links open the board at the top. The frames are found by their address, so nothing in the page changes. If the firewall refuses to save that too, ask the host to check its ModSecurity log for the save and allow the rule.
+
+**Front page: not yet.** The strip's height changes with the column (about 540–1,090px with deer, measured Oct. 31), so no fixed frame fits it. It goes on once `embed.js` is installed, which sizes it, or once the strip has a fixed-frame layout like the fish fry's compact embed:
+
+```html
+<iframe src="https://rowanflynnpilot.github.io/wpr-buck-board/#/embed" title="Hunting Brag Board" style="width:100%;height:600px;border:0;display:block" loading="lazy" allow="clipboard-write; web-share"></iframe>
+```
+
+`loading="lazy"`: the strip, its fonts and seven photos load only as a reader scrolls near it, so a `#/embed` pageview in Plausible means the strip was seen.
 
 For sales pitches, `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/gallery` (or `#/embed`) fills every unsold slot with "Your business here" under a ribbon that explains the preview. Readers never see it. `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/enter` is the entry form to try out, on a phone too: it works as it will for readers but sends nothing, and ends on the deer as it would look on the board.
