@@ -1,6 +1,7 @@
-// The image a shared deer previews with, 1200x630 (Facebook's size): the photo on the left; on
-// the right the board's title, the presenting sponsor, and the hunter's name and deer, set like
-// the board's own cards. Staff browsers draw it (#/admin: posting a deer, editing a posted one,
+// The image a shared deer previews with, 1200x630 (Facebook's size), in the board's counter-wall
+// look: on the dark band, the photo as a print (white border, a strip of tape, a little off true)
+// on the left; on the right WPR's flag, the board's title, the presenting sponsor with its logo on
+// a white card, and the hunter's name and deer, in cream. Staff browsers draw it (#/admin: posting a deer, editing a posted one,
 // Remake all), since only staff may store it (migration 0008). The fonts and WPR badge are the
 // app's own; the photo and logo come from public storage, which allows cross-origin reads, so
 // the canvas can still be exported.
@@ -15,7 +16,16 @@ const PAD = 52;
 const TEXT_X = PHOTO_WIDTH + PAD;
 const TEXT_WIDTH = CARD.width - PHOTO_WIDTH - 2 * PAD;
 const FOOT = CARD.height - PAD;
-const COLOR = { paper: "#f6f2e9", ink: "#1e2622", bark: "#6e6353", blaze: "#f26a1b", slate: "#32373c" };
+const COLOR = {
+  ink: "#1e2622",
+  blaze: "#f26a1b",
+  print: "#fffdf8",
+  tape: "rgba(240, 232, 214, 0.88)",
+  cream: "#f6f2e9",
+  // The band's quieter lines, as on the board: cream at 72 and 86 percent.
+  quiet: "rgba(246, 242, 233, 0.72)",
+  soft: "rgba(246, 242, 233, 0.86)",
+};
 const DISPLAY = "Fraunces, Georgia, serif";
 const BODY = '"Public Sans", system-ui, sans-serif';
 
@@ -53,13 +63,12 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("This browser can't draw share images. Try another browser.");
 
-  ctx.fillStyle = COLOR.paper;
+  ctx.fillStyle = COLOR.ink;
   ctx.fillRect(0, 0, CARD.width, CARD.height);
-  drawCover(ctx, photo, 0, 0, PHOTO_WIDTH, CARD.height);
-  if (entry.first_deer) drawTag(ctx, "First deer", 24, CARD.height - 24);
-  // The blaze band that runs under the board's masthead.
+  // The blaze band that runs along the top of the board.
   ctx.fillStyle = COLOR.blaze;
-  ctx.fillRect(PHOTO_WIDTH, 0, CARD.width - PHOTO_WIDTH, 10);
+  ctx.fillRect(0, 0, CARD.width, 10);
+  drawPrint(ctx, photo, { x: 50, y: 52, w: 500, h: 540, border: 14, foot: 24, angle: -2, firstDeer: entry.first_deer, scale: 1 });
 
   // The flag: WPR's badge and name over the thick-over-thin rule.
   let y = 48;
@@ -70,7 +79,7 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   ctx.clip();
   ctx.drawImage(badge, TEXT_X, y, 60, 60);
   ctx.restore();
-  ctx.fillStyle = COLOR.slate;
+  ctx.fillStyle = COLOR.soft;
   ctx.font = `700 17px ${BODY}`;
   ctx.textBaseline = "middle";
   ctx.letterSpacing = "2.5px";
@@ -78,7 +87,7 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   ctx.letterSpacing = "0px";
   ctx.textBaseline = "alphabetic";
   y += 84;
-  ctx.fillStyle = COLOR.ink;
+  ctx.fillStyle = COLOR.cream;
   ctx.fillRect(TEXT_X, y, TEXT_WIDTH, 4);
   ctx.fillRect(TEXT_X, y + 8, TEXT_WIDTH, 1.5);
 
@@ -87,7 +96,7 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   const title = fit(ctx, "Hunting Brag Board", (size) => `700 ${size}px ${DISPLAY}`, 1, 50, 36);
   y += title.size;
   ctx.fillText(title.lines[0], TEXT_X, y);
-  ctx.fillStyle = COLOR.bark;
+  ctx.fillStyle = COLOR.quiet;
   const presents = fit(ctx, presenting ? `presented by ${presenting.name}` : `${year} season`, (size) => `500 ${size}px ${DISPLAY}`, 2, 27, 20);
   for (const line of presents.lines) {
     y += Math.round(presents.size * 1.3);
@@ -95,16 +104,16 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   }
   if (logo) {
     y += 16;
-    y += drawContained(ctx, logo, TEXT_X, y, 200, 56);
+    y += drawLogoCard(ctx, logo, TEXT_X, y, 200, 56, 6);
   }
   const topEnd = y;
 
   // The deer, from the foot up: where and when, what, the hometown, then the name in whatever
   // room is left (a youth hunter is a first name; an adult can be up to 60 characters).
   const record = [
-    { text: `${entry.county} County, ${apDay(entry.harvest_date).replace(" ", " ")}`, color: COLOR.bark, weight: 400 },
-    { text: `${describeDeer(entry.deer_type, entry.points)}, ${WEAPON_LABELS[entry.weapon].toLowerCase()}`, color: COLOR.ink, weight: 700 },
-    { text: entry.hometown, color: COLOR.bark, weight: 400 },
+    { text: `${entry.county} County, ${apDay(entry.harvest_date).replace(" ", " ")}`, color: COLOR.quiet, weight: 400 },
+    { text: `${describeDeer(entry.deer_type, entry.points)}, ${WEAPON_LABELS[entry.weapon].toLowerCase()}`, color: COLOR.cream, weight: 700 },
+    { text: entry.hometown, color: COLOR.quiet, weight: 400 },
   ];
   let base = FOOT;
   for (const { text, color, weight } of record) {
@@ -116,7 +125,7 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   base -= 10;
   const room = base - topEnd - 24;
   const name = fitName(ctx, entry.hunter_name, room);
-  ctx.fillStyle = COLOR.ink;
+  ctx.fillStyle = COLOR.cream;
   name.lines.forEach((line, i) => {
     ctx.font = `700 ${name.size}px ${DISPLAY}`;
     ctx.fillText(line, TEXT_X, base - (name.lines.length - 1 - i) * name.leading);
@@ -183,7 +192,7 @@ function paintPortrait(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("This browser can't draw share images. Try another browser.");
 
-  ctx.fillStyle = COLOR.paper;
+  ctx.fillStyle = COLOR.ink;
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = COLOR.blaze;
   ctx.fillRect(0, 0, W, 16);
@@ -197,7 +206,7 @@ function paintPortrait(
   ctx.clip();
   ctx.drawImage(badge, M, y, badgeSize, badgeSize);
   ctx.restore();
-  ctx.fillStyle = COLOR.slate;
+  ctx.fillStyle = COLOR.soft;
   ctx.font = `700 ${px(26)}px ${BODY}`;
   ctx.textBaseline = "middle";
   ctx.letterSpacing = `${px(4)}px`;
@@ -205,7 +214,7 @@ function paintPortrait(
   ctx.letterSpacing = "0px";
   ctx.textBaseline = "alphabetic";
   y += badgeSize + px(28);
-  ctx.fillStyle = COLOR.ink;
+  ctx.fillStyle = COLOR.cream;
   ctx.fillRect(M, y, WIDE, px(6));
   ctx.fillRect(M, y + px(12), WIDE, 2);
 
@@ -214,7 +223,7 @@ function paintPortrait(
   const title = fit(ctx, "Hunting Brag Board", (size) => `700 ${size}px ${DISPLAY}`, 1, px(96), px(64), WIDE);
   y += title.size;
   ctx.fillText(title.lines[0], M, y);
-  ctx.fillStyle = COLOR.bark;
+  ctx.fillStyle = COLOR.quiet;
   const presents = fit(ctx, presenting ? `presented by ${presenting.name}` : `${year} season`, (size) => `500 ${size}px ${DISPLAY}`, 2, px(46), px(32), WIDE);
   for (const line of presents.lines) {
     y += Math.round(presents.size * 1.3);
@@ -222,16 +231,16 @@ function paintPortrait(
   }
   if (logo) {
     y += px(24);
-    y += drawContained(ctx, logo, M, y, px(320), px(90));
+    y += drawLogoCard(ctx, logo, M, y, px(320), px(90), px(10));
   }
-  const photoTop = y + px(44);
+  const photoTop = y + px(52);
 
   // The deer, from the foot up, then the name; the photo takes the room between.
   const FOOT = L.foot;
   const record = [
-    { text: `${entry.county} County, ${apDay(entry.harvest_date)}`, color: COLOR.bark, weight: 400, size: 40 },
-    { text: `${describeDeer(entry.deer_type, entry.points)}, ${WEAPON_LABELS[entry.weapon].toLowerCase()}`, color: COLOR.ink, weight: 700, size: 44 },
-    { text: entry.hometown, color: COLOR.bark, weight: 400, size: 40 },
+    { text: `${entry.county} County, ${apDay(entry.harvest_date)}`, color: COLOR.quiet, weight: 400, size: 40 },
+    { text: `${describeDeer(entry.deer_type, entry.points)}, ${WEAPON_LABELS[entry.weapon].toLowerCase()}`, color: COLOR.cream, weight: 700, size: 44 },
+    { text: entry.hometown, color: COLOR.quiet, weight: 400, size: 40 },
   ];
   let base = FOOT;
   for (const { text, color, weight, size } of record) {
@@ -242,20 +251,26 @@ function paintPortrait(
   }
   base -= px(14);
   const name = fitName(ctx, entry.hunter_name, px(230), WIDE, px(96), px(48));
-  ctx.fillStyle = COLOR.ink;
+  ctx.fillStyle = COLOR.cream;
   name.lines.forEach((line, i) => {
     ctx.font = `700 ${name.size}px ${DISPLAY}`;
     ctx.fillText(line, M, base - (name.lines.length - 1 - i) * name.leading);
   });
-  const photoBottom = base - (name.lines.length - 1) * name.leading - Math.round(name.size * 0.8) - px(44);
+  const photoBottom = base - (name.lines.length - 1) * name.leading - Math.round(name.size * 0.8) - px(52);
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(M, photoTop, WIDE, photoBottom - photoTop, px(18));
-  ctx.clip();
-  drawCover(ctx, photo, M, photoTop, WIDE, photoBottom - photoTop);
-  ctx.restore();
-  if (entry.first_deer) drawTag(ctx, "First deer", M + px(28), photoBottom - px(28), 1.6 * s);
+  // The print, a little inside the margins so its tilted corners stay on the page.
+  const inset = px(16);
+  drawPrint(ctx, photo, {
+    x: M + inset,
+    y: photoTop,
+    w: WIDE - 2 * inset,
+    h: photoBottom - photoTop,
+    border: px(20),
+    foot: px(32),
+    angle: -1.5,
+    firstDeer: entry.first_deer,
+    scale: 1.6 * s,
+  });
 
   // Where to find it: an image can't carry a link itself.
   const where = "See the board at wausaupilotandreview.com";
@@ -336,14 +351,51 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: numb
   ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) * 0.3, sw, sh, x, y, w, h);
 }
 
-// Fit inside the box, keeping its shape; returns the height drawn. An SVG without its own size
-// fills the box.
-function drawContained(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+// The photo as a print: a white border with a deeper foot, a soft shadow, a strip of tape across
+// the top and a slight tilt, like a snapshot pinned to the wall. The "First deer" tag sits at the
+// photo's foot, tilted with it.
+function drawPrint(
+  ctx: CanvasRenderingContext2D,
+  photo: HTMLImageElement,
+  p: { x: number; y: number; w: number; h: number; border: number; foot: number; angle: number; firstDeer: boolean; scale: number },
+) {
+  ctx.save();
+  ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+  ctx.rotate((p.angle * Math.PI) / 180);
+  const left = -p.w / 2;
+  const top = -p.h / 2;
+  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+  ctx.shadowBlur = 28 * p.scale;
+  ctx.shadowOffsetY = 10 * p.scale;
+  ctx.fillStyle = COLOR.print;
+  ctx.fillRect(left, top, p.w, p.h);
+  ctx.shadowColor = "transparent";
+  const photoH = p.h - p.border - p.foot;
+  drawCover(ctx, photo, left + p.border, top + p.border, p.w - 2 * p.border, photoH);
+  if (p.firstDeer) drawTag(ctx, "First deer", left + p.border + 16 * p.scale, top + p.border + photoH - 16 * p.scale, p.scale);
+  // The tape, itself a little off true.
+  ctx.rotate((-3 * Math.PI) / 180);
+  ctx.fillStyle = COLOR.tape;
+  const tapeW = 96 * p.scale;
+  const tapeH = 28 * p.scale;
+  ctx.fillRect(-tapeW / 2, top - tapeH / 2, tapeW, tapeH);
+  ctx.restore();
+}
+
+// A sponsor's logo on a white card, so a dark logo still reads on the band; returns the height
+// drawn. An SVG without its own size fills the box.
+function drawLogoCard(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number, pad: number) {
   const iw = img.naturalWidth || w;
   const ih = img.naturalHeight || h;
   const scale = Math.min(w / iw, h / ih);
-  ctx.drawImage(img, x, y, iw * scale, ih * scale);
-  return ih * scale;
+  const dw = iw * scale;
+  const dh = ih * scale;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.roundRect(x, y, dw + 2 * pad, dh + 2 * pad, 6);
+  ctx.fill();
+  ctx.drawImage(img, x + pad, y + pad, dw, dh);
+  return dh + 2 * pad;
 }
 
 // The board's "First deer" tag, anchored at its bottom-left corner.
