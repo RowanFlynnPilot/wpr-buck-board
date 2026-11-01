@@ -6,6 +6,7 @@ import type { CardFacts } from "../data";
 import { apDay, describeDeer, LONG_NAME, tidyStory, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../storage";
 import type { GalleryEntry } from "../types";
+import { CropPhoto } from "./CropPhoto";
 import { EntryTags } from "./EntryCard";
 import { ShareButton } from "./ShareButton";
 
@@ -23,7 +24,7 @@ export function LeadDeer({
     <>
       <a className="lead-photo" href={photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
         {/* The one picture that should paint first; the grid's thumbnails wait behind it. */}
-        <img
+        <CropPhoto
           src={photoUrl(entry.photo_id, "full")}
           alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
           fetchPriority="high"
