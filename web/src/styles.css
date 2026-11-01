@@ -588,8 +588,12 @@ img {
   min-height: 150px;
 }
 
+/* With one deer, or a few early in the season, the grid is held to the columns they need (180px
+   each; --strip-columns, from Embed.tsx), so the newest spans two columns rather than the whole
+   band, which would crop a portrait to a sliver across the hunter's face. Spare width stays dark. */
 .strip-framed .strip-photos {
   grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  max-width: calc(var(--strip-columns, 99) * 194px - 14px);
   grid-template-rows: repeat(2, minmax(0, 1fr));
   grid-auto-flow: column;
   grid-auto-columns: 0;

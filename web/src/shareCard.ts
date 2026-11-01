@@ -7,6 +7,7 @@
 // the canvas can still be exported.
 import { loadCardFacts, saveShareCard, type CardFacts } from "./data";
 import { apDay, describeDeer, WEAPON_LABELS } from "./format";
+import { contentBox, cropBias } from "./photoTrim";
 import { logoUrl, photoUrl } from "./storage";
 
 export const CARD = { width: 1200, height: 630 };
@@ -343,12 +344,14 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width = TEXT_WIDTH): 
 }
 
 // Fill the box like the board's cropped thumbnails: centred side to side, and 30% of the way
-// down a tall photo (object-position: 50% 30%), so a phone's portrait keeps the hunter's head.
+// down a tall photo (object-position: 50% 30%), so a phone's portrait keeps the hunter's head. A
+// screenshot's solid bands are left out, and a banded photo hangs from its top (photoTrim.ts).
 function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
-  const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const box = contentBox(img, img.naturalWidth, img.naturalHeight);
+  const scale = Math.max(w / box.w, h / box.h);
   const sw = w / scale;
   const sh = h / scale;
-  ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) * 0.3, sw, sh, x, y, w, h);
+  ctx.drawImage(img, box.x + (box.w - sw) / 2, box.y + Math.max(0, box.h - sh) * cropBias(box), sw, sh, x, y, w, h);
 }
 
 // The photo as a print: a white border with a deeper foot, a soft shadow, a strip of tape across

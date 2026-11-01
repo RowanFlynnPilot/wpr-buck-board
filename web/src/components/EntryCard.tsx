@@ -3,6 +3,7 @@ import type { CardFacts } from "../data";
 import { apDay, describeDeer, tidyStory, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../storage";
 import type { EntryFields, Sponsor } from "../types";
+import { CropPhoto } from "./CropPhoto";
 import { Rosette } from "./Rosette";
 import { ShareButton } from "./ShareButton";
 import { SponsorCredit } from "./SponsorCredit";
@@ -40,7 +41,7 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
     <article className={featured ? "entry entry-featured" : "entry"} data-reveal>
       {ribbon && <Rosette grand={ribbon === "grand"} className="entry-ribbon" />}
       <a className="entry-photo" href={photo ?? photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
-        <img
+        <CropPhoto
           src={photo ?? photoUrl(entry.photo_id, featured ? "full" : "thumb")}
           alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
           loading={featured ? "eager" : "lazy"}

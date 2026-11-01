@@ -2,6 +2,8 @@
 // WPR's front page holds only its iframe, at a set height (README "WordPress embed"), so in a
 // frame the strip fills that height exactly: the words take what they need and the pictures
 // the rest, as many as fit the width.
+import type { CSSProperties } from "react";
+import { CropPhoto } from "../components/CropPhoto";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { SponsorCredit } from "../components/SponsorCredit";
@@ -93,11 +95,12 @@ export function Embed() {
       {opener !== null && <OpeningWeekend board={board} count={opener} />}
 
       {tiles.length > 0 && (
-        <ul className="strip-photos">
+        // The newest takes two columns and the rest two to a column; styles.css holds the grid to that.
+        <ul className="strip-photos" style={{ "--strip-columns": 2 + Math.ceil((tiles.length - 1) / 2) } as CSSProperties}>
           {tiles.map(({ entry, caption }) => (
             <li key={entry.id}>
               <a href={entryPageUrl(entry.id, "front-page")} target="_top">
-                <img src={photoUrl(entry.photo_id, "thumb")} alt={`${entry.hunter_name}'s deer`} loading="lazy" />
+                <CropPhoto src={photoUrl(entry.photo_id, "thumb")} alt={`${entry.hunter_name}'s deer`} loading="lazy" />
                 <span>{caption}</span>
               </a>
             </li>
