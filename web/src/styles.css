@@ -651,13 +651,17 @@ img {
   flex: 1;
 }
 
-.strip-framed .strip-photos img {
+.strip-framed .strip-photos .crop {
   flex: 1 1 0;
   min-height: 0;
+}
+
+.strip-framed .strip-photos .crop img {
+  height: 100%;
   aspect-ratio: auto;
 }
 
-.strip-framed .strip-photos span {
+.strip-framed .strip-photos span:not(.crop) {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -974,8 +978,16 @@ img {
   margin-bottom: 0.5rem;
 }
 
+/* CropPhoto's wrapper: clips a photo zoomed in to keep a screenshot's bands out of its frame. */
+.crop {
+  display: block;
+  overflow: hidden;
+}
+
+/* Upright (4:5): most deer arrive as a phone's portrait, and a 4:3 crop of one keeps the hunter's
+   head or the deer, not both. 4:5 keeps nearly the whole photo. */
 .entry-photo img {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 4 / 5;
   width: 100%;
   object-fit: cover;
   object-position: 50% 30%;
@@ -1101,6 +1113,15 @@ img {
 .entry-story-closed {
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The lead's story, eight lines until the reader asks for the rest, so a long hunt doesn't run
+   screens past its photo. */
+.lead-story-closed {
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2100,15 +2121,23 @@ h1[tabindex="-1"]:focus {
   width: 100%;
   /* The empty board gives its picture width and height attributes; the width rules, the height follows. */
   height: auto;
-  aspect-ratio: 4 / 3;
+  /* Upright on a phone, like the cards; square beside the words on a wider screen (below). */
+  aspect-ratio: 4 / 5;
   object-fit: cover;
   object-position: 50% 30%;
 }
 
+@media (min-width: 721px) {
+  .lead .lead-photo img {
+    aspect-ratio: 1 / 1;
+  }
+}
+
 /* Before the first deer: the Park Service's buck (a 3:2 source, so a crop takes only the sides; a
-   little left of centre keeps the far antler tip), and a line where the name goes, a step below the
-   title so the two don't compete. */
+   little left of centre keeps the far antler tip; wide on a phone, since it's a landscape), and a
+   line where the name goes, a step below the title so the two don't compete. */
 .lead-photo-nps img {
+  aspect-ratio: 4 / 3;
   object-position: 40% 50%;
 }
 
@@ -2165,6 +2194,10 @@ h1[tabindex="-1"]:focus {
 
 .lead-text .share-actions {
   font-size: 0.875rem;
+}
+
+.lead-text .link-button {
+  justify-self: start;
 }
 
 /* The front: while the board fills up, its title and the newest deer (before the first, the Park
