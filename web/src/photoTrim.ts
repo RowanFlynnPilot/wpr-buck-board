@@ -12,43 +12,47 @@ export type Box = { x: number; y: number; w: number; h: number };
 
 export const cropBias = (box: Box) => (box.y > 0 ? 0 : 0.3);
 
-const SAMPLE = 200; // the long edge it's measured at
+const SAMPLE = 200; // the long edge the bands are looked for at
 const FLAT_SHARE = 0.94;
+
+// Pixels of part of the image, drawn at the given size; null where the canvas can't read them (a
+// cross-origin image without permission).
+function pixels(source: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, w: number, h: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, w, h);
+  try {
+    return ctx.getImageData(0, 0, w, h).data;
+  } catch {
+    return null;
+  }
+}
+
+// Whether a line of pixels (`count` of them, `step` apart from index `start`) is band, not picture.
+function flatLine(data: Uint8ClampedArray, start: number, step: number, count: number) {
+  let flat = 0;
+  for (let k = 0, i = start * 4; k < count; k++, i += step * 4) {
+    const hi = Math.max(data[i], data[i + 1], data[i + 2]);
+    const lo = Math.min(data[i], data[i + 1], data[i + 2]);
+    if (hi <= 24 || lo >= 236) flat++;
+  }
+  return flat >= count * FLAT_SHARE;
+}
 
 export function contentBox(source: CanvasImageSource, width: number, height: number): Box {
   const whole = { x: 0, y: 0, w: width, h: height };
   const scale = Math.min(1, SAMPLE / Math.max(width, height));
   const sw = Math.max(1, Math.round(width * scale));
   const sh = Math.max(1, Math.round(height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = sw;
-  canvas.height = sh;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return whole;
-  ctx.drawImage(source, 0, 0, sw, sh);
-  let data: Uint8ClampedArray;
-  try {
-    data = ctx.getImageData(0, 0, sw, sh).data;
-  } catch {
-    return whole; // a cross-origin image the canvas can't read: draw it as it is
-  }
-  const flat = (x: number, y: number) => {
-    const i = (y * sw + x) * 4;
-    const hi = Math.max(data[i], data[i + 1], data[i + 2]);
-    const lo = Math.min(data[i], data[i + 1], data[i + 2]);
-    return hi <= 24 || lo >= 236;
-  };
-  const rowFlat = (y: number) => {
-    let n = 0;
-    for (let x = 0; x < sw; x++) if (flat(x, y)) n++;
-    return n >= sw * FLAT_SHARE;
-  };
-  const columnFlat = (x: number, top: number, bottom: number) => {
-    let n = 0;
-    for (let y = top; y < bottom; y++) if (flat(x, y)) n++;
-    return n >= (bottom - top) * FLAT_SHARE;
-  };
+  const data = pixels(source, 0, 0, width, height, sw, sh);
+  if (!data) return whole; // can't read it: draw it as it is
 
+  // A first look at the small copy.
+  const rowFlat = (y: number) => flatLine(data, y * sw, 1, sw);
+  const columnFlat = (x: number, from: number, to: number) => flatLine(data, from * sw + x, sw, to - from);
   let top = 0;
   while (top < sh && rowFlat(top)) top++;
   let bottom = sh;
@@ -61,15 +65,41 @@ export function contentBox(source: CanvasImageSource, width: number, height: num
   if (right - left < sw / 2) [left, right] = [0, sw];
   if (top === 0 && bottom === sh && left === 0 && right === sw) return whole;
 
-  // One sample in from each cut edge, so the band's soft last row doesn't show.
-  if (top > 0) top++;
-  if (bottom < sh) bottom--;
-  if (left > 0) left++;
-  if (right < sw) right--;
-  return {
-    x: Math.round(left / scale),
-    y: Math.round(top / scale),
-    w: Math.round((right - left) / scale),
-    h: Math.round((bottom - top) / scale),
-  };
+  // That finds each band's edge to within a sample (8px of a 1600px photo). Look again there at
+  // full resolution and keep every line of the picture, less the one the JPEG blends with the band.
+  const span = (edge: number, size: number) => [Math.max(0, Math.floor((edge - 1) / scale)), Math.min(size, Math.ceil((edge + 1) / scale))];
+  let y0 = 0;
+  let y1 = height;
+  if (top > 0) {
+    const [from, to] = span(top, height);
+    const strip = pixels(source, 0, from, width, to - from, sw, to - from);
+    let r = 0;
+    while (strip && r < to - from && flatLine(strip, r * sw, 1, sw)) r++;
+    y0 = strip ? Math.min(from + r + 1, height) : Math.round((top + 1) / scale);
+  }
+  if (bottom < sh) {
+    const [from, to] = span(bottom, height);
+    const strip = pixels(source, 0, from, width, to - from, sw, to - from);
+    let r = to - from;
+    while (strip && r > 0 && flatLine(strip, (r - 1) * sw, 1, sw)) r--;
+    y1 = strip ? Math.max(from + r - 1, y0 + 1) : Math.round((bottom - 1) / scale);
+  }
+  let x0 = 0;
+  let x1 = width;
+  const rows = Math.max(1, Math.min(sh, y1 - y0));
+  if (left > 0) {
+    const [from, to] = span(left, width);
+    const strip = pixels(source, from, y0, to - from, y1 - y0, to - from, rows);
+    let c = 0;
+    while (strip && c < to - from && flatLine(strip, c, to - from, rows)) c++;
+    x0 = strip ? Math.min(from + c + 1, width) : Math.round((left + 1) / scale);
+  }
+  if (right < sw) {
+    const [from, to] = span(right, width);
+    const strip = pixels(source, from, y0, to - from, y1 - y0, to - from, rows);
+    let c = to - from;
+    while (strip && c > 0 && flatLine(strip, c - 1, to - from, rows)) c--;
+    x1 = strip ? Math.max(from + c - 1, x0 + 1) : Math.round((right - 1) / scale);
+  }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
