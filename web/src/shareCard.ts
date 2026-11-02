@@ -7,7 +7,7 @@
 // the canvas can still be exported.
 import { loadCardFacts, saveShareCard, type CardFacts } from "./data";
 import { apDay, describeDeer, WEAPON_LABELS } from "./format";
-import { contentBox, cropBias } from "./photoTrim";
+import { contentBox, cropBias, type Box } from "./photoTrim";
 import { logoUrl, photoUrl } from "./storage";
 
 export const CARD = { width: 1200, height: 630 };
@@ -69,7 +69,9 @@ function paint({ entry, year, presenting }: CardFacts, photo: HTMLImageElement, 
   // The blaze band that runs along the top of the board.
   ctx.fillStyle = COLOR.blaze;
   ctx.fillRect(0, 0, CARD.width, 10);
-  drawPrint(ctx, photo, { x: 50, y: 52, w: 500, h: 540, border: 14, foot: 24, angle: -2, firstDeer: entry.first_deer, scale: 1 });
+  // The print fills its room, unless the photo is a landscape: then it's 4:3, centred there.
+  const print = fitPrint(photo, { x: 50, y: 52, w: 500, h: 540 }, 14, 24, null);
+  drawPrint(ctx, photo, { ...print, border: 14, foot: 24, angle: -2, firstDeer: entry.first_deer, scale: 1 });
 
   // The flag: WPR's badge and name over the thick-over-thin rule.
   let y = 48;
@@ -146,8 +148,8 @@ export const FEED = { width: 1080, height: 1350 };
 // `top`: where the flag starts. `foot`: the baseline of the last line about the deer. `scale`:
 // the type, against the Story image's sizes.
 type Portrait = { width: number; height: number; top: number; foot: number; scale: number };
-const STORY_LAYOUT: Portrait = { ...STORY, top: 236, foot: 1500, scale: 1 };
-const FEED_LAYOUT: Portrait = { ...FEED, top: 72, foot: 1150, scale: 0.875 };
+const STORY_LAYOUT: Portrait = { ...STORY, top: 236, foot: 1560, scale: 1 };
+const FEED_LAYOUT: Portrait = { ...FEED, top: 72, foot: 1190, scale: 0.875 };
 
 export function drawStoryCard(facts: CardFacts): Promise<Blob> {
   return drawPortrait(facts, STORY_LAYOUT);
@@ -234,7 +236,7 @@ function paintPortrait(
     y += px(24);
     y += drawLogoCard(ctx, logo, M, y, px(320), px(90), px(10));
   }
-  const photoTop = y + px(52);
+  const photoTop = y + px(40);
 
   // The deer, from the foot up, then the name; the photo takes the room between.
   const FOOT = L.foot;
@@ -257,17 +259,18 @@ function paintPortrait(
     ctx.font = `700 ${name.size}px ${DISPLAY}`;
     ctx.fillText(line, M, base - (name.lines.length - 1 - i) * name.leading);
   });
-  const photoBottom = base - (name.lines.length - 1) * name.leading - Math.round(name.size * 0.8) - px(52);
+  const photoBottom = base - (name.lines.length - 1) * name.leading - Math.round(name.size * 0.8) - px(40);
 
-  // The print, a little inside the margins so its tilted corners stay on the page.
+  // The print, a little inside the margins so its tilted corners stay on the page, in the photo's
+  // own shape (fitPrint): a landscape at 4:3, an upright photo square, as the board's wide-screen
+  // lead shows it, rather than a band across the room that cuts off the deer.
   const inset = px(16);
+  const border = px(20);
+  const foot = px(32);
   drawPrint(ctx, photo, {
-    x: M + inset,
-    y: photoTop,
-    w: WIDE - 2 * inset,
-    h: photoBottom - photoTop,
-    border: px(20),
-    foot: px(32),
+    ...fitPrint(photo, { x: M + inset, y: photoTop, w: WIDE - 2 * inset, h: photoBottom - photoTop }, border, foot, 1),
+    border,
+    foot,
     angle: -1.5,
     firstDeer: entry.first_deer,
     scale: 1.6 * s,
@@ -341,6 +344,19 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width = TEXT_WIDTH): 
     }
   }
   return line ? [...lines, line] : lines;
+}
+
+// A print in the photo's own shape, as large as the room allows and centred in it: the picture
+// (inside any screenshot bands) at 4:3 for a landscape, at `upright` (width over height) for an
+// upright photo, or filling the room where that's null.
+function fitPrint(photo: HTMLImageElement, room: Box, border: number, foot: number, upright: number | null): Box {
+  const picture = contentBox(photo, photo.naturalWidth, photo.naturalHeight);
+  const aspect = picture.w > picture.h ? 4 / 3 : upright;
+  if (aspect === null) return room;
+  const width = Math.min(room.w - 2 * border, (room.h - border - foot) * aspect);
+  const w = Math.round(width + 2 * border);
+  const h = Math.round(width / aspect + border + foot);
+  return { x: room.x + Math.round((room.w - w) / 2), y: room.y + Math.round((room.h - h) / 2), w, h };
 }
 
 // Fill the box like the board's cropped thumbnails: centred side to side, and 30% of the way

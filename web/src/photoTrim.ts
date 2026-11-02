@@ -2,8 +2,10 @@
 // and below it, or beside it, that the board's crops would show as black bars. Find the photo
 // inside them: edge rows and columns that are nearly all flat near-black or near-white (a status
 // bar's few icons allowed) are left out, as long as at least half the picture remains each way, so a
-// night photo's dark sky stays. Photos are stored as sent; every crop (useTrimmedCrop) and every
-// drawn image (shareCard.ts) keeps to the box.
+// night photo's dark sky stays; between bands of about equal size, as a phone's viewer centres a
+// photo, a quarter will do, since a landscape screenshotted on a phone is about a third of the
+// screen. Photos are stored as sent; every crop (useTrimmedCrop) and every drawn image
+// (shareCard.ts) keeps to the box.
 //
 // Under a top band the picture starts where whoever posted it framed it, often at the hunter's
 // head, so crops of a banded photo hang from its top rather than 30% down (Nov. 1: the first real
@@ -53,16 +55,18 @@ export function contentBox(source: CanvasImageSource, width: number, height: num
   // A first look at the small copy.
   const rowFlat = (y: number) => flatLine(data, y * sw, 1, sw);
   const columnFlat = (x: number, from: number, to: number) => flatLine(data, from * sw + x, sw, to - from);
+  const kept = (start: number, end: number, size: number) =>
+    end - start >= size * (Math.abs(start - (size - end)) <= size * 0.08 ? 0.25 : 0.5);
   let top = 0;
   while (top < sh && rowFlat(top)) top++;
   let bottom = sh;
   while (bottom > top && rowFlat(bottom - 1)) bottom--;
-  if (bottom - top < sh / 2) [top, bottom] = [0, sh];
+  if (!kept(top, bottom, sh)) [top, bottom] = [0, sh];
   let left = 0;
   while (left < sw && columnFlat(left, top, bottom)) left++;
   let right = sw;
   while (right > left && columnFlat(right - 1, top, bottom)) right--;
-  if (right - left < sw / 2) [left, right] = [0, sw];
+  if (!kept(left, right, sw)) [left, right] = [0, sw];
   if (top === 0 && bottom === sh && left === 0 && right === sw) return whole;
 
   // That finds each band's edge to within a sample (8px of a 1600px photo). Look again there at
