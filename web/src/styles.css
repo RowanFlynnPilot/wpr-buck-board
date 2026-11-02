@@ -994,6 +994,12 @@ img {
   background: var(--line);
 }
 
+/* A landscape crops wide (4:3) instead, so a hunter at one side and the deer across the frame both
+   stay in it; useTrimmedCrop marks it. Prints take their own heights on the wall (.entry). */
+.entry-photo img[data-shape="wide"] {
+  aspect-ratio: 4 / 3;
+}
+
 /* A strip of tape across the top of every print. */
 .entry::before,
 .lead-photo::before,
@@ -2121,10 +2127,15 @@ h1[tabindex="-1"]:focus {
   width: 100%;
   /* The empty board gives its picture width and height attributes; the width rules, the height follows. */
   height: auto;
-  /* Upright on a phone, like the cards; square beside the words on a wider screen (below). */
+  /* Upright on a phone, like the cards, or wide for a landscape; square beside the words on a
+     wider screen (below), which holds either. */
   aspect-ratio: 4 / 5;
   object-fit: cover;
   object-position: 50% 30%;
+}
+
+.lead-photo img[data-shape="wide"] {
+  aspect-ratio: 4 / 3;
 }
 
 @media (min-width: 721px) {

@@ -8,12 +8,22 @@ import { contentBox, cropBias, type Box } from "./photoTrim";
 // just enough that the picture fills it, clipped by CropPhoto's wrapper. Remeasured as the frame
 // changes size. A photo without bands is left to the stylesheet. The image needs
 // crossOrigin="anonymous" so its pixels can be read; storage serves photos to any origin.
+//
+// It also marks a landscape picture data-shape="wide", for the stylesheet to crop it 4:3 rather
+// than upright (Nov. 1: the second real entry, a landscape, lost the buck's head to a 4:5 crop).
+// The photo's size is known before it finishes loading, so an eager photo (the lead) is watched
+// for it and takes its shape early; a screenshot's shape is its picture's, once measured.
 export function useTrimmedCrop(src: string) {
   const ref = useRef<HTMLImageElement>(null);
   useEffect(() => {
     const img = ref.current;
     if (!img) return;
     let box: Box | null = null;
+    let frame = 0;
+    const shape = (w: number, h: number) => {
+      if (w > h) img.dataset.shape = "wide";
+      else delete img.dataset.shape;
+    };
     const place = () => {
       const W = img.naturalWidth;
       const H = img.naturalHeight;
@@ -49,18 +59,32 @@ export function useTrimmedCrop(src: string) {
       img.style.transform = `scale(${k.toFixed(4)})`;
     };
     const measure = () => {
-      const found = contentBox(img, img.naturalWidth, img.naturalHeight);
-      if (found.w >= img.naturalWidth && found.h >= img.naturalHeight) return;
+      cancelAnimationFrame(frame);
+      const W = img.naturalWidth;
+      const H = img.naturalHeight;
+      if (!W) return;
+      const found = contentBox(img, W, H);
+      shape(found.w, found.h);
+      if (found.w >= W && found.h >= H) return;
       box = found;
       place();
     };
+    const sized = () => {
+      if (img.naturalWidth) shape(img.naturalWidth, img.naturalHeight);
+      else if (!img.complete) frame = requestAnimationFrame(sized); // complete with no size: it failed
+    };
     if (img.complete && img.naturalWidth) measure();
-    else img.addEventListener("load", measure, { once: true });
+    else {
+      img.addEventListener("load", measure, { once: true });
+      if (img.loading !== "lazy") sized();
+    }
     const observer = new ResizeObserver(place);
     observer.observe(img);
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       img.removeEventListener("load", measure);
+      delete img.dataset.shape;
       img.style.objectPosition = "";
       img.style.transform = "";
       img.style.transformOrigin = "";
