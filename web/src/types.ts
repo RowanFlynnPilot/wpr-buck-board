@@ -114,6 +114,16 @@ export interface WeeklyPick {
   entry_id: string;
 }
 
+// The Brag Board section saved for a Friday's newsletters (migration 0020): the rows the
+// newsletter build adds to both editions, and what the staff page needs to reopen it.
+export interface SavedNewsletterSection {
+  week_of: string;
+  rows_html: string;
+  entry_ids: string[];
+  posted_since: string;
+  saved_at: string;
+}
+
 export interface AwardWinner {
   award_id: string;
   entry_id: string;
