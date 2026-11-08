@@ -2,7 +2,16 @@ import { FunctionsFetchError, FunctionsHttpError, type PostgrestError } from "@s
 import type { PreparedPhoto } from "./photo";
 import { ENTRY_COLUMNS, readAsSignedIn } from "./reads";
 import { supabase } from "./supabase";
-import type { DrawnPrize, EntryFields, EntryStatus, ModerationEntry, PostedEntry, Sponsor, Standing } from "./types";
+import type {
+  DrawnPrize,
+  EntryFields,
+  EntryStatus,
+  ModerationEntry,
+  PostedEntry,
+  SavedNewsletterSection,
+  Sponsor,
+  Standing,
+} from "./types";
 
 // The board's reads live in reads.ts, without the client. Where this module is loaded (the staff
 // page, the entry form, the vote), they carry the signed-in session's token, which the client keeps
@@ -42,6 +51,35 @@ export async function setFinalist(entryId: string, on: boolean): Promise<void> {
 // A null entry clears that Friday's pick.
 export async function setWeeklyPick(weekOf: string, entryId: string | null): Promise<void> {
   await rows<null>(supabase.rpc("set_weekly_pick", { p_week_of: weekOf, p_entry_id: entryId }));
+}
+
+// Staff: the Brag Board section saved for a Friday's newsletters, or null.
+export async function loadNewsletterSection(seasonId: string, weekOf: string): Promise<SavedNewsletterSection | null> {
+  return rows<SavedNewsletterSection | null>(
+    supabase
+      .from("newsletter_sections")
+      .select("week_of, rows_html, entry_ids, posted_since, saved_at")
+      .eq("season_id", seasonId)
+      .eq("week_of", weekOf)
+      .maybeSingle(),
+  );
+}
+
+// Saves a Friday's section for the newsletter build to pull in; null rows take it out.
+export async function saveNewsletterSection(
+  weekOf: string,
+  rowsHtml: string | null,
+  entryIds: string[],
+  postedSince: string,
+): Promise<void> {
+  await rows<null>(
+    supabase.rpc("save_newsletter_section", {
+      p_week_of: weekOf,
+      p_rows_html: rowsHtml,
+      p_entry_ids: entryIds,
+      p_posted_since: postedSince,
+    }),
+  );
 }
 
 export async function setPrizeEligible(entryId: string, eligible: boolean): Promise<void> {

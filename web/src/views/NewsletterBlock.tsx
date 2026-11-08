@@ -1,13 +1,26 @@
-// Staff: the Brag Board section for Friday's newsletter (the entry form promises readers
-// "new Brag Board entries every Friday"). Pick the deer, check the preview, copy the HTML,
-// paste it into a Custom HTML block in the Noptin campaign before it sends.
+// Staff: the Brag Board section for Friday's newsletters (the entry form promises readers
+// "new Brag Board entries every Friday"). Pick the deer, check the preview, save it for Friday:
+// the wpr-newsletter build reads the saved section that morning and adds it to both editions
+// (migration 0020). Each edition is built about an hour before it sends, so there's no campaign
+// to paste into ahead of time (Nov. 6: a pasted section never reached a newsletter).
 import { useState } from "react";
-import { countEntries, loadCatalog, loadPostedSince, loadSeason, loadWeeklyPicks, setWeeklyPick } from "../data";
+import {
+  countEntries,
+  loadCatalog,
+  loadNewsletterSection,
+  loadPostedSince,
+  loadSeason,
+  loadWeeklyPicks,
+  saveNewsletterSection,
+  setWeeklyPick,
+} from "../data";
 import { env } from "../env";
 import {
   addDays,
   apDate,
   apDay,
+  apNumber,
+  apTime,
   describeDeer,
   fridayOnOrAfter,
   possessive,
@@ -18,7 +31,7 @@ import { MAX_DEER, NOPTIN_BLOCK_LIMIT, newsletterRows, wrapForNoptin } from "../
 import { lastWeeklyFriday, presentingSponsor, weeklySponsor } from "../phase";
 import { drawFeedCard } from "../shareCard";
 import { photoUrl } from "../storage";
-import type { Board, PostedEntry, Sponsor, WeeklyPick } from "../types";
+import type { Board, PostedEntry, SavedNewsletterSection, Sponsor, WeeklyPick } from "../types";
 import { useLoad } from "../useLoad";
 
 // Three rows of two unless an editor picks more.
@@ -28,31 +41,51 @@ const DEFAULT_PICKS = 6;
 const PREVIEW_FONTS =
   "https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Oswald:wght@700&family=Source+Sans+3:wght@400;700&display=swap";
 
+// The Friday the section is for: today on a Friday, otherwise the next one.
 async function loadBoard() {
   const season = await loadSeason();
-  const [catalog, onBoard, weekly] = await Promise.all([
+  const friday = fridayOnOrAfter(todayInWausau());
+  const [catalog, onBoard, weekly, saved] = await Promise.all([
     loadCatalog(season.id),
     countEntries(season.id),
     loadWeeklyPicks(season.id),
+    loadNewsletterSection(season.id, friday),
   ]);
-  return { board: { season, ...catalog }, onBoard, weekly };
+  return { board: { season, ...catalog }, onBoard, weekly, saved, friday };
 }
 
 export function NewsletterBlock() {
   const page = useLoad(loadBoard);
-  const today = todayInWausau();
-  const weekAgo = addDays(today, -7);
-  const [since, setSince] = useState(weekAgo);
-
   if (page.status === "loading") return <p className="status">Loading…</p>;
   if (page.status === "failed") return <p className="status">Couldn't load the season: {page.error.message}</p>;
+  return <Section {...page.data} />;
+}
+
+function Section({
+  board,
+  onBoard,
+  weekly,
+  saved,
+  friday,
+}: {
+  board: Board;
+  onBoard: number;
+  weekly: WeeklyPick[];
+  saved: SavedNewsletterSection | null;
+  friday: string;
+}) {
+  const today = todayInWausau();
+  // A week's section runs from the last Friday's newsletter; a saved one reopens on its own list.
+  const weekStart = addDays(friday, -7);
+  const [since, setSince] = useState(saved?.posted_since ?? weekStart);
 
   return (
     <section className="newsletter">
       <p className="hint">
-        The Brag Board section for Friday's newsletter, laid out like the rest of the email. Pick up to {MAX_DEER} deer,
-        copy the HTML, and paste it into a Custom HTML block in the Noptin campaign before it sends. Links are tagged
-        for newsletter analytics.
+        The Brag Board section for Friday's newsletters, laid out like the rest of the email. Pick up to {apNumber(MAX_DEER)} deer
+        and save it: the Morning and Afternoon Updates on Friday, {apDay(friday)} take it on their own, with nothing to
+        paste. Save by Thursday night. Each edition is built about an hour before it sends (7:02 a.m. and 5:02 p.m.) and
+        takes the section as it's saved then. Links are tagged for newsletter analytics.
       </p>
       <label className="newsletter-since">
         Deer posted since
@@ -60,12 +93,13 @@ export function NewsletterBlock() {
       </label>
       <Picks
         key={since}
-        board={page.data.board}
-        onBoard={page.data.onBoard}
-        weekly={page.data.weekly}
+        board={board}
+        onBoard={onBoard}
+        weekly={weekly}
+        saved={saved}
         since={since}
-        thisWeek={since === weekAgo}
-        edition={today}
+        thisWeek={since === weekStart}
+        friday={friday}
       />
     </section>
   );
@@ -91,24 +125,29 @@ function Picks({
   board,
   onBoard,
   weekly,
+  saved,
   since,
   thisWeek,
-  edition,
+  friday,
 }: {
   board: Board;
   onBoard: number;
   weekly: WeeklyPick[];
+  saved: SavedNewsletterSection | null;
   since: string;
   thisWeek: boolean;
-  edition: string;
+  friday: string;
 }) {
   // Keyed by `since`, so this loads once per date.
   const posted = useLoad(() => loadPostedSince(board.season.id, wausauMidnight(since)));
-  const [chosen, setChosen] = useState<string[] | null>(null);
+  // A section saved from this list reopens with its deer checked.
+  const [chosen, setChosen] = useState<string[] | null>(saved && saved.posted_since === since ? saved.entry_ids : null);
   const [copied, setCopied] = useState(false);
+  const [current, setCurrent] = useState(saved);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // Deer of the Week for the Friday this newsletter goes out, saved as soon as it's picked. It
   // runs while entries are open, so the picker shows only for a Friday that can take one.
-  const friday = fridayOnOrAfter(edition);
   const weeklyOpen = board.season.phase === "entries" && friday <= lastWeeklyFriday(board.season);
   const [weeklyId, setWeeklyId] = useState(weekly.find((w) => w.week_of === friday)?.entry_id ?? null);
   const [weeklySaving, setWeeklySaving] = useState(false);
@@ -118,7 +157,8 @@ function Picks({
   if (posted.status === "failed") return <p className="status">Couldn't load entries: {posted.error.message}</p>;
   if (posted.data.length === 0) return <p className="empty">No deer have been posted since {apDay(since)}.</p>;
 
-  const picked = chosen ?? posted.data.slice(0, DEFAULT_PICKS).map((e) => e.id);
+  const listed = new Set(posted.data.map((e) => e.id));
+  const picked = (chosen ?? posted.data.slice(0, DEFAULT_PICKS).map((e) => e.id)).filter((id) => listed.has(id));
   const toggle = (id: string) => {
     setCopied(false);
     setChosen(picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]);
@@ -140,21 +180,48 @@ function Picks({
     }
   };
 
-  const html = wrapForNoptin(
-    newsletterRows({
-      season: board.season,
-      presenting: presentingSponsor(board),
-      weekly: weeklyEntry && { entry: weeklyEntry, sponsor },
-      picks: posted.data.filter((e) => picked.includes(e.id)),
-      posted: posted.data.length,
-      onBoard,
-      since: thisWeek ? null : since,
-      edition,
-      galleryUrl: env.galleryPageUrl,
-      enterUrl: env.enterPageUrl,
-    }),
-  );
+  const rows = newsletterRows({
+    season: board.season,
+    presenting: presentingSponsor(board),
+    weekly: weeklyEntry && { entry: weeklyEntry, sponsor },
+    picks: posted.data.filter((e) => picked.includes(e.id)),
+    posted: posted.data.length,
+    onBoard,
+    since: thisWeek ? null : since,
+    edition: friday,
+    galleryUrl: env.galleryPageUrl,
+    enterUrl: env.enterPageUrl,
+  });
+  const html = wrapForNoptin(rows);
   const tooBig = html.length > NOPTIN_BLOCK_LIMIT;
+
+  // Every deer the section shows, so the newsletter leaves it out if one is taken down.
+  const shown = [...new Set([...picked, ...(weeklyEntry ? [weeklyEntry.id] : [])])];
+  const upToDate = current?.rows_html === rows;
+  const takenDown = current !== null && current.posted_since === since && current.entry_ids.some((id) => !listed.has(id));
+  const save = async (section: string | null) => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await saveNewsletterSection(friday, section, section ? shown : [], since);
+      setCurrent(
+        section
+          ? { week_of: friday, rows_html: section, entry_ids: shown, posted_since: since, saved_at: new Date().toISOString() }
+          : null,
+      );
+    } catch (err) {
+      setSaveError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const status = !current
+    ? "Not saved yet. Friday's newsletters go out without the Brag Board until you save it."
+    : takenDown
+      ? "A deer in the saved section has been taken down, so Friday's newsletters will leave the Brag Board out. Save again."
+      : upToDate
+        ? `Saved. It goes into Friday's Morning and Afternoon Updates on its own (saved ${apDate(current.saved_at)} at ${apTime(current.saved_at)}).`
+        : "Changed since you saved it. Save again to send this version.";
 
   const copy = () => {
     navigator.clipboard.writeText(html).then(
@@ -222,17 +289,43 @@ function Picks({
       </ul>
 
       <div className="actions">
-        <button type="button" className="button button-blaze" disabled={picked.length === 0 || tooBig} onClick={copy}>
-          Copy HTML
+        <button
+          type="button"
+          className="button button-blaze"
+          disabled={picked.length === 0 || tooBig || saving || (upToDate && !takenDown)}
+          onClick={() => save(rows)}
+        >
+          {saving ? "Saving…" : upToDate && !takenDown ? "Saved" : `Save for Friday, ${apDay(friday)}`}
         </button>
-        <p className={tooBig ? "newsletter-size newsletter-size-over" : "newsletter-size"} aria-live="polite">
-          {copied
-            ? "Copied. Paste it into a Custom HTML block in Friday's campaign."
-            : tooBig
-              ? `${(html.length / 1000).toFixed(1)} KB is over Noptin's ~13 KB block limit. Uncheck a deer or two.`
-              : `${picked.length} of ${posted.data.length} deer · ${(html.length / 1000).toFixed(1)} KB of Noptin's ~13 KB block limit`}
+        <p className={upToDate && !takenDown ? "newsletter-status newsletter-status-saved" : "newsletter-status"} aria-live="polite">
+          {status}
         </p>
       </div>
+      <p className={tooBig ? "newsletter-size newsletter-size-over" : "newsletter-size"}>
+        {tooBig
+          ? `${(html.length / 1000).toFixed(1)} KB is over the newsletter's ~13 KB block limit. Uncheck a deer or two.`
+          : `${picked.length} of ${posted.data.length} deer · ${(html.length / 1000).toFixed(1)} KB of the newsletter's ~13 KB block limit`}
+      </p>
+      {saveError && (
+        <p className="error" role="alert">
+          {saveError}
+        </p>
+      )}
+      {current && (
+        <button type="button" className="link-button" disabled={saving} onClick={() => save(null)}>
+          Take it out of Friday's newsletters
+        </button>
+      )}
+      <details className="newsletter-copy">
+        <summary>Adding it to a campaign by hand instead</summary>
+        <p className="hint">
+          Copy the section and paste it into a Custom HTML block in the campaign, under Harvey Plum Post &gt; Emails &gt;
+          Newsletters. A campaign appears there about an hour before it sends.
+        </p>
+        <button type="button" className="button" disabled={picked.length === 0 || tooBig} onClick={copy}>
+          {copied ? "Copied" : "Copy HTML"}
+        </button>
+      </details>
 
       {picked.length > 0 && (
         <iframe

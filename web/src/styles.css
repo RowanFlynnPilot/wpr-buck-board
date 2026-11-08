@@ -2043,6 +2043,34 @@ textarea {
   font-size: 0.8125rem;
 }
 
+.newsletter-status {
+  max-width: 34rem;
+  align-self: center;
+  font-size: 0.9375rem;
+}
+
+.newsletter-status-saved {
+  color: var(--teal-deep);
+  font-weight: 700;
+}
+
+.newsletter > .link-button {
+  justify-self: start;
+}
+
+/* The old way, kept for a day the build can't reach the board: copy and paste by hand. */
+.newsletter-copy {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+}
+
+.newsletter-copy summary {
+  color: var(--bark);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
 .newsletter-size {
   color: var(--bark);
   font-size: 0.875rem;

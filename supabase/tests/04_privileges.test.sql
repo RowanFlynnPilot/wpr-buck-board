@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(81);
+select plan(85);
 
 -- These assert the privilege map in both directions, so a missing grant fails CI
 -- as loudly as an extra one.
@@ -34,6 +34,9 @@ select ok(has_table_privilege('anon', 'public.weekly_picks', 'select'), 'anon re
 select ok(has_table_privilege('authenticated', 'public.weekly_picks', 'select'), 'authenticated reads Deer of the Week picks (RLS: from their Friday, or staff)');
 select ok(not has_table_privilege('anon', 'public.thank_you_offers', 'select'), 'anon cannot read the thank-you''s redemption details');
 select ok(not has_table_privilege('authenticated', 'public.thank_you_offers', 'select'), 'authenticated cannot read the thank-you''s redemption details');
+-- Friday's newsletter section (migration 0020).
+select ok(has_table_privilege('anon', 'public.newsletter_sections', 'select'), 'anon reads the newsletter section (RLS: from its Friday, while its deer are posted)');
+select ok(has_table_privilege('authenticated', 'public.newsletter_sections', 'select'), 'authenticated reads the newsletter section (RLS: from its Friday, or staff)');
 
 -- The entry function writes its emails from these, as service_role (migration 0010).
 select ok(has_table_privilege('service_role', 'public.entries', 'select'), 'service role reads entries for the entry emails');
@@ -66,7 +69,8 @@ select is(
         unnest(array['public.staff', 'public.entry_private', 'public.drawing_winners', 'public.newsletter_optins',
                      'public.sponsors', 'public.awards', 'public.wi_counties',
                      'public.finalists', 'public.prize_forfeits', 'public.blocked_email_domains',
-                     'public.weekly_picks', 'public.thank_you_offers', 'public.dnr_tallies']) tbl
+                     'public.weekly_picks', 'public.thank_you_offers', 'public.dnr_tallies',
+                     'public.newsletter_sections']) tbl
    where has_table_privilege(role, tbl, 'insert,update,delete,truncate')),
   null,
   'no API role can write staff, entrant details, the drawing, opt-ins or the catalog directly'
@@ -110,6 +114,8 @@ select ok(not has_function_privilege('anon', 'public.vote_email_key(text)', 'exe
 select ok(not has_function_privilege('authenticated', 'public.vote_email_key(text)', 'execute'), 'authenticated cannot call vote_email_key');
 select ok(has_function_privilege('authenticated', 'public.set_weekly_pick(date, uuid)', 'execute'), 'authenticated can call set_weekly_pick (staff check inside)');
 select ok(not has_function_privilege('anon', 'public.set_weekly_pick(date, uuid)', 'execute'), 'anon cannot pick Deer of the Week');
+select ok(has_function_privilege('authenticated', 'public.save_newsletter_section(date, text, uuid[], date)', 'execute'), 'authenticated can call save_newsletter_section (staff check inside)');
+select ok(not has_function_privilege('anon', 'public.save_newsletter_section(date, text, uuid[], date)', 'execute'), 'anon cannot save the newsletter section');
 select ok(not has_function_privilege('anon', 'public.thank_you_offers_tier()', 'execute'), 'anon cannot call the thank-you trigger');
 select ok(not has_function_privilege('authenticated', 'public.thank_you_offers_tier()', 'execute'), 'authenticated cannot call the thank-you trigger');
 

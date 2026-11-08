@@ -25,6 +25,20 @@ export function apDay(date: string): string {
   return `${AP_MONTHS[month - 1]}\u00a0${day}`;
 }
 
+// A timestamp's Wausau clock time in AP style, e.g. "3:12 p.m." or "9 a.m.".
+export function apTime(timestamp: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CHICAGO,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(new Date(timestamp));
+  const hour = parts.find((p) => p.type === "hour")?.value;
+  const minute = parts.find((p) => p.type === "minute")?.value;
+  const pm = parts.find((p) => p.type === "dayPeriod")?.value.toUpperCase() === "PM";
+  return `${hour}${minute === "00" ? "" : `:${minute}`}\u00a0${pm ? "p.m." : "a.m."}`;
+}
+
 export function todayInWausau(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: CHICAGO }).format(new Date());
 }
