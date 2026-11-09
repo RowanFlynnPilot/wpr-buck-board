@@ -9,6 +9,7 @@ import { castVote, loadBlockedDomains, loadMyVote } from "../data";
 import { apLastDay, apDate } from "../format";
 import { supabase } from "../supabase";
 import type { GalleryEntry, Season, Sponsor } from "../types";
+import { DeerViewer } from "./DeerViewer";
 import { EntryCard } from "./EntryCard";
 import { SponsorCredit } from "./SponsorCredit";
 
@@ -185,19 +186,22 @@ export function ReadersChoice({
         </p>
       )}
 
-      <div className="entry-grid">
-        {finalists.map((entry) => (
-          <div key={entry.id} className={myVote === entry.id ? "finalist finalist-mine" : "finalist"}>
-            <EntryCard entry={entry} share storyFacts={storyFacts} />
-            {open && myVote === null && (
-              <button type="button" className="button" onClick={() => pick(entry)} disabled={busy}>
-                Vote for this deer
-              </button>
-            )}
-            {myVote === entry.id && <p className="finalist-voted">Your vote</p>}
-          </div>
-        ))}
-      </div>
+      {/* The pop-up steps through the finalists. */}
+      <DeerViewer items={finalists.map((entry) => ({ entry }))} share storyFacts={storyFacts}>
+        <div className="entry-grid">
+          {finalists.map((entry) => (
+            <div key={entry.id} className={myVote === entry.id ? "finalist finalist-mine" : "finalist"}>
+              <EntryCard entry={entry} share storyFacts={storyFacts} />
+              {open && myVote === null && (
+                <button type="button" className="button" onClick={() => pick(entry)} disabled={busy}>
+                  Vote for this deer
+                </button>
+              )}
+              {myVote === entry.id && <p className="finalist-voted">Your vote</p>}
+            </div>
+          ))}
+        </div>
+      </DeerViewer>
     </section>
   );
 }

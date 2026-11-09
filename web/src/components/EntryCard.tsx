@@ -5,6 +5,8 @@ import { photoUrl } from "../storage";
 import type { EntryFields, Sponsor } from "../types";
 import { CropPhoto } from "./CropPhoto";
 import { DeerDialog } from "./DeerDialog";
+import { EntryTags } from "./EntryTags";
+import { useDeerViewer } from "./DeerViewer";
 import { Rosette } from "./Rosette";
 import { ShareButton } from "./ShareButton";
 import { SponsorCredit } from "./SponsorCredit";
@@ -32,14 +34,32 @@ interface Props {
 }
 
 export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, storyFacts, featured = false, photo, weekOf }: Props) {
-  // The deer in a pop-up: the whole photo and story (DeerDialog).
+  // The deer in a pop-up: the whole photo and story (DeerDialog), stepping through its list's
+  // deer when the card is in one (DeerViewer), or on its own.
+  const viewer = useDeerViewer();
   const [open, setOpen] = useState(false);
+  const openDeer = () => {
+    if (!viewer?.(entry.id, { award, awardSponsor, weekOf })) setOpen(true);
+  };
   const deer = describeDeer(entry.deer_type, entry.points);
   const story = entry.story && tidyStory(entry.story);
   const longStory = !featured && story !== null && story.length > LONG_STORY;
 
   return (
-    <article className={featured ? "entry entry-featured" : "entry"} data-reveal>
+    <article
+      className={featured ? "entry entry-featured" : "entry"}
+      data-reveal
+      // In a list on the board, a tap anywhere on the print opens it (a two-across print on a
+      // phone is mostly photo and name), but not a tap on its buttons or a drag to select words.
+      onClick={
+        viewer && !featured
+          ? (e) => {
+              if ((e.target as Element).closest("a, button, input, label") || window.getSelection()?.toString()) return;
+              openDeer();
+            }
+          : undefined
+      }
+    >
       {ribbon && <Rosette grand={ribbon === "grand"} className="entry-ribbon" />}
       {featured ? (
         <a className="entry-photo" href={photo ?? photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
@@ -56,7 +76,7 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
           className="entry-photo photo-button"
           aria-haspopup="dialog"
           aria-label={`Open ${possessive(entry.hunter_name)} ${deer.toLowerCase()}`}
-          onClick={() => setOpen(true)}
+          onClick={openDeer}
         >
           <CropPhoto src={photo ?? photoUrl(entry.photo_id, "thumb")} alt="" loading="lazy" />
           <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
@@ -68,9 +88,12 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
       <h3 className="entry-name">{entry.hunter_name}</h3>
       <p className="entry-home">{entry.hometown}</p>
       <p className="entry-record">
-        {deer}, {WEAPON_LABELS[entry.weapon].toLowerCase()}
-        <br />
-        {entry.county} County, {apDay(entry.harvest_date)}
+        <span>
+          {deer}, {WEAPON_LABELS[entry.weapon].toLowerCase()}
+        </span>
+        <span className="entry-record-where">
+          {entry.county} County, {apDay(entry.harvest_date)}
+        </span>
       </p>
       {story && (
         <p className={longStory ? "entry-story entry-story-closed" : "entry-story"}>
@@ -78,7 +101,7 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
         </p>
       )}
       {longStory && (
-        <button type="button" className="link-button" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        <button type="button" className="link-button" aria-haspopup="dialog" onClick={openDeer}>
           Read the story
         </button>
       )}
@@ -96,20 +119,5 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
         />
       )}
     </article>
-  );
-}
-
-// The tags on a deer's photo, on its card and in the front.
-export function EntryTags({ firstDeer, weekOf }: { firstDeer: boolean; weekOf?: string }) {
-  if (!firstDeer && !weekOf) return null;
-  return (
-    <span className="entry-tags">
-      {weekOf && (
-        <span className="entry-tag entry-tag-week" title={`Deer of the Week, ${apDay(weekOf)}`}>
-          Deer of the Week
-        </span>
-      )}
-      {firstDeer && <span className="entry-tag">First deer</span>}
-    </span>
   );
 }

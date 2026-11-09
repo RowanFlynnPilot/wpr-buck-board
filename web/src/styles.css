@@ -2519,22 +2519,80 @@ html:has(.deer-dialog[open]) {
   padding: 12px 12px 24px;
 }
 
-/* Close stays at hand while a long story scrolls. */
-.deer-dialog-close {
+/* Previous, next and Close stay at hand while a long story scrolls: a bar of no height pinned to
+   the top, its buttons hanging over the photo. */
+.deer-dialog-bar {
   position: sticky;
-  top: 10px;
+  top: 0;
   z-index: 2;
-  justify-self: end;
-  width: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  height: 0;
+  padding: 0 22px;
+  pointer-events: none;
+}
+
+.deer-dialog-bar > * {
+  margin-top: 22px;
+  pointer-events: auto;
+}
+
+.deer-dialog-steps,
+.deer-dialog-close {
   height: 44px;
-  margin: 10px 10px -54px 0;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
+  border-radius: 22px;
   background: rgba(20, 24, 22, 0.78);
   color: var(--paper);
-  font: 400 1.75rem/1 var(--body);
+}
+
+.deer-dialog-steps {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.deer-dialog-steps button,
+.deer-dialog-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
   cursor: pointer;
+}
+
+.deer-dialog-steps button {
+  height: 44px;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+}
+
+.deer-dialog-steps svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.deer-dialog-close {
+  margin-left: auto;
+  font: 400 1.75rem/1 var(--body);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .deer-dialog-photo {
@@ -2601,4 +2659,73 @@ html:has(.deer-dialog[open]) {
 .deer-dialog-full {
   color: var(--teal-deep);
   font-size: 0.9375rem;
+}
+
+/* A card's two lines about its deer: the deer, then where and when. */
+.entry-record > span {
+  display: block;
+}
+
+/* On the board, a print opens its deer wherever it's tapped (EntryCard). */
+main.gallery .entry:not(.entry-featured) {
+  cursor: pointer;
+}
+
+/* Two prints across on a phone (Nov. 9): one to a screen made the board miles long, and a tap now
+   opens the whole deer (DeerDialog), so a print shows its photo, its name and the deer. */
+@media (max-width: 599px) {
+  main.gallery .entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 0.75rem;
+  }
+
+  main.gallery .entry-grid .entry {
+    gap: 0.1rem;
+    padding: 6px 6px 10px;
+  }
+
+  main.gallery .entry-grid
+    :is(.entry-credit, .entry-home, .entry-record-where, .entry-story, .link-button, .share-actions, .share-options) {
+    display: none;
+  }
+
+  main.gallery .entry-grid .entry-photo {
+    margin-bottom: 0.3rem;
+  }
+
+  main.gallery .entry-grid .entry-name {
+    font-size: 1.0625rem;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  main.gallery .entry-grid .entry-record {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  main.gallery .entry-grid .entry::before {
+    top: -7px;
+    width: 52px;
+    height: 16px;
+    margin-left: -26px;
+  }
+
+  main.gallery .entry-grid .entry-ribbon {
+    top: -12px;
+    right: 4px;
+    width: 34px;
+  }
+
+  /* Tags hug the corner of the smaller photo, so "Deer of the Week" stays on one line. */
+  main.gallery .entry-grid .entry-tags {
+    left: 0.3rem;
+    bottom: 0.3rem;
+    gap: 0.2rem;
+  }
+
+  main.gallery .entry-grid .entry-tag {
+    padding: 0.1rem 0.35rem;
+    white-space: nowrap;
+  }
 }
