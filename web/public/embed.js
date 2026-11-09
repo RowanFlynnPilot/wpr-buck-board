@@ -3,10 +3,11 @@
 //   <script src="https://rowanflynnpilot.github.io/wpr-buck-board/embed.js" defer data-no-optimize="1"></script>
 // The pages themselves carry only the board's iframe, because WPR's firewall refuses a page save
 // with script in it. This sizes the board's frame to the board (no inner scrollbar), scrolls the
-// page when the board asks, and on the Brag Board page opens the form at #enter and a shared deer
-// at #entry=<id>. The front-page strip fills whatever height its own iframe sets, so it's left at
-// that height. Without this script the frames still work, at their own height with a scrollbar
-// inside, and those links open the board at the top.
+// page when the board asks, tells it where the reader's screen is for a deer's pop-up, and on the
+// Brag Board page opens the form at #enter and a shared deer at #entry=<id>. The front-page strip
+// fills whatever height its own iframe sets, so it's left at that height. Without this script the
+// frames still work, at their own height with a scrollbar inside, and those links open the board
+// at the top.
 (function () {
   if (window.wprBuckBoardHost) return;
   window.wprBuckBoardHost = true;
@@ -70,6 +71,13 @@
     if (event.data.scrollToTop) frame.scrollIntoView({ block: "start" });
     if (typeof event.data.scrollTo === "number") {
       window.scrollTo(0, frame.getBoundingClientRect().top + window.scrollY + event.data.scrollTo);
+    }
+    // A deer's pop-up opens on the reader's screen, not in the middle of a frame as tall as the board.
+    if (event.data.view) {
+      event.source.postMessage(
+        { source: "wpr-buck-board-host", view: { top: frame.getBoundingClientRect().top, height: window.innerHeight } },
+        origin,
+      );
     }
   });
   window.addEventListener("hashchange", route);

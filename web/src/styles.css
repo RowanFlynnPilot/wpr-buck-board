@@ -2434,4 +2434,171 @@ h1[tabindex="-1"]:focus {
   .lead-photo:hover img {
     transform: none;
   }
+
+  .deer-dialog[open],
+  .deer-dialog[open]::backdrop {
+    animation: none;
+  }
+}
+
+/* A photo that opens its deer in a pop-up: a button that still looks like the print it is. */
+.photo-button {
+  display: block;
+  width: 100%;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: zoom-in;
+}
+
+.entry-photo.photo-button {
+  padding: 0;
+  background: none;
+}
+
+/* A deer opened from the board (DeerDialog) ----------------------------------------------------
+   The whole photo, in its own shape and clear of any screenshot bands, over the story at a
+   reading width, on a print over the darkened board. --view-h is the reader's screen: the frame's
+   own height, or the host page's when embed.js has stretched the frame to the board's. */
+
+.deer-dialog {
+  --view-h: 100vh;
+  width: min(760px, calc(100% - 24px));
+  max-width: none;
+  max-height: calc(var(--view-h) - 24px);
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--print);
+  color: var(--ink);
+  box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.7);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+@supports (height: 100dvh) {
+  .deer-dialog {
+    --view-h: 100dvh;
+  }
+}
+
+.deer-dialog::backdrop {
+  background: rgba(20, 24, 22, 0.8);
+}
+
+.deer-dialog[open] {
+  animation: deer-rise 0.22s ease-out;
+}
+
+.deer-dialog[open]::backdrop {
+  animation: deer-fade 0.22s ease-out;
+}
+
+@keyframes deer-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes deer-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The board behind stays put while the pop-up is open. */
+html:has(.deer-dialog[open]) {
+  overflow: hidden;
+}
+
+.deer-dialog-print {
+  display: grid;
+  gap: 0.5rem;
+  padding: 12px 12px 24px;
+}
+
+/* Close stays at hand while a long story scrolls. */
+.deer-dialog-close {
+  position: sticky;
+  top: 10px;
+  z-index: 2;
+  justify-self: end;
+  width: 44px;
+  height: 44px;
+  margin: 10px 10px -54px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(20, 24, 22, 0.78);
+  color: var(--paper);
+  font: 400 1.75rem/1 var(--body);
+  cursor: pointer;
+}
+
+.deer-dialog-photo {
+  justify-self: center;
+  width: min(100%, calc((var(--view-h) - 120px) * 0.75 * var(--ratio, 1.333)));
+  margin: 0;
+}
+
+.deer-dialog-frame {
+  position: relative;
+}
+
+.deer-dialog-photo .crop img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--ratio, 4 / 3);
+  object-fit: cover;
+  background: var(--line);
+}
+
+.deer-dialog .entry-credit {
+  margin: 0.35rem 0 0;
+  color: var(--bark);
+}
+
+.deer-dialog-words {
+  display: grid;
+  gap: 0.35rem;
+  justify-self: center;
+  width: 100%;
+  max-width: 62ch;
+  padding: 0.5rem 0.5rem 0;
+}
+
+.deer-dialog-name {
+  margin-top: 0.25rem;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.deer-dialog-record {
+  color: var(--bark);
+  font-size: 1rem;
+}
+
+.deer-dialog-story {
+  margin-top: 0.75rem;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.deer-dialog-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1rem;
+}
+
+.deer-dialog-full {
+  color: var(--teal-deep);
+  font-size: 0.9375rem;
 }

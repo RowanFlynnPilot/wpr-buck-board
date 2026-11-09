@@ -1,14 +1,15 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { CardFacts } from "../data";
-import { apDay, describeDeer, tidyStory, WEAPON_LABELS } from "../format";
+import { apDay, describeDeer, possessive, tidyStory, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../storage";
 import type { EntryFields, Sponsor } from "../types";
 import { CropPhoto } from "./CropPhoto";
+import { DeerDialog } from "./DeerDialog";
 import { Rosette } from "./Rosette";
 import { ShareButton } from "./ShareButton";
 import { SponsorCredit } from "./SponsorCredit";
 
-// Stories longer than this are clamped to three lines with a toggle.
+// Stories longer than this are clamped to three lines, with Read the story opening the deer.
 const LONG_STORY = 160;
 
 interface Props {
@@ -31,8 +32,8 @@ interface Props {
 }
 
 export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, storyFacts, featured = false, photo, weekOf }: Props) {
-  const [storyOpen, setStoryOpen] = useState(false);
-  const storyId = useId();
+  // The deer in a pop-up: the whole photo and story (DeerDialog).
+  const [open, setOpen] = useState(false);
   const deer = describeDeer(entry.deer_type, entry.points);
   const story = entry.story && tidyStory(entry.story);
   const longStory = !featured && story !== null && story.length > LONG_STORY;
@@ -40,14 +41,27 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
   return (
     <article className={featured ? "entry entry-featured" : "entry"} data-reveal>
       {ribbon && <Rosette grand={ribbon === "grand"} className="entry-ribbon" />}
-      <a className="entry-photo" href={photo ?? photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
-        <CropPhoto
-          src={photo ?? photoUrl(entry.photo_id, featured ? "full" : "thumb")}
-          alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
-          loading={featured ? "eager" : "lazy"}
-        />
-        <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
-      </a>
+      {featured ? (
+        <a className="entry-photo" href={photo ?? photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
+          <CropPhoto
+            src={photo ?? photoUrl(entry.photo_id, "full")}
+            alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
+            loading="eager"
+          />
+          <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
+        </a>
+      ) : (
+        <button
+          type="button"
+          className="entry-photo photo-button"
+          aria-haspopup="dialog"
+          aria-label={`Open ${possessive(entry.hunter_name)} ${deer.toLowerCase()}`}
+          onClick={() => setOpen(true)}
+        >
+          <CropPhoto src={photo ?? photoUrl(entry.photo_id, "thumb")} alt="" loading="lazy" />
+          <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
+        </button>
+      )}
       {entry.photo_credit && <p className="entry-credit">Photo: {entry.photo_credit}</p>}
       {award && <p className="entry-award">{award}</p>}
       {awardSponsor && <SponsorCredit sponsor={awardSponsor} placement="winner-card" />}
@@ -59,22 +73,28 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
         {entry.county} County, {apDay(entry.harvest_date)}
       </p>
       {story && (
-        <p id={storyId} className={longStory && !storyOpen ? "entry-story entry-story-closed" : "entry-story"}>
+        <p className={longStory ? "entry-story entry-story-closed" : "entry-story"}>
           {story}
         </p>
       )}
       {longStory && (
-        <button
-          type="button"
-          className="link-button"
-          aria-expanded={storyOpen}
-          aria-controls={storyId}
-          onClick={() => setStoryOpen(!storyOpen)}
-        >
-          {storyOpen ? "Show less" : "Read the story"}
+        <button type="button" className="link-button" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+          Read the story
         </button>
       )}
       {share && <ShareButton entry={entry} story={storyFacts && { ...storyFacts, entry }} />}
+      {open && (
+        <DeerDialog
+          entry={entry}
+          award={award}
+          awardSponsor={awardSponsor}
+          share={share}
+          storyFacts={storyFacts}
+          weekOf={weekOf}
+          photo={photo}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </article>
   );
 }
