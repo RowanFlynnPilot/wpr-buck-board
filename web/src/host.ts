@@ -6,7 +6,7 @@ import { DEMO } from "./sales";
 // (README "WordPress embed"). The pages themselves carry only our iframe, since WPR's firewall
 // refuses a page save with script in it, so nothing may depend on anyone listening: without
 // embed.js the frame keeps its own height and scrolls inside itself.
-function tellHost(message: { height: number } | { scrollToTop: true } | { scrollTo: number }) {
+function tellHost(message: { height: number } | { scrollToTop: true } | { scrollTo: number } | { view: true }) {
   window.parent.postMessage({ source: "wpr-buck-board", ...message }, "*");
 }
 
@@ -71,4 +71,28 @@ export async function scrollIntoView(element: HTMLElement) {
   const top = Math.round(element.getBoundingClientRect().top + window.scrollY);
   if (embedded) tellHost({ scrollTo: top });
   window.scrollTo(0, top);
+}
+
+// Where the reader's screen is, in this frame's coordinates, for a pop-up to open on it: the top of
+// the host page's viewport (negative once the frame's top has scrolled above it) and its height.
+// Only when embed.js has stretched the frame to the board's height, so the host page scrolls and
+// ours doesn't; a frame that scrolls itself, or the board on its own, needs nothing (null), and
+// so does a page with no embed.js to answer (null after a short wait).
+export function hostView(): Promise<{ top: number; height: number } | null> {
+  if (!embedded || document.documentElement.scrollHeight > window.innerHeight + 1) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const answer = (event: MessageEvent) => {
+      const view = event.data?.source === "wpr-buck-board-host" ? event.data.view : null;
+      if (event.source !== window.parent || typeof view?.top !== "number" || typeof view?.height !== "number") return;
+      done({ top: view.top, height: view.height });
+    };
+    const timer = setTimeout(() => done(null), 600);
+    function done(view: { top: number; height: number } | null) {
+      clearTimeout(timer);
+      window.removeEventListener("message", answer);
+      resolve(view);
+    }
+    window.addEventListener("message", answer);
+    tellHost({ view: true });
+  });
 }

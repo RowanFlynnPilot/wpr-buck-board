@@ -1,17 +1,19 @@
 // The newest deer on the board, set like a picture page's lead: the photo large, the hunter's
-// name at display size, the story (eight lines until the reader opens it). Two parts, the picture and the words, so the board can
+// name at display size, the story (eight lines; the photo or Read the story opens the deer in a
+// pop-up, DeerDialog, with the whole of it). Two parts, the picture and the words, so the board can
 // set them in the front beside its title while it fills up (Gallery's `.front`), or together above
 // the filters during the vote and after (`.lead`). The grid below starts with the second-newest.
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { CardFacts } from "../data";
-import { apDay, describeDeer, LONG_NAME, tidyStory, WEAPON_LABELS } from "../format";
+import { apDay, describeDeer, LONG_NAME, possessive, tidyStory, WEAPON_LABELS } from "../format";
 import { photoUrl } from "../storage";
 import type { GalleryEntry } from "../types";
 import { CropPhoto } from "./CropPhoto";
+import { DeerDialog } from "./DeerDialog";
 import { EntryTags } from "./EntryCard";
 import { ShareButton } from "./ShareButton";
 
-// Stories longer than this (about eight lines beside the photo) are clamped with a toggle.
+// Stories longer than this (about eight lines beside the photo) are clamped; the pop-up has it all.
 const LONG_LEAD_STORY = 400;
 
 export function LeadDeer({
@@ -24,22 +26,22 @@ export function LeadDeer({
   weekOf?: string;
 }) {
   const deer = describeDeer(entry.deer_type, entry.points);
-  const [storyOpen, setStoryOpen] = useState(false);
-  const storyId = useId();
+  const [open, setOpen] = useState(false);
   const story = entry.story && tidyStory(entry.story);
   const longStory = typeof story === "string" && story.length > LONG_LEAD_STORY;
   return (
     <>
-      <a className="lead-photo" href={photoUrl(entry.photo_id, "full")} target="_blank" rel="noreferrer">
+      <button
+        type="button"
+        className="lead-photo photo-button"
+        aria-haspopup="dialog"
+        aria-label={`Open ${possessive(entry.hunter_name)} ${deer.toLowerCase()}`}
+        onClick={() => setOpen(true)}
+      >
         {/* The one picture that should paint first; the grid's thumbnails wait behind it. */}
-        <CropPhoto
-          src={photoUrl(entry.photo_id, "full")}
-          alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
-          fetchPriority="high"
-          decoding="async"
-        />
+        <CropPhoto src={photoUrl(entry.photo_id, "full")} alt="" fetchPriority="high" decoding="async" />
         <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
-      </a>
+      </button>
       <section className="lead-text" aria-labelledby="lead-heading">
         <h2 id="lead-heading" className="lead-heading">
           Newest on the board
@@ -50,24 +52,19 @@ export function LeadDeer({
           {apDay(entry.harvest_date)}
         </p>
         {story && (
-          <p id={storyId} className={longStory && !storyOpen ? "lead-story lead-story-closed" : "lead-story"}>
+          <p className={longStory ? "lead-story lead-story-closed" : "lead-story"}>
             {story}
           </p>
         )}
         {longStory && (
-          <button
-            type="button"
-            className="link-button"
-            aria-expanded={storyOpen}
-            aria-controls={storyId}
-            onClick={() => setStoryOpen(!storyOpen)}
-          >
-            {storyOpen ? "Show less" : "Read the story"}
+          <button type="button" className="link-button" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+            Read the story
           </button>
         )}
         {entry.photo_credit && <p className="entry-credit">Photo: {entry.photo_credit}</p>}
         <ShareButton entry={entry} story={{ ...storyFacts, entry }} />
       </section>
+      {open && <DeerDialog entry={entry} share storyFacts={storyFacts} weekOf={weekOf} onClose={() => setOpen(false)} />}
     </>
   );
 }
