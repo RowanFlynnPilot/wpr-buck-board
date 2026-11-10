@@ -764,6 +764,20 @@ img {
   padding-top: 0.5rem;
 }
 
+/* The packed wall (PackedWall, wide screens): rows of 4px, each print spanning its own height and
+   the same gap under it the rows had, so a short print leaves no hole beside a tall one. */
+.entry-grid[data-packed] {
+  grid-auto-rows: 4px;
+  row-gap: 0;
+  /* The last print in each column brings its gap with it. */
+  margin-bottom: -2.25rem;
+}
+
+.entry-grid[data-packed] > * {
+  align-self: start;
+  margin-bottom: 2.25rem;
+}
+
 .more {
   justify-self: center;
 }
