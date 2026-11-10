@@ -5,6 +5,7 @@ import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { CountyMap } from "../components/CountyMap";
 import { DeerOfTheWeek } from "../components/DeerOfTheWeek";
+import { DeerViewer } from "../components/DeerViewer";
 import { EmptyLead } from "../components/EmptyLead";
 import { LeadDeer } from "../components/LeadDeer";
 import { EntryCard } from "../components/EntryCard";
@@ -115,174 +116,186 @@ export function Gallery() {
     setShown(PAGE_SIZE);
   };
 
-  return (
-    <main className="gallery">
-      {/* While the board fills up, the title and the newest deer are one composition: the front. */}
-      <div className={front ? "front" : "board-title"}>
-        <header className="masthead">
-          <div className="masthead-title">
-            <h1>
-              Hunting Brag Board
-              {presenting && <span className="title-sponsor">presented by {presenting.name}</span>}
-            </h1>
-            <p className="masthead-season">{season.year} season</p>
-          </div>
-          {presenting && <SponsorCredit sponsor={presenting} placement="board-title" lead={null} />}
-          <p className="masthead-line">
-            {season.phase !== "upcoming" && entries.length > 0 && <strong>{entries.length} deer on the board. </strong>}
-            {phaseLine(season)} {gunOpenerLine(season)}
-          </p>
-          {thankYou && (season.phase === "upcoming" || season.phase === "entries") && (
-            <p className="masthead-thanks">
-              Every entrant whose deer goes on the board gets <strong>{thankYou.prize}</strong>, from {thankYou.name}.
-            </p>
-          )}
-          {season.phase === "entries" && (
-            <a className="button button-blaze" {...viewLink("enter")}>
-              Enter your deer
-            </a>
-          )}
-        </header>
-        {front &&
-          (newest ? (
-            <LeadDeer entry={newest} storyFacts={storyFacts} weekOf={weekOf(newest.id)} />
-          ) : (
-            <EmptyLead season={season} />
-          ))}
-      </div>
+  // The winners, the grand prize first; their pop-up steps through them.
+  const winning = grandPrizeFirst(board.awards).flatMap((award) => {
+    const winner = winners.find((w) => w.award_id === award.id);
+    const entry = winner && entries.find((e) => e.id === winner.entry_id);
+    return entry ? [{ award, entry }] : [];
+  });
+  // The pop-up steps through the board's deer as it lists them: the lead, then the grid (all of it,
+  // past Show more), under whatever award filter is on.
+  const listed = [...(lead ? [lead] : []), ...rest].map((entry) => ({ entry, weekOf: weekOf(entry.id) }));
 
-      {linkedEntry &&
-        (linked ? (
-          <section ref={linkedRef} className="linked-entry" aria-label="The deer from your link">
-            <EntryCard
-              entry={linked}
-              award={linkedAward?.label}
-              awardSponsor={linkedAward ? awardSponsor(board, linkedAward) : undefined}
+  return (
+    <DeerViewer items={listed} share storyFacts={storyFacts}>
+      <main className="gallery">
+        {/* While the board fills up, the title and the newest deer are one composition: the front. */}
+        <div className={front ? "front" : "board-title"}>
+          <header className="masthead">
+            <div className="masthead-title">
+              <h1>
+                Hunting Brag Board
+                {presenting && <span className="title-sponsor">presented by {presenting.name}</span>}
+              </h1>
+              <p className="masthead-season">{season.year} season</p>
+            </div>
+            {presenting && <SponsorCredit sponsor={presenting} placement="board-title" lead={null} />}
+            <p className="masthead-line">
+              {season.phase !== "upcoming" && entries.length > 0 && <strong>{entries.length} deer on the board. </strong>}
+              {phaseLine(season)} {gunOpenerLine(season)}
+            </p>
+            {thankYou && (season.phase === "upcoming" || season.phase === "entries") && (
+              <p className="masthead-thanks">
+                Every entrant whose deer goes on the board gets <strong>{thankYou.prize}</strong>, from {thankYou.name}.
+              </p>
+            )}
+            {season.phase === "entries" && (
+              <a className="button button-blaze" {...viewLink("enter")}>
+                Enter your deer
+              </a>
+            )}
+          </header>
+          {front &&
+            (newest ? (
+              <LeadDeer entry={newest} storyFacts={storyFacts} weekOf={weekOf(newest.id)} />
+            ) : (
+              <EmptyLead season={season} />
+            ))}
+        </div>
+
+        {linkedEntry &&
+          (linked ? (
+            <section ref={linkedRef} className="linked-entry" aria-label="The deer from your link">
+              <EntryCard
+                entry={linked}
+                award={linkedAward?.label}
+                awardSponsor={linkedAward ? awardSponsor(board, linkedAward) : undefined}
+                share
+                storyFacts={storyFacts}
+                featured
+                weekOf={weekOf(linked.id)}
+              />
+            </section>
+          ) : (
+            <p className="linked-missing">The deer from that link isn't on the board.</p>
+          ))}
+
+        {winners.length > 0 && (
+          <section className="winners" aria-labelledby="winners-heading">
+            <h2 id="winners-heading">{season.year} winners</h2>
+            <DeerViewer
+              items={winning.map(({ award, entry }) => ({ entry, award: award.label, awardSponsor: awardSponsor(board, award) }))}
               share
               storyFacts={storyFacts}
-              featured
-              weekOf={weekOf(linked.id)}
-            />
+            >
+              <div className="entry-grid">
+                {winning.map(({ award, entry }) => (
+                  <EntryCard
+                    key={award.id}
+                    entry={entry}
+                    award={award.label}
+                    awardSponsor={awardSponsor(board, award)}
+                    ribbon={award.kind === "readers_choice" ? "grand" : "award"}
+                    share
+                    storyFacts={storyFacts}
+                  />
+                ))}
+              </div>
+            </DeerViewer>
           </section>
-        ) : (
-          <p className="linked-missing">The deer from that link isn't on the board.</p>
-        ))}
+        )}
 
-      {winners.length > 0 && (
-        <section className="winners" aria-labelledby="winners-heading">
-          <h2 id="winners-heading">{season.year} winners</h2>
-          <div className="entry-grid">
-            {grandPrizeFirst(board.awards).flatMap((award) => {
-              const winner = winners.find((w) => w.award_id === award.id);
-              const entry = winner && entries.find((e) => e.id === winner.entry_id);
-              return entry
-                ? [
-                    <EntryCard
-                      key={award.id}
-                      entry={entry}
-                      award={award.label}
-                      awardSponsor={awardSponsor(board, award)}
-                      ribbon={award.kind === "readers_choice" ? "grand" : "award"}
-                      share
-                      storyFacts={storyFacts}
-                    />,
-                  ]
-                : [];
-            })}
-          </div>
-        </section>
-      )}
+        {finalists.length > 0 && (
+          <Suspense fallback={<p className="status">Loading the ballot…</p>}>
+            <ReadersChoice
+              season={season}
+              finalists={entries.filter((e) => finalists.includes(e.id))}
+              presenting={presenting}
+              storyFacts={storyFacts}
+            />
+          </Suspense>
+        )}
 
-      {finalists.length > 0 && (
-        <Suspense fallback={<p className="status">Loading the ballot…</p>}>
-          <ReadersChoice
-            season={season}
-            finalists={entries.filter((e) => finalists.includes(e.id))}
-            presenting={presenting}
+        {weekend.on && (
+          <OpeningWeekend board={board} count={openerDeer.length} first={firstOpenerBuck} storyFacts={storyFacts} />
+        )}
+
+        {season.phase === "entries" && (latestWeekly || weeklySponsor(board)) && (
+          <DeerOfTheWeek
+            board={board}
+            pick={latestWeekly && { entry: latestWeekly, weekOf: weekly[0].week_of }}
             storyFacts={storyFacts}
           />
-        </Suspense>
-      )}
+        )}
 
-      {weekend.on && (
-        <OpeningWeekend board={board} count={openerDeer.length} first={firstOpenerBuck} storyFacts={storyFacts} />
-      )}
-
-      {season.phase === "entries" && (latestWeekly || weeklySponsor(board)) && (
-        <DeerOfTheWeek
-          board={board}
-          pick={latestWeekly && { entry: latestWeekly, weekOf: weekly[0].week_of }}
-          storyFacts={storyFacts}
-        />
-      )}
-
-      {season.phase === "upcoming" ? (
-        <AwardsAndPrizes board={board} />
-      ) : (
-        <>
-          {lead && !front && (
-            <div className="lead" data-reveal>
-              <LeadDeer entry={lead} storyFacts={storyFacts} weekOf={weekOf(lead.id)} />
-            </div>
-          )}
-
-          {entries.length > 0 && (
-            <nav className="filters" aria-label="Filter by award">
-              <button type="button" aria-pressed={filter === null} onClick={() => choose(null)}>
-                All deer
-              </button>
-              {filters.map((award) => (
-                <button key={award.id} type="button" aria-pressed={filter === award.kind} onClick={() => choose(award.kind)}>
-                  {award.label}
-                </button>
-              ))}
-            </nav>
-          )}
-
-          {selected && (
-            <div className="award-panel">
-              <div>
-                <h2>{selected.label}</h2>
-                <p>{selected.description}</p>
-                {selectedSponsor && <p className="award-prize">Prize: {selectedSponsor.prize}</p>}
-              </div>
-              {selectedSponsor && <SponsorCredit sponsor={selectedSponsor} placement="award-filter" />}
-            </div>
-          )}
-
-          {empty ? null : visible.length === 0 ? (
-            <p className="empty">
-              {season.phase === "entries" ? (
-                <>
-                  No deer here yet.{" "}
-                  <a {...viewLink("enter")}>
-                    Enter yours
-                  </a>{" "}
-                  and it could be the first.
-                </>
-              ) : (
-                "No deer here."
-              )}
-            </p>
-          ) : (
-            <div className="entry-grid">
-              {rest.slice(0, shown).map((entry) => (
-                <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} weekOf={weekOf(entry.id)} />
-              ))}
-            </div>
-          )}
-
-          {rest.length > shown && (
-            <button type="button" className="button more" onClick={() => setShown(shown + PAGE_SIZE)}>
-              Show more deer
-            </button>
-          )}
-
-          <CountyMap entries={entries} dnr={dnr} />
-
+        {season.phase === "upcoming" ? (
           <AwardsAndPrizes board={board} />
-        </>
-      )}
-    </main>
+        ) : (
+          <>
+            {lead && !front && (
+              <div className="lead" data-reveal>
+                <LeadDeer entry={lead} storyFacts={storyFacts} weekOf={weekOf(lead.id)} />
+              </div>
+            )}
+
+            {entries.length > 0 && (
+              <nav className="filters" aria-label="Filter by award">
+                <button type="button" aria-pressed={filter === null} onClick={() => choose(null)}>
+                  All deer
+                </button>
+                {filters.map((award) => (
+                  <button key={award.id} type="button" aria-pressed={filter === award.kind} onClick={() => choose(award.kind)}>
+                    {award.label}
+                  </button>
+                ))}
+              </nav>
+            )}
+
+            {selected && (
+              <div className="award-panel">
+                <div>
+                  <h2>{selected.label}</h2>
+                  <p>{selected.description}</p>
+                  {selectedSponsor && <p className="award-prize">Prize: {selectedSponsor.prize}</p>}
+                </div>
+                {selectedSponsor && <SponsorCredit sponsor={selectedSponsor} placement="award-filter" />}
+              </div>
+            )}
+
+            {empty ? null : visible.length === 0 ? (
+              <p className="empty">
+                {season.phase === "entries" ? (
+                  <>
+                    No deer here yet.{" "}
+                    <a {...viewLink("enter")}>
+                      Enter yours
+                    </a>{" "}
+                    and it could be the first.
+                  </>
+                ) : (
+                  "No deer here."
+                )}
+              </p>
+            ) : (
+              <div className="entry-grid">
+                {rest.slice(0, shown).map((entry) => (
+                  <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} weekOf={weekOf(entry.id)} />
+                ))}
+              </div>
+            )}
+
+            {rest.length > shown && (
+              <button type="button" className="button more" onClick={() => setShown(shown + PAGE_SIZE)}>
+                Show more deer
+              </button>
+            )}
+
+            <CountyMap entries={entries} dnr={dnr} />
+
+            <AwardsAndPrizes board={board} />
+          </>
+        )}
+      </main>
+    </DeerViewer>
   );
 }

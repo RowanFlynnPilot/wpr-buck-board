@@ -10,7 +10,8 @@ import { photoUrl } from "../storage";
 import type { GalleryEntry } from "../types";
 import { CropPhoto } from "./CropPhoto";
 import { DeerDialog } from "./DeerDialog";
-import { EntryTags } from "./EntryCard";
+import { useDeerViewer } from "./DeerViewer";
+import { EntryTags } from "./EntryTags";
 import { ShareButton } from "./ShareButton";
 
 // Stories longer than this (about eight lines beside the photo) are clamped; the pop-up has it all.
@@ -26,7 +27,11 @@ export function LeadDeer({
   weekOf?: string;
 }) {
   const deer = describeDeer(entry.deer_type, entry.points);
+  const viewer = useDeerViewer();
   const [open, setOpen] = useState(false);
+  const openDeer = () => {
+    if (!viewer?.(entry.id, { weekOf })) setOpen(true);
+  };
   const story = entry.story && tidyStory(entry.story);
   const longStory = typeof story === "string" && story.length > LONG_LEAD_STORY;
   return (
@@ -36,7 +41,7 @@ export function LeadDeer({
         className="lead-photo photo-button"
         aria-haspopup="dialog"
         aria-label={`Open ${possessive(entry.hunter_name)} ${deer.toLowerCase()}`}
-        onClick={() => setOpen(true)}
+        onClick={openDeer}
       >
         {/* The one picture that should paint first; the grid's thumbnails wait behind it. */}
         <CropPhoto src={photoUrl(entry.photo_id, "full")} alt="" fetchPriority="high" decoding="async" />
@@ -57,7 +62,7 @@ export function LeadDeer({
           </p>
         )}
         {longStory && (
-          <button type="button" className="link-button" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+          <button type="button" className="link-button" aria-haspopup="dialog" onClick={openDeer}>
             Read the story
           </button>
         )}
