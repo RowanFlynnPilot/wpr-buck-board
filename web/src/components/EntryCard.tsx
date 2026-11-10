@@ -31,15 +31,17 @@ interface Props {
   photo?: string;
   // A Deer of the Week's card: the Friday it was picked.
   weekOf?: string;
+  // Entered in the last few days: the New tag.
+  fresh?: boolean;
 }
 
-export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, storyFacts, featured = false, photo, weekOf }: Props) {
+export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, storyFacts, featured = false, photo, weekOf, fresh }: Props) {
   // The deer in a pop-up: the whole photo and story (DeerDialog), stepping through its list's
   // deer when the card is in one (DeerViewer), or on its own.
   const viewer = useDeerViewer();
   const [open, setOpen] = useState(false);
   const openDeer = () => {
-    if (!viewer?.(entry.id, { award, awardSponsor, weekOf })) setOpen(true);
+    if (!viewer?.(entry.id, { award, awardSponsor, weekOf, fresh })) setOpen(true);
   };
   const deer = describeDeer(entry.deer_type, entry.points);
   const story = entry.story && tidyStory(entry.story);
@@ -68,7 +70,7 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
             alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
             loading="eager"
           />
-          <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
+          <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} fresh={fresh} />
         </a>
       ) : (
         <button
@@ -79,7 +81,7 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
           onClick={openDeer}
         >
           <CropPhoto src={photo ?? photoUrl(entry.photo_id, "thumb")} alt="" loading="lazy" />
-          <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
+          <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} fresh={fresh} />
         </button>
       )}
       {entry.photo_credit && <p className="entry-credit">Photo: {entry.photo_credit}</p>}
@@ -114,6 +116,7 @@ export function EntryCard({ entry, award, awardSponsor, ribbon, share = false, s
           share={share}
           storyFacts={storyFacts}
           weekOf={weekOf}
+          fresh={fresh}
           photo={photo}
           onClose={() => setOpen(false)}
         />

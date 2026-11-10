@@ -13,6 +13,7 @@ export interface DeerItem {
   award?: string;
   awardSponsor?: Sponsor;
   weekOf?: string;
+  fresh?: boolean;
 }
 
 // Opens a deer from the list, with what its own card adds (a band's award line, say); false when

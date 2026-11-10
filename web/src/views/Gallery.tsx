@@ -18,6 +18,8 @@ import {
   awardSponsor,
   grandPrizeFirst,
   gunOpenerLine,
+  isNew,
+  NEW_DAYS,
   openingWeekend,
   phaseLine,
   presentingSponsor,
@@ -25,7 +27,8 @@ import {
   weeklySponsor,
 } from "../phase";
 import { LINKED_ENTRY } from "../share";
-import type { AwardKind } from "../types";
+import { apNumber } from "../format";
+import type { AwardKind, GalleryEntry } from "../types";
 import { useLoad } from "../useLoad";
 import { useReveal } from "../useReveal";
 
@@ -104,6 +107,9 @@ export function Gallery() {
   const thankYou = thankYouSponsor(board);
   // Every Deer of the Week wears a tag all season; the latest leads its band after the front.
   const weekOf = (id: string) => weekly.find((w) => w.entry_id === id)?.week_of;
+  // Entered in the last few days, while entries are open: the New tag, and a line under the count.
+  const fresh = (entry: GalleryEntry) => isNew(season, entry.created_at);
+  const freshCount = entries.filter(fresh).length;
   const latestWeekly = weekly[0] && entries.find((e) => e.id === weekly[0].entry_id);
   // What a deer's Story image names: the season and the presenting sponsor.
   const storyFacts = { year: season.year, presenting };
@@ -112,9 +118,16 @@ export function Gallery() {
   // Entries come newest first, so the last opening-day buck is the first one posted.
   const firstOpenerBuck = openerDeer.filter((e) => e.harvest_date === weekend.days[0] && e.deer_type === "buck").at(-1);
 
-  const choose = (kind: AwardKind | null) => {
+  const choose = (kind: AwardKind | null, pill?: HTMLElement) => {
     setFilter(kind);
     setShown(PAGE_SIZE);
+    // On a phone the filters are one row that slides sideways; a pill tapped at its edge slides to
+    // the middle (the row's own scroll only, never the page's or the WordPress page's).
+    const row = pill?.parentElement;
+    if (pill && row && row.scrollWidth > row.clientWidth) {
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      row.scrollTo({ left: pill.offsetLeft - (row.clientWidth - pill.offsetWidth) / 2, behavior: still ? "auto" : "smooth" });
+    }
   };
 
   // The winners, the grand prize first; their pop-up steps through them.
@@ -125,7 +138,7 @@ export function Gallery() {
   });
   // The pop-up steps through the board's deer as it lists them: the lead, then the grid (all of it,
   // past Show more), under whatever award filter is on.
-  const listed = [...(lead ? [lead] : []), ...rest].map((entry) => ({ entry, weekOf: weekOf(entry.id) }));
+  const listed = [...(lead ? [lead] : []), ...rest].map((entry) => ({ entry, weekOf: weekOf(entry.id), fresh: fresh(entry) }));
 
   return (
     <DeerViewer items={listed} share storyFacts={storyFacts}>
@@ -141,8 +154,22 @@ export function Gallery() {
               <p className="masthead-season">{season.year} season</p>
             </div>
             {presenting && <SponsorCredit sponsor={presenting} placement="board-title" lead={null} />}
+            {/* The count, like a scoreboard: the number large, the words beside it. */}
+            {season.phase !== "upcoming" && entries.length > 0 && (
+              <p className="scoreboard">
+                <strong>{entries.length.toLocaleString("en-US")}</strong>{" "}
+                <span>
+                  <span className="scoreboard-label">deer on the board</span>
+                  {freshCount > 0 && (
+                    <span className="scoreboard-new">
+                      {" "}
+                      {apNumber(freshCount)} new in the last {apNumber(NEW_DAYS)} days
+                    </span>
+                  )}
+                </span>
+              </p>
+            )}
             <p className="masthead-line">
-              {season.phase !== "upcoming" && entries.length > 0 && <strong>{entries.length} deer on the board. </strong>}
               {phaseLine(season)} {gunOpenerLine(season)}
             </p>
             {thankYou && (season.phase === "upcoming" || season.phase === "entries") && (
@@ -158,7 +185,7 @@ export function Gallery() {
           </header>
           {front &&
             (newest ? (
-              <LeadDeer entry={newest} storyFacts={storyFacts} weekOf={weekOf(newest.id)} />
+              <LeadDeer entry={newest} storyFacts={storyFacts} weekOf={weekOf(newest.id)} fresh={fresh(newest)} />
             ) : (
               <EmptyLead season={season} />
             ))}
@@ -175,6 +202,7 @@ export function Gallery() {
                 storyFacts={storyFacts}
                 featured
                 weekOf={weekOf(linked.id)}
+                fresh={fresh(linked)}
               />
             </section>
           ) : (
@@ -235,17 +263,22 @@ export function Gallery() {
           <>
             {lead && !front && (
               <div className="lead" data-reveal>
-                <LeadDeer entry={lead} storyFacts={storyFacts} weekOf={weekOf(lead.id)} />
+                <LeadDeer entry={lead} storyFacts={storyFacts} weekOf={weekOf(lead.id)} fresh={fresh(lead)} />
               </div>
             )}
 
             {entries.length > 0 && (
               <nav className="filters" aria-label="Filter by award">
-                <button type="button" aria-pressed={filter === null} onClick={() => choose(null)}>
+                <button type="button" aria-pressed={filter === null} onClick={(e) => choose(null, e.currentTarget)}>
                   All deer
                 </button>
                 {filters.map((award) => (
-                  <button key={award.id} type="button" aria-pressed={filter === award.kind} onClick={() => choose(award.kind)}>
+                  <button
+                    key={award.id}
+                    type="button"
+                    aria-pressed={filter === award.kind}
+                    onClick={(e) => choose(award.kind, e.currentTarget)}
+                  >
                     {award.label}
                   </button>
                 ))}
@@ -280,7 +313,14 @@ export function Gallery() {
             ) : (
               <PackedWall>
                 {rest.slice(0, shown).map((entry) => (
-                  <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} weekOf={weekOf(entry.id)} />
+                  <EntryCard
+                    key={entry.id}
+                    entry={entry}
+                    share
+                    storyFacts={storyFacts}
+                    weekOf={weekOf(entry.id)}
+                    fresh={fresh(entry)}
+                  />
                 ))}
               </PackedWall>
             )}
