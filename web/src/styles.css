@@ -743,6 +743,42 @@ img {
   color: var(--paper);
 }
 
+/* On a phone the filters are one row that slides sideways (Nov. 9: wrapped, seven pills took three
+   rows above the deer). It runs to the screen's edges, its first pill in line with the page, and
+   fades at the right edge so the row reads as going on. A touchscreen hides its scrollbar; a mouse
+   keeps a thin one. */
+@media (max-width: 599px) {
+  .filters {
+    position: relative;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--gap);
+    margin-inline: calc(-1 * var(--gap));
+    padding: 2px 2.5rem 6px var(--gap);
+    scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+  }
+
+  .filters button {
+    flex: none;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 599px) and (pointer: coarse) {
+  .filters {
+    scrollbar-width: none;
+  }
+
+  .filters::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .award-panel {
   display: flex;
   flex-wrap: wrap;
@@ -1520,6 +1556,12 @@ img {
 
 .entry-tag-week {
   background: var(--ink);
+  color: #fff;
+}
+
+/* Entered in the last few days (isNew). */
+.entry-tag-new {
+  background: var(--teal-deep);
   color: #fff;
 }
 
@@ -2301,13 +2343,46 @@ h1[tabindex="-1"]:focus {
   color: rgba(246, 242, 233, 0.86);
 }
 
-/* The count, like a scoreboard. */
-:is(.front, .board-title) .masthead-line > strong:first-child {
-  display: block;
+/* The count, like a scoreboard (Nov. 9): the number large in blaze, as the front-page strip sets
+   it, and the words beside it, with how many came in the last few days under them. */
+/* With very large text the words drop under the number rather than widen the title. */
+.scoreboard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+}
+
+.scoreboard > strong {
   color: var(--blaze);
   font-family: var(--display);
-  font-size: 1.6em;
+  font-size: clamp(3rem, 2.25rem + 3vw, 4.25rem);
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 0.9;
+}
+
+.scoreboard > span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.scoreboard-label {
+  font-family: var(--display);
+  font-size: 1.25rem;
   line-height: 1.15;
+}
+
+.scoreboard-new {
+  font-size: 0.9375rem;
+}
+
+:is(.front, .board-title) .scoreboard-label {
+  color: var(--paper);
+}
+
+:is(.front, .board-title) .scoreboard-new {
+  color: rgba(246, 242, 233, 0.72);
 }
 
 :is(.front, .board-title) .masthead-thanks strong {

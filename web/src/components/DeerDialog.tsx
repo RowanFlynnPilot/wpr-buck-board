@@ -28,6 +28,8 @@ interface Props {
   share?: boolean;
   storyFacts?: Omit<CardFacts, "entry">;
   weekOf?: string;
+  // Entered in the last few days: the New tag.
+  fresh?: boolean;
   // A photo that isn't in storage yet: the entry form preview's own copy.
   photo?: string;
   // Where this deer sits in the list it was opened from, and a step to the next or previous.
@@ -40,7 +42,7 @@ interface Props {
 // A swipe this far across, and mostly across rather than down, turns to the next deer.
 const SWIPE = 60;
 
-export function DeerDialog({ entry, award, awardSponsor, share = false, storyFacts, weekOf, photo, browse, preload, onClose }: Props) {
+export function DeerDialog({ entry, award, awardSponsor, share = false, storyFacts, weekOf, fresh, photo, browse, preload, onClose }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const touch = useRef<{ x: number; y: number } | null>(null);
@@ -142,7 +144,7 @@ export function DeerDialog({ entry, award, awardSponsor, share = false, storyFac
         </p>
       )}
       <div key={entry.id} className="deer-dialog-print" onTouchStart={touchStart} onTouchEnd={touchEnd}>
-        <DeerPhoto src={src} alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`} firstDeer={entry.first_deer} weekOf={weekOf}>
+        <DeerPhoto src={src} alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`} firstDeer={entry.first_deer} weekOf={weekOf} fresh={fresh}>
           {entry.photo_credit && <figcaption className="entry-credit">Photo: {entry.photo_credit}</figcaption>}
         </DeerPhoto>
         <div className="deer-dialog-words">
@@ -176,12 +178,14 @@ function DeerPhoto({
   alt,
   firstDeer,
   weekOf,
+  fresh,
   children,
 }: {
   src: string;
   alt: string;
   firstDeer: boolean;
   weekOf?: string;
+  fresh?: boolean;
   children?: ReactNode;
 }) {
   const [ratio, setRatio] = useState<number | null>(null);
@@ -201,7 +205,7 @@ function DeerPhoto({
     <figure className="deer-dialog-photo" style={ratio ? { ["--ratio" as string]: String(ratio) } : undefined}>
       <div className="deer-dialog-frame">
         <CropPhoto src={src} alt={alt} />
-        <EntryTags firstDeer={firstDeer} weekOf={weekOf} />
+        <EntryTags firstDeer={firstDeer} weekOf={weekOf} fresh={fresh} />
       </div>
       {children}
     </figure>
