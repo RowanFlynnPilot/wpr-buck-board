@@ -11,6 +11,7 @@ import { supabase } from "../supabase";
 import type { GalleryEntry, Season, Sponsor } from "../types";
 import { DeerViewer } from "./DeerViewer";
 import { EntryCard } from "./EntryCard";
+import { PackedWall } from "./PackedWall";
 import { SponsorCredit } from "./SponsorCredit";
 
 type Step = "pick" | "email" | "code" | "done";
@@ -188,7 +189,7 @@ export function ReadersChoice({
 
       {/* The pop-up steps through the finalists. */}
       <DeerViewer items={finalists.map((entry) => ({ entry }))} share storyFacts={storyFacts}>
-        <div className="entry-grid">
+        <PackedWall>
           {finalists.map((entry) => (
             <div key={entry.id} className={myVote === entry.id ? "finalist finalist-mine" : "finalist"}>
               <EntryCard entry={entry} share storyFacts={storyFacts} />
@@ -200,7 +201,7 @@ export function ReadersChoice({
               {myVote === entry.id && <p className="finalist-voted">Your vote</p>}
             </div>
           ))}
-        </div>
+        </PackedWall>
       </DeerViewer>
     </section>
   );

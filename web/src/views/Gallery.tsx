@@ -10,6 +10,7 @@ import { EmptyLead } from "../components/EmptyLead";
 import { LeadDeer } from "../components/LeadDeer";
 import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
+import { PackedWall } from "../components/PackedWall";
 import { SponsorCredit } from "../components/SponsorCredit";
 import { loadAwardWinners, loadCatalog, loadDnrTally, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../reads";
 import { scrollIntoView, viewLink } from "../host";
@@ -188,7 +189,7 @@ export function Gallery() {
               share
               storyFacts={storyFacts}
             >
-              <div className="entry-grid">
+              <PackedWall>
                 {winning.map(({ award, entry }) => (
                   <EntryCard
                     key={award.id}
@@ -200,7 +201,7 @@ export function Gallery() {
                     storyFacts={storyFacts}
                   />
                 ))}
-              </div>
+              </PackedWall>
             </DeerViewer>
           </section>
         )}
@@ -277,11 +278,11 @@ export function Gallery() {
                 )}
               </p>
             ) : (
-              <div className="entry-grid">
+              <PackedWall>
                 {rest.slice(0, shown).map((entry) => (
                   <EntryCard key={entry.id} entry={entry} share storyFacts={storyFacts} weekOf={weekOf(entry.id)} />
                 ))}
-              </div>
+              </PackedWall>
             )}
 
             {rest.length > shown && (
