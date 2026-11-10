@@ -9,10 +9,12 @@ import { useEffect } from "react";
 export function useReveal(deps: unknown[]) {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // A bare `data-reveal` in JSX renders as "true"; either spelling is an element not yet marked.
-    const fresh = [...document.querySelectorAll<HTMLElement>("[data-reveal]")].filter(
-      (el) => el.dataset.reveal === "" || el.dataset.reveal === "true",
-    );
+    // Everything not yet in: new elements (a bare `data-reveal` in JSX renders as "true"), and
+    // those an earlier run marked pending that haven't risen yet. A filter keeps the prints it still
+    // lists, already marked, and the earlier run's observer and fallback go with its cleanup, so
+    // without them here a print still waiting when the filter changed stayed hidden for good
+    // (Nov. 9: flipping between award filters a second apart left most of the board blank).
+    const fresh = [...document.querySelectorAll<HTMLElement>("[data-reveal]")].filter((el) => el.dataset.reveal !== "in");
     if (fresh.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
