@@ -36,6 +36,8 @@ import { useReveal } from "../useReveal";
 let linkedShown = false;
 
 const PAGE_SIZE = 24;
+// The phone filter row's fade at its right edge (styles.css, .filters).
+const ROW_FADE = 40;
 
 // The ballot signs readers in, so it brings the Supabase client; it's fetched only for the vote.
 const ReadersChoice = lazy(() => import("../components/ReadersChoice").then((m) => ({ default: m.ReadersChoice })));
@@ -109,11 +111,13 @@ export function Gallery() {
     setFilter(kind);
     setShown(PAGE_SIZE);
     // On a phone the filters are one row that slides sideways; a pill tapped at its edge slides to
-    // the middle (the row's own scroll only, never the page's or the WordPress page's).
+    // the middle of what the row's 40px fade leaves clear (the row's own scroll only, never the
+    // page's or the WordPress page's). A pill wider than that, with very large text, starts at the left.
     const row = pill?.parentElement;
     if (pill && row && row.scrollWidth > row.clientWidth) {
       const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      row.scrollTo({ left: pill.offsetLeft - (row.clientWidth - pill.offsetWidth) / 2, behavior: still ? "auto" : "smooth" });
+      const clear = row.clientWidth - ROW_FADE;
+      row.scrollTo({ left: pill.offsetLeft - Math.max(0, (clear - pill.offsetWidth) / 2), behavior: still ? "auto" : "smooth" });
     }
   };
 
