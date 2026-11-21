@@ -2858,3 +2858,472 @@ main.gallery .entry:not(.entry-featured) {
     white-space: nowrap;
   }
 }
+
+/* The counter TV (views/Tv.tsx, Nov. 20): the whole screen, dark like the board's front, sized in
+   screen units so a 720p TV, a 1080p one and a 4K one show the same thing, read from across a shop.
+   The deer takes the left two-thirds, the board and its QR code the right third; a portrait
+   screen stacks them. */
+.tv {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 31vw;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: none;
+}
+
+.tv-waiting {
+  display: grid;
+  place-items: center;
+  font: 600 2.4vw var(--body);
+  color: rgba(246, 242, 233, 0.8);
+}
+
+.tv-stage {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4vh 3vw;
+}
+
+.tv-deer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 3vw;
+  width: 100%;
+  animation: tv-in 0.7s ease-out;
+}
+
+@keyframes tv-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The photo as a print in its own shape: as tall as the screen allows, no wider than ~38% of it. */
+.tv-print {
+  position: relative;
+  padding: 1vh 1vh 3.2vh;
+  background: #fff;
+  rotate: -1.4deg;
+  box-shadow: 0 1.2vh 3vh rgba(0, 0, 0, 0.45);
+}
+
+.tv-print::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -1.6vh;
+  left: 50%;
+  width: 9vh;
+  height: 3vh;
+  margin-left: -4.5vh;
+  background: rgba(240, 232, 214, 0.9);
+  rotate: 3deg;
+}
+
+.tv-frame {
+  position: relative;
+  display: block;
+  width: min(38vw, 78vh * var(--ratio, 0.8));
+  aspect-ratio: var(--ratio, 0.8);
+}
+
+.tv-frame .crop,
+.tv-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tv-frame .entry-tags {
+  left: 1.2vh;
+  bottom: 1.2vh;
+  gap: 0.8vh;
+}
+
+.tv-frame .entry-tag {
+  padding: 0.5vh 1.1vh;
+  font-size: max(13px, 1.9vh);
+}
+
+.tv-rosette {
+  position: absolute;
+  top: -3vh;
+  right: -2vh;
+  width: 9vh;
+}
+
+.tv-print-buck img {
+  display: block;
+  width: min(56vw, 70vh * 1.5);
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.tv-print figcaption {
+  margin-top: 0.8vh;
+  font-size: max(13px, 1.6vh);
+  color: var(--bark);
+}
+
+.tv-words {
+  display: grid;
+  align-content: center;
+  gap: 1.6vh;
+  min-width: 0;
+}
+
+.tv-award {
+  color: var(--blaze);
+  font: 700 2.4vw/1.1 var(--display);
+}
+
+.tv-words h2 {
+  font: 700 clamp(2rem, 4.4vw, 7rem) / 1.02 var(--display);
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+
+.tv-record {
+  font-size: 1.75vw;
+  line-height: 1.35;
+  color: rgba(246, 242, 233, 0.86);
+}
+
+/* A few lines of the story; the board has the rest. */
+.tv-story {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+  font-size: 1.45vw;
+  line-height: 1.45;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+
+.tv-credit {
+  font-size: 1.1vw;
+  color: rgba(246, 242, 233, 0.72);
+}
+
+.tv-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2.4vh;
+  min-width: 0;
+  padding: 4vh 2.4vw 3vh;
+  background: #141a17;
+  border-top: 0.8vh solid var(--blaze);
+}
+
+.tv-flag {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  padding: 1.2vh 1.2vw;
+  border-radius: 0.6vh;
+  background: #fff;
+}
+
+.tv-badge {
+  width: 5.6vh;
+  height: 5.6vh;
+}
+
+.tv-wordmark {
+  height: 3.2vh;
+  min-width: 0;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.tv-title {
+  font: 700 2.55vw/1.02 var(--display);
+  color: var(--paper);
+}
+
+.tv-presented {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  margin-top: -0.8vh;
+  font: 500 1.3vw/1.25 var(--display);
+  color: rgba(246, 242, 233, 0.82);
+}
+
+.tv-logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 9vh;
+  height: 9vh;
+  padding: 0.6vh;
+  border-radius: 0.5vh;
+  background: #fff;
+}
+
+.tv-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tv-logo-name {
+  width: auto;
+  padding: 0 1vh;
+  color: var(--ink);
+  font: 700 1.6vh var(--display);
+}
+
+.tv-logo-small {
+  display: inline-grid;
+  width: 5vh;
+  height: 5vh;
+  vertical-align: middle;
+}
+
+/* The count, like the board's scoreboard. */
+.tv-count {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+}
+
+.tv-count strong {
+  color: var(--blaze);
+  font: 700 6.4vw/0.9 var(--display);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.tv-count span {
+  display: grid;
+  font: 700 1.6vw/1.2 var(--display);
+}
+
+.tv-count small {
+  font: 400 1.05vw/1.3 var(--body);
+  color: rgba(246, 242, 233, 0.72);
+}
+
+.tv-cta {
+  display: grid;
+  gap: 1.8vh;
+  margin-top: auto;
+  padding-top: 2vh;
+  border-top: 0.4vh solid rgba(246, 242, 233, 0.16);
+}
+
+.tv-ask {
+  font: 700 2.1vw/1.1 var(--display);
+  color: var(--blaze);
+}
+
+.tv-line {
+  margin-top: 0.8vh;
+  font-size: 1.05vw;
+  line-height: 1.35;
+  color: rgba(246, 242, 233, 0.86);
+}
+
+.tv-here {
+  display: flex;
+  align-items: center;
+  gap: 0.8vw;
+  font-size: 1.05vw;
+  line-height: 1.3;
+  color: rgba(246, 242, 233, 0.86);
+}
+
+/* The QR code, and what it's for beside it. */
+.tv-scan {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.2vw;
+}
+
+.tv-qr {
+  width: 21vh;
+  height: 21vh;
+  border-radius: 0.6vh;
+}
+
+.tv-scan-label {
+  font: 700 1.6vw/1.15 var(--display);
+  color: var(--paper);
+}
+
+/* Offered for the first half minute, focused, so OK on a remote fills the screen. */
+.tv-full {
+  position: absolute;
+  z-index: 2;
+  top: 2vh;
+  left: 2vw;
+  padding: 1.2vh 2vw;
+  border: 0;
+  border-radius: 999px;
+  background: var(--blaze);
+  color: var(--ink);
+  font: 700 max(14px, 2vh) var(--body);
+  cursor: pointer;
+}
+
+.tv-full:focus-visible {
+  outline: 0.5vh solid var(--paper);
+  outline-offset: 0.5vh;
+}
+
+/* Where the loop is: a dot a deer, the shown one in blaze. */
+.tv-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8vh;
+}
+
+.tv-dots span {
+  width: 1.2vh;
+  height: 1.2vh;
+  border-radius: 50%;
+  background: rgba(246, 242, 233, 0.24);
+}
+
+.tv-dots .on {
+  background: var(--blaze);
+}
+
+/* A screen standing on end: the deer above (its photo and words side by side, smaller), the board
+   and its code below, sized by the screen's width (the short side), the deer's part clipped to its
+   share so nothing spills over the board. */
+@media (orientation: portrait) {
+  .tv {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .tv-stage {
+    overflow: hidden;
+    padding: 3vh 5vw 2vh;
+  }
+
+  .tv-deer {
+    gap: 4vw;
+  }
+
+  .tv-frame {
+    width: min(46vw, 30vh * var(--ratio, 0.8));
+  }
+
+  .tv-words {
+    gap: 0.8vh;
+  }
+
+  .tv-award {
+    font-size: 4vw;
+  }
+
+  .tv-words h2 {
+    font-size: 6vw;
+  }
+
+  .tv-record {
+    font-size: 2.9vw;
+  }
+
+  .tv-story {
+    -webkit-line-clamp: 5;
+    font-size: 2.6vw;
+  }
+
+  .tv-credit {
+    font-size: 2.4vw;
+  }
+
+  .tv-side {
+    gap: 1.4vh;
+    padding: 2vh 5vw;
+  }
+
+  .tv-flag {
+    padding: 1vh 2vw;
+  }
+
+  .tv-badge {
+    width: 7vw;
+    height: 7vw;
+  }
+
+  .tv-wordmark {
+    height: 4vw;
+  }
+
+  .tv-title {
+    font-size: 6vw;
+  }
+
+  .tv-presented {
+    margin-top: 0;
+    font-size: 3vw;
+  }
+
+  .tv-logo {
+    width: 11vw;
+    height: 11vw;
+  }
+
+  .tv-logo-small {
+    width: 7vw;
+    height: 7vw;
+  }
+
+  .tv-count strong {
+    font-size: 11vw;
+  }
+
+  .tv-count span {
+    font-size: 3.6vw;
+  }
+
+  .tv-count small {
+    font-size: 2.6vw;
+  }
+
+  .tv-ask {
+    font-size: 4.6vw;
+  }
+
+  .tv-qr {
+    width: 24vw;
+    height: 24vw;
+  }
+
+  .tv-scan-label {
+    font-size: 3.8vw;
+  }
+
+  .tv-line,
+  .tv-here {
+    font-size: 2.8vw;
+  }
+
+  .tv-frame .entry-tag {
+    font-size: 2.4vw;
+  }
+
+  .tv-dots span {
+    width: 1.6vw;
+    height: 1.6vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-deer {
+    animation: none;
+  }
+}

@@ -79,3 +79,16 @@ Front page, where the strip should sit:
 - `loading="lazy"`: the strip, its fonts and photos load only as a reader scrolls near it, so a `#/embed` pageview in Plausible means the strip was seen.
 
 For sales pitches, `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/gallery` (or `#/embed`) fills every unsold slot with "Your business here" under a ribbon that explains the preview. Readers never see it. `https://rowanflynnpilot.github.io/wpr-buck-board/?demo#/enter` is the entry form to try out, on a phone too: it works as it will for readers but sends nothing, and ends on the deer as it would look on the board.
+
+## Counter TV
+
+A slideshow of the board for a TV at a sponsor's counter or a deer processor's: one deer at a time, about ten seconds each, beside the board's title, the presenting sponsor, the count and a QR code to enter. It follows the calendar like the strip (the finalists during the vote, the winners from winners day).
+
+1. On the TV, open its web browser (a smart TV's own, or a streaming stick's, such as Amazon Silk on a Fire TV Stick) and go to the location's address:
+   - Angelo's: `https://rowanflynnpilot.github.io/wpr-buck-board/?at=angelos-family-pizza#/tv`
+   - Burks Bar: `https://rowanflynnpilot.github.io/wpr-buck-board/?at=burks-bar#/tv`
+   - Anywhere else: `https://rowanflynnpilot.github.io/wpr-buck-board/#/tv`
+2. Press OK on the remote while **Full screen** is showing (the first half minute).
+3. Turn off the TV's sleep timer and screensaver, and leave it running. It picks up new deer every five minutes, keeps showing the last ones if the connection drops, and reloads itself every six hours for any update. The remote's left and right arrows step through the deer.
+
+Each location's QR code is tagged (`?ref=tv-angelos-family-pizza`, `?ref=tv-burks-bar`, `?ref=tv`), so the site's analytics count TV scans apart from the printed counter cards (`?ref=<location>`). A new location: add its slug to `LOCATIONS` in `scripts/tv_qr.py` and in `web/src/views/Tv.tsx`, run `python scripts/tv_qr.py` (it reads each code back before keeping it), and commit `web/public/tv-qr/`.

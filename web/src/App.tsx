@@ -13,6 +13,7 @@ const Embed = lazy(() => import("./views/Embed").then((m) => ({ default: m.Embed
 const Gallery = lazy(() => import("./views/Gallery").then((m) => ({ default: m.Gallery })));
 const Enter = lazy(() => import("./views/Enter").then((m) => ({ default: m.Enter })));
 const Admin = lazy(() => import("./views/Admin").then((m) => ({ default: m.Admin })));
+const Tv = lazy(() => import("./views/Tv").then((m) => ({ default: m.Tv })));
 
 // Hash routes, so GitHub Pages needs no rewrites. WordPress embeds each view by URL.
 // The reader pages carry WPR's flag and footer like the rest of the contest series when
@@ -25,6 +26,8 @@ const ROUTES: Record<string, { View: LazyExoticComponent<ComponentType>; flag: b
   "#/gallery": { View: Gallery, flag: true, loading: "Loading the Brag Board…" },
   "#/enter": { View: Enter, flag: true, loading: "Loading the entry form…" },
   "#/admin": { View: Admin, flag: false, loading: "Loading…" },
+  // The counter TV: a full-screen slideshow with its own flag (views/Tv.tsx).
+  "#/tv": { View: Tv, flag: false, loading: "Loading the Brag Board…" },
 };
 
 // On the board's page its reads start now, alongside its code rather than after it.
