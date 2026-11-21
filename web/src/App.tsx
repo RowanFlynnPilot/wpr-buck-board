@@ -4,6 +4,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Footer } from "./components/Footer";
 import { Masthead } from "./components/Masthead";
 import { embedded, useAutoHeight } from "./host";
+import { startGalleryPage } from "./boardData";
 import { DEMO } from "./sales";
 
 // Each view is its own download, fetched when its route opens: a reader who only sees the
@@ -25,6 +26,9 @@ const ROUTES: Record<string, { View: LazyExoticComponent<ComponentType>; flag: b
   "#/enter": { View: Enter, flag: true, loading: "Loading the entry form…" },
   "#/admin": { View: Admin, flag: false, loading: "Loading…" },
 };
+
+// On the board's page its reads start now, alongside its code rather than after it.
+if (window.location.hash.split("?")[0] === "#/gallery") startGalleryPage();
 
 export function App() {
   const [hash, setHash] = useState(window.location.hash);
@@ -50,7 +54,7 @@ export function App() {
       {flag && !inWordPress && <Masthead />}
       <div className="blaze-band" aria-hidden="true" />
       <ErrorBoundary key={path}>
-        <Suspense fallback={<p className="status">{loading}</p>}>
+        <Suspense fallback={<p className="status loading">{loading}</p>}>
           <View />
         </Suspense>
       </ErrorBoundary>
