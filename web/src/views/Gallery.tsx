@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { track } from "../analytics";
 import { AwardsAndPrizes } from "../components/AwardsAndPrizes";
 import { CountyMap } from "../components/CountyMap";
+import { DeerTally } from "../components/DeerTally";
 import { DeerOfTheWeek } from "../components/DeerOfTheWeek";
 import { DeerViewer } from "../components/DeerViewer";
 import { EmptyLead } from "../components/EmptyLead";
@@ -322,7 +323,13 @@ export function Gallery() {
               </button>
             )}
 
-            <CountyMap entries={entries} dnr={dnr} />
+            {/* The season in numbers: the map, and beside it on a wide screen the deer camp tally. */}
+            {entries.length >= 3 && (
+              <div className="season-numbers">
+                <CountyMap entries={entries} dnr={dnr} />
+                <DeerTally entries={entries} />
+              </div>
+            )}
 
             <AwardsAndPrizes board={board} />
           </>
