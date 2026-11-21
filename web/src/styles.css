@@ -252,6 +252,14 @@ img {
   color: var(--bark);
 }
 
+/* While a page loads, its footer waits: shown under the one-line loading message, it sat on the
+   first screen and then jumped down when the deer arrived, the board's biggest layout shift
+   (Nov. 19: 0.27 on a phone). Not a screen-high placeholder instead, which would grow a WordPress
+   frame embed.js sizes to its content. */
+#root:has(> .loading) > .wpr-footer {
+  display: none;
+}
+
 /* Buttons ---------------------------------------------------------------- */
 
 .actions {
@@ -320,8 +328,11 @@ img {
   font-size: 0.875rem;
 }
 
+/* A fixed height, so the space is there before the logo loads and nothing under it moves when it
+   does (Nov. 19: the presenting sponsor's logo pushed the front down 46px on a phone). */
 .sponsor-logo {
-  max-height: 44px;
+  height: 44px;
+  width: auto;
   max-width: 160px;
   object-fit: contain;
 }
@@ -753,18 +764,19 @@ img {
     flex-wrap: nowrap;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
-    scroll-padding-inline: var(--gap);
+    /* No scroll snapping: it pulled a tapped pill back to the left margin, under the fade with
+       very large text, after the tap had slid it to the middle (Nov. 20). */
     margin-inline: calc(-1 * var(--gap));
-    padding: 2px 2.5rem 6px var(--gap);
+    /* The fade is a fixed 40px, not text-sized: at 200% text an 80px fade covered part of the longest
+       pills wherever they scrolled (Nov. 20). Gallery's ROW_FADE matches it. */
+    padding: 2px 40px 6px var(--gap);
     scrollbar-width: thin;
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
   }
 
   .filters button {
     flex: none;
-    scroll-snap-align: start;
     white-space: nowrap;
   }
 }
@@ -889,7 +901,7 @@ img {
 
 /* Larger logos for the sponsors who give the prizes, never wider than a small phone allows. */
 .award-list .sponsor-logo {
-  max-height: 56px;
+  height: 56px;
   max-width: min(180px, 45vw);
 }
 
@@ -917,7 +929,7 @@ img {
 }
 
 .award-grand .sponsor-logo {
-  max-height: 72px;
+  height: 72px;
   max-width: min(220px, 50vw);
 }
 
@@ -1134,7 +1146,7 @@ img {
 }
 
 .entry .sponsor-logo {
-  max-height: 32px;
+  height: 32px;
   max-width: 120px;
 }
 
@@ -2361,8 +2373,11 @@ h1[tabindex="-1"]:focus {
   line-height: 0.9;
 }
 
+/* The words take what's left beside the number and wrap within it; only when that's under 10rem
+   (very large text, or a phone's narrow column beside the logo) do they drop under the number. */
 .scoreboard > span {
   display: grid;
+  flex: 1 1 10rem;
   gap: 0.15rem;
   min-width: 0;
 }
@@ -2385,13 +2400,38 @@ h1[tabindex="-1"]:focus {
   color: rgba(246, 242, 233, 0.72);
 }
 
+/* On a phone the presenting sponsor's logo sits beside the count rather than on a row of its own,
+   so the newest deer comes up the screen a step sooner (Nov. 20: its photo began two-thirds of the
+   way down the first screen). Placement only: the page's order, and a screen reader's, is unchanged. */
+@media (max-width: 599px) {
+  :is(.front, .board-title) .masthead:has(> .scoreboard):has(> .sponsor-credit) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 0.75rem;
+  }
+
+  :is(.front, .board-title) .masthead:has(> .scoreboard):has(> .sponsor-credit) > * {
+    grid-column: 1 / -1;
+  }
+
+  :is(.front, .board-title) .masthead:has(> .scoreboard):has(> .sponsor-credit) > .scoreboard {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  :is(.front, .board-title) .masthead:has(> .scoreboard):has(> .sponsor-credit) > .sponsor-credit {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+  }
+}
+
 :is(.front, .board-title) .masthead-thanks strong {
   color: var(--paper);
 }
 
 /* A sponsor's logo on a white card, so a dark logo still reads on the panel. */
 :is(.front, .board-title) .sponsor-logo {
-  max-height: 56px;
+  height: 56px;
   padding: 5px;
   border-radius: 4px;
   background: #fff;

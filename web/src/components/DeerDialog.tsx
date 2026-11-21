@@ -48,6 +48,9 @@ export function DeerDialog({ entry, award, awardSponsor, share = false, storyFac
   const touch = useRef<{ x: number; y: number } | null>(null);
   const nameId = useId();
   const src = photo ?? photoUrl(entry.photo_id, "full");
+  // The thumbnail first (usually loaded already on the board), the full photo in its place once
+  // it arrives; the entry form's own preview has no thumbnail.
+  const preview = photo ? undefined : photoUrl(entry.photo_id, "thumb");
   const deer = describeDeer(entry.deer_type, entry.points);
   const story = entry.story && tidyStory(entry.story);
 
@@ -144,7 +147,14 @@ export function DeerDialog({ entry, award, awardSponsor, share = false, storyFac
         </p>
       )}
       <div key={entry.id} className="deer-dialog-print" onTouchStart={touchStart} onTouchEnd={touchEnd}>
-        <DeerPhoto src={src} alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`} firstDeer={entry.first_deer} weekOf={weekOf} fresh={fresh}>
+        <DeerPhoto
+          src={src}
+          preview={preview}
+          alt={`${entry.hunter_name}'s ${deer.toLowerCase()}`}
+          firstDeer={entry.first_deer}
+          weekOf={weekOf}
+          fresh={fresh}
+        >
           {entry.photo_credit && <figcaption className="entry-credit">Photo: {entry.photo_credit}</figcaption>}
         </DeerPhoto>
         <div className="deer-dialog-words">
@@ -175,6 +185,7 @@ export function DeerDialog({ entry, award, awardSponsor, share = false, storyFac
 // loads, so all of it shows and no band does.
 function DeerPhoto({
   src,
+  preview,
   alt,
   firstDeer,
   weekOf,
@@ -182,6 +193,7 @@ function DeerPhoto({
   children,
 }: {
   src: string;
+  preview?: string;
   alt: string;
   firstDeer: boolean;
   weekOf?: string;
@@ -196,15 +208,16 @@ function DeerPhoto({
       const box = contentBox(img, img.naturalWidth, img.naturalHeight);
       setRatio(box.w / box.h);
     };
-    img.src = src;
+    // The frame's shape from whichever copy comes first: the thumbnail is the same picture.
+    img.src = preview ?? src;
     return () => {
       img.onload = null;
     };
-  }, [src]);
+  }, [src, preview]);
   return (
     <figure className="deer-dialog-photo" style={ratio ? { ["--ratio" as string]: String(ratio) } : undefined}>
       <div className="deer-dialog-frame">
-        <CropPhoto src={src} alt={alt} />
+        <CropPhoto src={src} preview={preview} alt={alt} />
         <EntryTags firstDeer={firstDeer} weekOf={weekOf} fresh={fresh} />
       </div>
       {children}

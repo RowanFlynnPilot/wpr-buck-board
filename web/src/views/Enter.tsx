@@ -63,6 +63,32 @@ const BLANK: EntrySubmission = {
   photo_credit: "",
 };
 
+// What a reader has typed survives the page reloading under them (Nov. 20): a phone low on memory
+// often reloads the page after its camera opens from it, and the whole entry was lost. Kept for
+// this tab only (sessionStorage, gone when the tab closes), never the photo or the two consent
+// boxes, and cleared once the entry is sent or started over. Not in a ?demo preview.
+const DRAFT = "brag-board-entry-draft";
+
+function readDraft(): EntrySubmission | null {
+  if (DEMO) return null;
+  try {
+    const raw = sessionStorage.getItem(DRAFT);
+    return raw ? { ...BLANK, ...(JSON.parse(raw) as Partial<EntrySubmission>) } : null;
+  } catch {
+    return null;
+  }
+}
+
+function keepDraft(entry: EntrySubmission | null) {
+  if (DEMO) return;
+  try {
+    if (!entry || JSON.stringify(entry) === JSON.stringify(BLANK)) sessionStorage.removeItem(DRAFT);
+    else sessionStorage.setItem(DRAFT, JSON.stringify(entry));
+  } catch {
+    // Without storage there's simply no draft.
+  }
+}
+
 // Beside the questions, or folded above the upload, in Shereen's words (one photo, where her plan allowed three).
 const PHOTO_GUIDELINES: [lead: string, text: string][] = [
   ["Get in the picture.", "We feature hunters with their deer, so the hunter needs to be in the photo."],
@@ -90,7 +116,9 @@ type Photo = PreparedPhoto & { preview: string };
 
 export function Enter() {
   const page = useLoad(loadEnterPage);
-  const [entry, setEntry] = useState<EntrySubmission>(BLANK);
+  // A draft from before the page reloaded, if there is one (readDraft above).
+  const [restored] = useState(readDraft);
+  const [entry, setEntry] = useState<EntrySubmission>(() => restored ?? BLANK);
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
@@ -121,10 +149,12 @@ export function Enter() {
     wasSent.current = sent;
   }, [sent]);
 
+  useEffect(() => keepDraft(sent ? null : entry), [entry, sent]);
+
   // The sections rise into view as the reader scrolls to them; re-armed when the form changes shape.
   useReveal([page.status, sent, entry.age_group]);
 
-  if (page.status === "loading") return <p className="status">Loading the entry form…</p>;
+  if (page.status === "loading") return <p className="status loading">Loading the entry form…</p>;
   if (page.status === "failed") {
     return <p className="status">The entry form isn't loading right now. Try again in a few minutes.</p>;
   }
@@ -270,6 +300,11 @@ export function Enter() {
           </div>
         )}
         {IN_APP_TIP && <p className="inapp-note">{IN_APP_TIP}</p>}
+        {restored && !photo && (
+          <p className="inapp-note" role="status">
+            We kept what you'd typed. Add your photo again, check the two boxes at the end, and send.
+          </p>
+        )}
       </header>
 
       <form onSubmit={send}>

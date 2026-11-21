@@ -12,7 +12,7 @@ import { EntryCard } from "../components/EntryCard";
 import { OpeningWeekend } from "../components/OpeningWeekend";
 import { PackedWall } from "../components/PackedWall";
 import { SponsorCredit } from "../components/SponsorCredit";
-import { loadAwardWinners, loadCatalog, loadDnrTally, loadFinalists, loadGallery, loadSeason, loadWeeklyPicks } from "../reads";
+import { galleryPage } from "../boardData";
 import { scrollIntoView, viewLink } from "../host";
 import {
   awardSponsor,
@@ -36,26 +36,15 @@ import { useReveal } from "../useReveal";
 let linkedShown = false;
 
 const PAGE_SIZE = 24;
+// The phone filter row's fade at its right edge (styles.css, .filters).
+const ROW_FADE = 40;
 
 // The ballot signs readers in, so it brings the Supabase client; it's fetched only for the vote.
 const ReadersChoice = lazy(() => import("../components/ReadersChoice").then((m) => ({ default: m.ReadersChoice })));
 
-async function loadGalleryPage() {
-  const season = await loadSeason();
-  const voting = season.phase === "voting" || season.phase === "tallying";
-  const [catalog, entries, winners, finalists, weekly, dnr] = await Promise.all([
-    loadCatalog(season.id),
-    loadGallery(season.id),
-    season.phase === "winners" ? loadAwardWinners(season.id) : Promise.resolve([]),
-    voting ? loadFinalists(season.id) : Promise.resolve([]),
-    season.phase === "upcoming" ? Promise.resolve([]) : loadWeeklyPicks(season.id),
-    season.phase === "upcoming" ? Promise.resolve(null) : loadDnrTally(season.id),
-  ]);
-  return { board: { season, ...catalog }, entries, winners, finalists, weekly, dnr };
-}
-
 export function Gallery() {
-  const page = useLoad(loadGalleryPage);
+  // Started with the app when the board is the page (boardData.ts).
+  const page = useLoad(galleryPage);
   const [filter, setFilter] = useState<AwardKind | null>(null);
   const [shown, setShown] = useState(PAGE_SIZE);
   const ready = page.status === "ready";
@@ -78,7 +67,7 @@ export function Gallery() {
   // Cards and sections rise into view as the reader scrolls; re-armed whenever the list changes.
   useReveal([ready, filter, shown]);
 
-  if (page.status === "loading") return <p className="status">Loading the Brag Board…</p>;
+  if (page.status === "loading") return <p className="status loading">Loading the Brag Board…</p>;
   if (page.status === "failed") return <p className="status">The Brag Board isn't loading right now. Try again in a few minutes.</p>;
 
   const { board, entries, winners, finalists, weekly, dnr } = page.data;
@@ -122,11 +111,13 @@ export function Gallery() {
     setFilter(kind);
     setShown(PAGE_SIZE);
     // On a phone the filters are one row that slides sideways; a pill tapped at its edge slides to
-    // the middle (the row's own scroll only, never the page's or the WordPress page's).
+    // the middle of what the row's 40px fade leaves clear (the row's own scroll only, never the
+    // page's or the WordPress page's). A pill wider than that, with very large text, starts at the left.
     const row = pill?.parentElement;
     if (pill && row && row.scrollWidth > row.clientWidth) {
       const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      row.scrollTo({ left: pill.offsetLeft - (row.clientWidth - pill.offsetWidth) / 2, behavior: still ? "auto" : "smooth" });
+      const clear = row.clientWidth - ROW_FADE;
+      row.scrollTo({ left: pill.offsetLeft - Math.max(0, (clear - pill.offsetWidth) / 2), behavior: still ? "auto" : "smooth" });
     }
   };
 

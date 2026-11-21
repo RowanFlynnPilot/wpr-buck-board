@@ -46,7 +46,13 @@ export function LeadDeer({
         onClick={openDeer}
       >
         {/* The one picture that should paint first; the grid's thumbnails wait behind it. */}
-        <CropPhoto src={photoUrl(entry.photo_id, "full")} alt="" fetchPriority="high" decoding="async" />
+        <CropPhoto
+          src={photoUrl(entry.photo_id, "full")}
+          preview={photoUrl(entry.photo_id, "thumb")}
+          alt=""
+          fetchPriority="high"
+          decoding="async"
+        />
         <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} fresh={fresh} />
       </button>
       <section className="lead-text" aria-labelledby="lead-heading">
