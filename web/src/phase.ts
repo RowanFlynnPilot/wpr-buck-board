@@ -32,6 +32,14 @@ export function gunOpenerLine(season: Season): string | null {
 // from the day before the opener through the Monday after, in Wausau. `days` are the opener and
 // the day after, the harvest dates that make a deer an opening-weekend deer. A `?demo` preview
 // shows it whenever entries are open, so a prospect can see the Opening Weekend spot.
+// A deer entered in the last three days wears a New tag while entries are open, so a reader back
+// for another look sees what's come in since (Nov. 9). It goes by the entry date, the one the board
+// already has (created_at); like the opening weekend, a display window, not a phase.
+export const NEW_DAYS = 3;
+export function isNew(season: Season, createdAt: string, now = Date.now()): boolean {
+  return season.phase === "entries" && now - Date.parse(createdAt) < NEW_DAYS * 86_400_000;
+}
+
 export function openingWeekend(season: Season): { on: boolean; days: [string, string] } {
   const opener = wausauDay(season.gun_opener_at);
   const now = Date.now();

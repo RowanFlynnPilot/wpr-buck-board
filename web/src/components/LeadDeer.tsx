@@ -21,16 +21,18 @@ export function LeadDeer({
   entry,
   storyFacts,
   weekOf,
+  fresh,
 }: {
   entry: GalleryEntry;
   storyFacts: Omit<CardFacts, "entry">;
   weekOf?: string;
+  fresh?: boolean;
 }) {
   const deer = describeDeer(entry.deer_type, entry.points);
   const viewer = useDeerViewer();
   const [open, setOpen] = useState(false);
   const openDeer = () => {
-    if (!viewer?.(entry.id, { weekOf })) setOpen(true);
+    if (!viewer?.(entry.id, { weekOf, fresh })) setOpen(true);
   };
   const story = entry.story && tidyStory(entry.story);
   const longStory = typeof story === "string" && story.length > LONG_LEAD_STORY;
@@ -45,7 +47,7 @@ export function LeadDeer({
       >
         {/* The one picture that should paint first; the grid's thumbnails wait behind it. */}
         <CropPhoto src={photoUrl(entry.photo_id, "full")} alt="" fetchPriority="high" decoding="async" />
-        <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} />
+        <EntryTags firstDeer={entry.first_deer} weekOf={weekOf} fresh={fresh} />
       </button>
       <section className="lead-text" aria-labelledby="lead-heading">
         <h2 id="lead-heading" className="lead-heading">
@@ -69,7 +71,7 @@ export function LeadDeer({
         {entry.photo_credit && <p className="entry-credit">Photo: {entry.photo_credit}</p>}
         <ShareButton entry={entry} story={{ ...storyFacts, entry }} />
       </section>
-      {open && <DeerDialog entry={entry} share storyFacts={storyFacts} weekOf={weekOf} onClose={() => setOpen(false)} />}
+      {open && <DeerDialog entry={entry} share storyFacts={storyFacts} weekOf={weekOf} fresh={fresh} onClose={() => setOpen(false)} />}
     </>
   );
 }
